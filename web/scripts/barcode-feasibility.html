@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PillCheck — 바코드 인식률 실측 (Week 0 GATE 2)</title>
+<style>
+  :root {
+    --bg: #FAFAFA; --surface: #FFFFFF; --primary: #1B5E20; --text: #1A1A1A;
+    --muted: #555; --pad: 16px; --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+                 "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
+    font-size: 18px; line-height: 1.55;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: var(--pad); }
+  h1 { font-size: 24px; color: var(--primary); margin: 8px 0 4px; }
+  .sub { color: var(--muted); font-size: 16px; margin: 0 0 20px; }
+  .note {
+    background: #FFF9C4; border-radius: var(--radius); padding: 14px;
+    font-size: 16px; line-height: 1.6; margin-bottom: 16px;
+  }
+  button {
+    width: 100%; min-height: 56px; font-size: 22px; font-weight: 600;
+    border-radius: var(--radius); border: none;
+    background: var(--primary); color: white; margin-bottom: 12px;
+    cursor: pointer;
+  }
+  button.secondary { background: white; color: var(--primary); border: 2px solid var(--primary); }
+  button:disabled { opacity: 0.55; }
+  #reader { width: 100%; max-width: 480px; margin: 8px auto; background: black; border-radius: var(--radius); overflow: hidden; }
+  .score {
+    background: var(--surface); border-radius: var(--radius); padding: 16px;
+    margin: 16px 0; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    font-size: 18px;
+  }
+  .score b { font-size: 26px; color: var(--primary); }
+  .verdict {
+    margin-top: 8px; padding: 10px; border-radius: 8px; font-weight: 600;
+  }
+  .verdict.pass { background: #E8F5E9; color: #1B5E20; }
+  .verdict.warn { background: #FFF3E0; color: #E65100; }
+  .verdict.fail { background: #FFEBEE; color: #B71C1C; }
+  .log {
+    background: #F5F5F5; border-radius: var(--radius); padding: 12px;
+    margin-top: 12px; max-height: 280px; overflow: auto; font-size: 15px;
+  }
+  .log-row { padding: 4px 0; border-bottom: 1px solid #E0E0E0; }
+  .log-row:last-child { border-bottom: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>바코드 인식률 실측</h1>
+  <p class="sub">Week 0 GATE 2 · DESIGN.md Open Question #4</p>
+
+  <div class="note">
+    <b>방법:</b> 흔한 영양제 5개를 골라 각 5번씩 시도. 부모님 Android Chrome + 자녀 iPhone Safari 둘 다.<br>
+    <b>판정:</b> ≥ 70% PWA 유지 · 50~70% 회색존 · &lt; 50% Capacitor 결정
+  </div>
+
+  <button id="startBtn">스캔 시작</button>
+  <button id="stopBtn" class="secondary" hidden>스캔 정지 (실패로 카운트)</button>
+
+  <div id="reader"></div>
+
+  <div class="score">
+    시도 <b id="attempts">0</b>회 · 성공 <b id="successes">0</b>회 · 인식률 <b id="rate">—</b>
+    <div id="verdict" class="verdict" hidden></div>
+  </div>
+
+  <div class="log" id="log">
+    <div class="log-row" style="color:#555">로그가 여기 표시됩니다.</div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+  const reader = new Html5Qrcode("reader");
+  const log = document.getElementById("log");
+  const verdictEl = document.getElementById("verdict");
+  let attempts = 0, successes = 0, startedAt = 0;
+
+  function logRow(html) {
+    const div = document.createElement("div");
+    div.className = "log-row";
+    div.innerHTML = html;
+    log.insertBefore(div, log.firstChild);
+  }
+
+  function updateScore() {
+    document.getElementById("attempts").textContent = attempts;
+    document.getElementById("successes").textContent = successes;
+    const rate = attempts === 0 ? null : (successes / attempts) * 100;
+    document.getElementById("rate").textContent = rate === null ? "—" : Math.round(rate) + "%";
+    if (attempts >= 5) {
+      verdictEl.hidden = false;
+      if (rate >= 70) {
+        verdictEl.className = "verdict pass";
+        verdictEl.textContent = "✅ PASS — PWA 유지 가능 (≥70%)";
+      } else if (rate >= 50) {
+        verdictEl.className = "verdict warn";
+        verdictEl.textContent = "⚠️ 회색존 (50~70%) — 부모님 베타 결과 보고 V1.5 결정";
+      } else {
+        verdictEl.className = "verdict fail";
+        verdictEl.textContent = "❌ FAIL (<50%) — Capacitor wrap 권장";
+      }
+    }
+  }
+
+  document.getElementById("startBtn").onclick = async function () {
+    startedAt = Date.now();
+    attempts++;
+    updateScore();
+    this.hidden = true;
+    document.getElementById("stopBtn").hidden = false;
+    try {
+      await reader.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 280, height: 160 } },
+        function (text) {
+          successes++;
+          const elapsed = ((Date.now() - startedAt) / 1000).toFixed(1);
+          logRow("✅ <b>" + escapeHtml(text) + "</b> · " + elapsed + "초");
+          updateScore();
+          reader.stop().then(function () {
+            document.getElementById("startBtn").hidden = false;
+            document.getElementById("stopBtn").hidden = true;
+          });
+        },
+        function () { /* 매 프레임 인식 실패 — 무시 */ }
+      );
+    } catch (e) {
+      logRow("❌ 카메라 오류: " + escapeHtml(String(e)));
+      this.hidden = false;
+      document.getElementById("stopBtn").hidden = true;
+    }
+  };
+
+  document.getElementById("stopBtn").onclick = async function () {
+    try { await reader.stop(); } catch (_) {}
+    const elapsed = ((Date.now() - startedAt) / 1000).toFixed(1);
+    logRow("⏱️ 실패(사용자 정지) · " + elapsed + "초 후");
+    document.getElementById("startBtn").hidden = false;
+    this.hidden = true;
+  };
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (m) {
+      return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[m];
+    });
+  }
+</script>
+</body>
+</html>
