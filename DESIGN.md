@@ -120,7 +120,7 @@ V2(공식 오픈) 시 법률 검토 후 갱신.
 ## Open Questions
 
 1. ~~부모님 폰 OS~~ → **확정: 부모님 Android, 자녀 iOS. PWA로 양쪽 동시 지원.**
-2. **식약처 OpenAPI 키 발급은 가능한가?** → nedrug.mfds.go.kr / openapi.foodsafetykorea.go.kr 둘 다 키 발급 필요. **수일 소요 가능성** — 이게 critical path. Week 0 즉시 신청, 도착 전까지 모든 빌드 작업 차단.
+2. **식약처 OpenAPI 키 발급은 가능한가?** → data.go.kr 활용신청 4건 (의약품 허가정보 + DUR 성분정보 + DUR 품목정보 + 건강기능식품정보) → 인증키 1개. 자동승인 즉시 ~ 5영업일. Week 0 즉시 신청. 식품안전나라 별도 가입 불필요(V1).
 3. **🚨 DUR API에서 영양제(건강기능식품) ↔ 처방약 매칭이 작동하는가?** → 두 단계 검증:
    - **Week 0 GATE (proof of concept):** 알려진 페어(예: 와파린 ↔ 비타민K) 1건이라도 매칭되면 Week 1 진행. 0건이면 데이터 가용성 자체 부재 — 즉시 Approach C 피벗.
    - **Week 3-4 ship-time 결정:** Week 1-3 동안 빌드 중 다양한 페어 샘플링. 부모님 약 ↔ 흔한 영양제 50개 페어 중 의미있는 매칭률 < 40%면 V1 출시 보류, Approach C 추가 또는 회색 비율 인정 후 출시 결정.
@@ -169,7 +169,7 @@ CI/CD는 V1에서 Vercel/Cloudflare 자동 배포(Git push 시). 별도 작업 0
 | Barcode | html5-qrcode (V1) → Capacitor + ML Kit (V1.5 트리거 시) | 첫 시도는 웹 표준만, 인식률 부족 시 네이티브 wrap |
 | Local Storage | Dexie.js (IndexedDB wrapper) | 식약처 마스터 캐싱, 검색 인덱싱 |
 | 오프라인 | Service Worker (vite-plugin-pwa) | 약국·매장 LTE 불안정 대비 |
-| API | 식약처 의약품안전나라(nedrug) + 식품안전나라 | 공공 데이터, 무료. CORS 시 Cloudflare Worker proxy 1개. |
+| API | data.go.kr 4종 (의약품 허가정보 / DUR 성분정보 / DUR 품목정보 / 건강기능식품정보) | 공공 데이터, 무료. 인증키 1개로 통일. CORS 시 Cloudflare Worker proxy 1개. |
 | 호스팅 | Vercel 또는 Cloudflare Pages | 무료, HTTPS 자동, 카톡 링크 공유 가능 |
 | 인증 | **없음 (V1)** | 부모님 한 명 = 로컬 only. URL 가족 공유로 충분. |
 | LLM | **없음 (V1)** | 책임 회피, 비용 0 |
@@ -181,9 +181,12 @@ CI/CD는 V1에서 Vercel/Cloudflare 자동 배포(Git push 시). 별도 작업 0
 **이 단계 통과 전에는 어떤 빌드 작업도 시작하지 않는다.**
 
 - [x] ~~부모님 폰 OS~~ — 확정 (부모님 Android, 자녀 iOS, PWA로 통합)
-- [ ] **식약처 OpenAPI 활용신청 4건 → 인증키 2개** (자세한 절차: [docs/api-key-guide.md](docs/api-key-guide.md))
-  - data.go.kr: 의약품 제품 허가정보 + **의약품안전사용서비스(DUR)성분정보(핵심)** + 의약품안전사용서비스(DUR)품목정보(보조) → 인증키 1개
-  - 식품안전나라(openapi.foodsafetykorea.go.kr): 건강기능식품 정보 → 인증키 1개 (별도 포털)
+- [ ] **공공데이터포털(data.go.kr) 활용신청 4건 → 인증키 1개** (자세한 절차: [docs/api-key-guide.md](docs/api-key-guide.md))
+  - 식품의약품안전처_의약품 제품 허가정보 (15095677) — 검색·등록
+  - 식품의약품안전처_**의약품안전사용서비스(DUR)성분정보** (15056780) — 핵심 매칭
+  - 식품의약품안전처_의약품안전사용서비스(DUR)품목정보 (15059486) — 보조
+  - 식품의약품안전처_건강기능식품정보 (15056760) — 영양제 마스터
+  - 식품안전나라(foodsafetykorea.go.kr) 별도 가입 불필요 (V1.5+ 옵션)
   - **키 도착까지 대기 필요. 그 사이 PWA 스캐폴드 작업.**
 - [ ] **데이터 검증 스크립트** (`scripts/week0/validate_dur.py`) 키 도착 직후 즉시 실행:
   1. 부모님 약 1개의 식약처 의약품 표준코드 조회
