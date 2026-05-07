@@ -181,9 +181,9 @@ CI/CD는 V1에서 Vercel/Cloudflare 자동 배포(Git push 시). 별도 작업 0
 **이 단계 통과 전에는 어떤 빌드 작업도 시작하지 않는다.**
 
 - [x] ~~부모님 폰 OS~~ — 확정 (부모님 Android, 자녀 iOS, PWA로 통합)
-- [ ] **식약처 OpenAPI 키 신청** (둘 다)
-  - 의약품안전나라(nedrug): https://www.data.go.kr → "의약품 제품 허가정보" + "DUR 품목정보" 활용신청
-  - 식품안전나라: https://openapi.foodsafetykorea.go.kr 회원가입 후 인증키 발급
+- [ ] **식약처 OpenAPI 활용신청 4건 → 인증키 2개** (자세한 절차: [docs/api-key-guide.md](docs/api-key-guide.md))
+  - data.go.kr: 의약품 제품 허가정보 + **의약품안전사용서비스(DUR)성분정보(핵심)** + 의약품안전사용서비스(DUR)품목정보(보조) → 인증키 1개
+  - 식품안전나라(openapi.foodsafetykorea.go.kr): 건강기능식품 정보 → 인증키 1개 (별도 포털)
   - **키 도착까지 대기 필요. 그 사이 PWA 스캐폴드 작업.**
 - [ ] **데이터 검증 스크립트** (`scripts/week0/validate_dur.py`) 키 도착 직후 즉시 실행:
   1. 부모님 약 1개의 식약처 의약품 표준코드 조회
