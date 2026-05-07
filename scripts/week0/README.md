@@ -47,9 +47,9 @@ python validate_dur.py
 
 스크립트는 다음 중 하나로 종료합니다:
 
-- **`PASS`** → DUR 매칭 ≥ 1건 발견. Week 1 빌드 진행. (단, ship-time 매칭률 40%는 Week 3-4 별도 검증)
-- **`FAIL_AUTH_OR_API`** → 의약품 검색조차 0건. API 키 활용신청 승인 여부·엔드포인트 재확인 후 재시도.
-- **`FAIL_DATA`** → 의약품은 되지만 DUR 영양제 매칭 0건. **Approach A 폐기 신호 — Approach C(LLM 보조 챗) 피벗 검토.**
+- **`PASS`** → 의약품 검색 ≥ 1건 + DUR API 정상 응답. Week 1 빌드 진행. (specific pair 정밀 매칭은 마이페이지 활용가이드의 검색 파라미터 명세 확인 후 V1 빌드 중 정교화)
+- **`FAIL_AUTH_OR_API`** → 의약품 검색·DUR API 둘 다 응답 없음. 키 활성화 대기, 활용신청 승인 상태, endpoint URL 변경 가능성 확인.
+- **`PARTIAL`** → 한쪽만 작동. 마이페이지에서 미승인/오류 API 확인 필요.
 
 `gate_result.json` 파일에 상세 결과 저장됩니다 — 부모님께 보여드릴 때 참고용.
 

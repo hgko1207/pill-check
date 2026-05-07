@@ -71,10 +71,10 @@ PillCheck V1은 **공공데이터포털(data.go.kr) 한 곳**에서 활용신청
 브라우저 주소창에 붙여넣기 (`{KEY}` 자리에 본인 Encoding 키 그대로):
 
 ```
-http://apis.data.go.kr/1471000/DrugPrdtPrmsnInfoService06/getDrugPrdtPrmsnDtlInq05?serviceKey={KEY}&type=json&item_name=타이레놀&numOfRows=1
+http://apis.data.go.kr/1471000/DrugPrdtPrmsnInfoService07/getDrugPrdtPrmsnDtlInq06?serviceKey={KEY}&type=json&item_name=타이레놀&numOfRows=1
 ```
 
-> 🔧 **endpoint URL은 작업 가설입니다.** data.go.kr API endpoint는 버전 변경(예: Service06 → 07)이 가끔 발생하므로, 위 URL이 안 되면 **마이페이지 → 오픈API → 개발계정 → 의약품 제품 허가정보 상세 페이지의 "활용가이드" 또는 endpoint 표시**를 ground truth로 사용하세요.
+> ✅ **2026-05 fact-checked**: 위 endpoint(`Service07/Inq06`)와 DUR endpoint(`DURPrdlstInfoService03/getUsjntTabooInfoList03`)는 실제 호출로 검증됨. 단 검색 파라미터 명세는 마이페이지 활용가이드에서 ground truth 확인 권장.
 
 **기대 결과:** JSON이 뜨고 타이레놀 제품 1건 보임.
 
