@@ -1,12 +1,22 @@
 # 식약처 OpenAPI 키 발급 가이드
 
-PillCheck V1은 **3개의 API 키**가 필요합니다 (모두 무료):
+PillCheck V1은 **데이터셋 3종 활용신청**, **결과적으로 인증키 2개**를 사용합니다 (모두 무료).
 
-| # | 데이터 | 발급처 | 용도 | Week |
-|---|---|---|---|---|
-| 1 | **의약품 제품 허가정보** | 공공데이터포털 (data.go.kr) | 의약품 마스터·표준코드·일반의약품 정보 | Week 0~1 |
-| 2 | **DUR 품목정보** | 공공데이터포털 (data.go.kr) | 병용금기·병용주의 데이터 (앱의 핵심) | Week 0~3 |
-| 3 | **건강기능식품 정보** | 식품안전나라 (별도 포털) | 영양제 마스터 | Week 2~ |
+## 신청 vs 키 — 헷갈리지 마세요
+
+| 발급처 | 활용신청 | 인증키 | 환경 변수 |
+|---|---|---|---|
+| **공공데이터포털 (data.go.kr)** | ① 의약품 제품 허가정보<br>② DUR 품목정보 | **1개** (회원당 일반 인증키 하나로 두 API 모두 호출) | `VITE_NEDRUG_API_KEY` |
+| **식품안전나라** (별도 포털) | ③ 건강기능식품 정보 | **1개** (별도 회원가입·별도 키) | `VITE_FOODSAFETY_API_KEY` |
+| **합계** | **3건** | **2개** | 2개 |
+
+> 💡 data.go.kr은 회원당 인증키 1개로 여러 API를 호출하는 구조입니다. 활용신청은 "이 API 쓸 권한 등록"이고, 키 발급은 회원가입 시 자동(또는 첫 활용신청 시). 그래서 의약품 허가정보 + DUR을 따로 신청해도 키는 같습니다.
+
+| 데이터셋 | 사용 시점 | 키 |
+|---|---|---|
+| 의약품 제품 허가정보 | Week 0~1 (검증 + 약 검색) | data.go.kr 키 |
+| DUR 품목정보 | Week 0~3 (앱의 핵심 — 병용금기) | data.go.kr 키 (위와 동일) |
+| 건강기능식품 정보 | Week 2~ (영양제 마스터) | 식품안전나라 키 (별도) |
 
 **소요 시간:** 신청 자체는 10분. 승인은 자동 즉시 ~ 5영업일.
 
@@ -115,7 +125,12 @@ http://apis.data.go.kr/1471000/DrugPrdtPrmsnInfoService06/getDrugPrdtPrmsnDtlInq
 
 ## 3️⃣ 발급된 키 PillCheck에 적용
 
-총 2개의 환경 변수에 채웁니다 (NEDRUG는 두 데이터셋 공유).
+**총 2개의 키**를 두 군데(Python용·웹용)에 같은 값으로 적습니다.
+
+| 변수명 | 값 | 어디서 발급 |
+|---|---|---|
+| `NEDRUG_API_KEY` (Python) / `VITE_NEDRUG_API_KEY` (웹) | data.go.kr Encoding 키 | data.go.kr 마이페이지 (의약품 허가정보 + DUR 둘 다 이 키 하나로 동작) |
+| `FOODSAFETY_API_KEY` (Python) / `VITE_FOODSAFETY_API_KEY` (웹) | 식품안전나라 인증키 | openapi.foodsafetykorea.go.kr 마이페이지 |
 
 ### 3-1. Python 검증 스크립트용 (Week 0 GATE 1)
 
@@ -127,7 +142,10 @@ notepad .env
 
 `.env` 파일에:
 ```
+# data.go.kr 키 — 의약품 허가정보 + DUR 둘 다 이거 하나로 사용
 NEDRUG_API_KEY=여기에_data.go.kr_Encoding_키_붙여넣기
+
+# 식품안전나라 키 — 건강기능식품용 (Week 2부터)
 FOODSAFETY_API_KEY=여기에_식품안전나라_키_붙여넣기
 ```
 
@@ -139,11 +157,16 @@ copy .env.example .env
 notepad .env
 ```
 
-`.env` 파일에:
+`.env` 파일에 (값은 위 Python용과 **같은 키 그대로**):
 ```
+# data.go.kr 키 — 의약품 허가정보 + DUR 둘 다 이거 하나로 사용
 VITE_NEDRUG_API_KEY=여기에_data.go.kr_Encoding_키_붙여넣기
+
+# 식품안전나라 키 — 건강기능식품용 (Week 2부터)
 VITE_FOODSAFETY_API_KEY=여기에_식품안전나라_키_붙여넣기
 ```
+
+> 💡 Python의 `NEDRUG_API_KEY`와 웹의 `VITE_NEDRUG_API_KEY`는 **완전히 같은 값**입니다. 단지 Vite는 클라이언트 노출용 환경변수에 `VITE_` 접두사를 요구해서 이름만 다를 뿐. 키 자체는 하나만 발급받아 두 곳에 같이 붙여넣으면 됩니다.
 
 > 두 .env 파일은 모두 `.gitignore`에 의해 git에 안 올라갑니다. **GitHub에 노출 위험 없음.**
 

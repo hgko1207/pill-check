@@ -19,7 +19,9 @@
 
 ### 1️⃣ API 키 발급 (1~5영업일)
 
-식약처 OpenAPI 키 3건 신청. 자세한 절차: **[docs/api-key-guide.md](docs/api-key-guide.md)**
+식약처 OpenAPI **활용신청 3건 → 인증키 2개** 발급
+(data.go.kr 1개 + 식품안전나라 1개. data.go.kr 키는 의약품 허가정보 + DUR 둘 다 사용).
+자세한 절차: **[docs/api-key-guide.md](docs/api-key-guide.md)**
 
 ### 2️⃣ Week 0 GATE — 두 가지 검증 (빌드 전 필수)
 
