@@ -2,10 +2,11 @@ import type { NedrugItem, NedrugSearchResponse } from './types'
 
 const NEDRUG_KEY = import.meta.env.VITE_NEDRUG_API_KEY ?? ''
 
+// 2026-05 fact-check: Service06 → Service07 (구버전 90일 후 중지). 검증된 endpoint.
 const isDev = import.meta.env.DEV
 const NEDRUG_BASE = isDev
-  ? '/api/nedrug/1471000/DrugPrdtPrmsnInfoService06'
-  : 'https://apis.data.go.kr/1471000/DrugPrdtPrmsnInfoService06'
+  ? '/api/nedrug/1471000/DrugPrdtPrmsnInfoService07'
+  : 'https://apis.data.go.kr/1471000/DrugPrdtPrmsnInfoService07'
 
 export class MissingApiKeyError extends Error {
   constructor() {
@@ -25,7 +26,7 @@ export async function searchDrug(name: string, opts: { rows?: number } = {}): Pr
   if (!NEDRUG_KEY) throw new MissingApiKeyError()
   const rows = opts.rows ?? 10
   const url =
-    `${NEDRUG_BASE}/getDrugPrdtPrmsnDtlInq05` +
+    `${NEDRUG_BASE}/getDrugPrdtPrmsnDtlInq06` +
     `?serviceKey=${NEDRUG_KEY}` +
     `&type=json` +
     `&item_name=${encodeURIComponent(name)}` +
