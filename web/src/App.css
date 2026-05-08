@@ -148,3 +148,152 @@ button, input, textarea { font: inherit; }
   line-height: 1.55;
   border-top: 1px solid #EEE;
 }
+
+/* ────── 등록된 약 목록 ────── */
+
+.med-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.med-list__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #EEE;
+}
+.med-list__item:last-child { border-bottom: none; }
+
+.med-list__name {
+  font-size: var(--pc-font-large);
+  font-weight: 600;
+  color: var(--pc-text);
+}
+
+.med-list__ingr {
+  margin-top: 4px;
+  font-size: 15px;
+  color: var(--pc-text-muted);
+  line-height: 1.45;
+}
+
+.btn-small {
+  min-height: 40px;
+  padding: 0 14px;
+  font-size: 16px;
+  font-weight: 500;
+  border-radius: 8px;
+  border: 1px solid var(--pc-border);
+  background: var(--pc-surface);
+  color: var(--pc-text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn-small:active { opacity: 0.85; }
+
+.btn-small--danger {
+  border-color: var(--pc-danger);
+  color: var(--pc-danger);
+}
+
+.btn-small--primary {
+  border-color: var(--pc-primary);
+  color: var(--pc-primary);
+}
+
+/* ────── 검색 결과 카드 액션 영역 ────── */
+
+.card__actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.card__actions .btn-small {
+  flex: 1;
+  min-width: 130px;
+}
+
+/* ────── 결과 카드 (빨/노/회/초) ────── */
+
+.result-card {
+  border-radius: var(--pc-radius);
+  padding: 16px;
+  border-left: 6px solid var(--pc-border);
+}
+
+.result-card--danger {
+  background: var(--pc-danger-bg);
+  border-left-color: var(--pc-danger);
+}
+
+.result-card--warn {
+  background: var(--pc-warn-bg);
+  border-left-color: var(--pc-warn);
+}
+
+.result-card--safe {
+  background: var(--pc-safe-bg);
+  border-left-color: var(--pc-safe);
+}
+
+.result-card--unknown {
+  background: var(--pc-unknown-bg);
+  border-left-color: var(--pc-unknown);
+}
+
+.result-card__title {
+  margin: 0 0 6px;
+  font-size: var(--pc-font-large);
+  font-weight: 700;
+}
+
+.result-card__title--danger { color: var(--pc-danger); }
+.result-card__title--warn { color: var(--pc-warn); }
+.result-card__title--safe { color: var(--pc-safe); }
+.result-card__title--unknown { color: var(--pc-unknown); }
+
+.result-card__message {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.55;
+  color: var(--pc-text);
+}
+
+.conflict-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 8px;
+}
+
+.conflict-list li {
+  font-size: 16px;
+  line-height: 1.5;
+  padding: 6px 0;
+}
+.conflict-list li + li {
+  border-top: 1px dashed rgba(0, 0, 0, 0.1);
+  margin-top: 6px;
+  padding-top: 8px;
+}
+
+.conflict-list b {
+  color: var(--pc-text);
+}
+
+/* ────── 섹션 구분선 ────── */
+
+.section-divider {
+  margin: 20px 0 8px;
+  font-size: 14px;
+  color: var(--pc-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}

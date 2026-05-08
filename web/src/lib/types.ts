@@ -15,9 +15,17 @@ export interface NedrugSearchResponse {
 
 export type SeverityLevel = 'danger' | 'warn' | 'safe' | 'unknown'
 
+export interface InteractionDetail {
+  registeredMedName: string
+  conflictWith: string
+  severity: SeverityLevel
+  source: string
+  prohbtContent?: string
+}
+
 export interface InteractionResult {
   level: SeverityLevel
+  title: string
   message: string
-  matchedDrugItemSeq?: string
-  matchedSupplementId?: string
+  details?: InteractionDetail[]
 }
