@@ -1,4 +1,4 @@
-import type { NedrugItem, InteractionResult, InteractionDetail } from './types'
+import type { InteractionResult, InteractionDetail, UnifiedSearchResult } from './types'
 import type { RegisteredMedication } from './db'
 
 const NEDRUG_KEY = import.meta.env.VITE_NEDRUG_API_KEY ?? ''
@@ -71,7 +71,7 @@ function lower(s: string | null | undefined): string {
  *   초록으로 단정하지 않음 (실제 충돌이 있어도 sample 누락 가능성)
  */
 export async function checkInteraction(
-  product: NedrugItem,
+  product: UnifiedSearchResult,
   registered: RegisteredMedication[],
 ): Promise<InteractionResult> {
   if (registered.length === 0) {
@@ -93,7 +93,8 @@ export async function checkInteraction(
     }
   }
 
-  const productIngrText = lower(product.MAIN_INGR)
+  const productIngrText = lower(product.ingredient)
+  const productItemSeq = product.kind === 'drug' ? product.id : ''
   const conflicts: InteractionDetail[] = []
 
   for (const med of registered) {
@@ -111,8 +112,12 @@ export async function checkInteraction(
 
       if (!medMatchesDur) continue
 
-      // 그 row의 병용 금기 대상(MIX_INGR)이 새 제품 성분에 포함되는가?
-      const productConflictsWithMix = mixIngr && productIngrText && productIngrText.includes(mixIngr)
+      // 새 제품이 DUR의 MIX_INGR(병용 금기 대상)과 매칭되는가?
+      // - 의약품: ITEM_SEQ 또는 MAIN_INGR 텍스트 포함
+      // - 영양제: RAWMTRL_NM(원료성분) 텍스트 포함
+      const ingrMatch = mixIngr && productIngrText && productIngrText.includes(mixIngr)
+      const itemMatch = product.kind === 'drug' && durItemSeq && durItemSeq === productItemSeq
+      const productConflictsWithMix = ingrMatch || itemMatch
 
       if (productConflictsWithMix) {
         const isStrict = (dur.TYPE_NAME ?? '').includes('금기')

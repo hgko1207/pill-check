@@ -135,9 +135,107 @@ button, input, textarea { font: inherit; }
   padding: 14px var(--pc-pad);
   border-radius: var(--pc-radius);
   font-weight: 500;
+  font-size: 16px;
+  line-height: 1.5;
 }
 .banner--error { background: var(--pc-danger-bg); color: var(--pc-danger); }
 .banner--info  { background: #E3F2FD; color: #0D47A1; }
+.banner--warn  { background: var(--pc-warn-bg); color: var(--pc-warn); }
+
+/* ────── 검색 결과 카드 종류 뱃지 ────── */
+
+.card__badge-row {
+  margin-bottom: 6px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  background: #ECEFF1;
+  color: var(--pc-text-muted);
+}
+.badge--drug {
+  background: #E8F5E9;
+  color: var(--pc-primary);
+}
+.badge--healthfood {
+  background: #FFF3E0;
+  color: #BF360C;
+}
+
+/* ────── iOS 홈 화면 추가 안내 카드 ────── */
+
+.install-hint {
+  background: #FFF8E1;
+  border: 1px solid #FFE082;
+  border-radius: var(--pc-radius);
+  padding: 14px var(--pc-pad);
+  position: relative;
+}
+
+.install-hint__title {
+  margin: 0 0 6px;
+  font-size: 17px;
+  font-weight: 700;
+  color: #F57F17;
+}
+
+.install-hint__body {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.55;
+  color: #5D4037;
+}
+
+.install-hint__close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: transparent;
+  border: none;
+  font-size: 22px;
+  color: #BF360C;
+  cursor: pointer;
+  padding: 4px 10px;
+  line-height: 1;
+}
+
+/* ────── 폰트 크기 토글 (60대 baseline) ────── */
+
+.font-toggle {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 14px;
+  color: var(--pc-text-muted);
+}
+
+.font-toggle__btn {
+  min-height: 36px;
+  padding: 0 12px;
+  font-size: 14px;
+  border-radius: 8px;
+  border: 1px solid var(--pc-border);
+  background: var(--pc-surface);
+  color: var(--pc-text);
+  cursor: pointer;
+}
+.font-toggle__btn--active {
+  background: var(--pc-primary);
+  color: var(--pc-primary-on);
+  border-color: var(--pc-primary);
+}
+
+/* 큰 글씨 모드: --pc-font-base 변수만 변경하면 전체 비례적으로 커짐 */
+html[data-font-scale='large'] {
+  --pc-font-base: 22px;
+  --pc-font-large: 26px;
+  --pc-font-xl: 32px;
+  --pc-button-min-h: 64px;
+}
 
 .disclaimer {
   margin-top: auto;

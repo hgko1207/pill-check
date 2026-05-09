@@ -1,27 +1,71 @@
 import { useCallback, useState } from 'react'
 import { searchDrug, MissingApiKeyError, NedrugRequestError } from '../lib/nedrug-api'
 import {
+  searchHealthFood,
+  isFoodSafetyConfigured,
+  FoodSafetyKeyMissingError,
+  FoodSafetyAuthError,
+} from '../lib/healthfood-api'
+import {
   addMedication,
   listMedications,
   MedicationLimitError,
   DuplicateMedicationError,
 } from '../lib/db'
 import { checkInteraction } from '../lib/dur'
-import type { NedrugItem, InteractionResult } from '../lib/types'
+import type { NedrugItem, InteractionResult, UnifiedSearchResult } from '../lib/types'
+import type { HealthFoodItem } from '../lib/healthfood-api'
 import { BarcodeScanner } from './BarcodeScanner'
 import { InteractionResultCard } from './InteractionResultCard'
 
 interface Props {
-  /** 약 등록·삭제 시 부모(예: RegisteredList)에 갱신 신호 전달 */
   onMedicationsChanged?: () => void
+}
+
+interface DrugWithRaw extends UnifiedSearchResult {
+  kind: 'drug'
+  raw: NedrugItem
+}
+
+interface HealthFoodWithRaw extends UnifiedSearchResult {
+  kind: 'healthfood'
+  raw: HealthFoodItem
+}
+
+type SearchResultWithRaw = DrugWithRaw | HealthFoodWithRaw
+
+function adaptDrug(item: NedrugItem): DrugWithRaw | null {
+  if (!item.ITEM_SEQ || !item.ITEM_NAME) return null
+  return {
+    kind: 'drug',
+    id: item.ITEM_SEQ,
+    name: item.ITEM_NAME,
+    manufacturer: item.ENTP_NAME,
+    ingredient: item.MAIN_INGR,
+    raw: item,
+  }
+}
+
+function adaptHealthFood(item: HealthFoodItem): HealthFoodWithRaw | null {
+  const id = item.PRMS_DT || item.STTEMNT_NO || item.PRDLST_NM
+  if (!id || !item.PRDLST_NM) return null
+  return {
+    kind: 'healthfood',
+    id,
+    name: item.PRDLST_NM,
+    manufacturer: item.BSSH_NM,
+    ingredient: item.RAWMTRL_NM,
+    raw: item,
+  }
 }
 
 export function SearchScreen({ onMedicationsChanged }: Props) {
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(false)
-  const [results, setResults] = useState<NedrugItem[]>([])
+  const [results, setResults] = useState<SearchResultWithRaw[]>([])
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
+  const [warn, setWarn] = useState<string | null>(null)
   const [scannerOpen, setScannerOpen] = useState(false)
   const [interactionResult, setInteractionResult] = useState<InteractionResult | null>(null)
   const [actionPending, setActionPending] = useState<string | null>(null)
@@ -36,18 +80,66 @@ export function SearchScreen({ onMedicationsChanged }: Props) {
       setLoading(true)
       setError(null)
       setInfo(null)
+      setWarn(null)
       setInteractionResult(null)
-      try {
-        const items = await searchDrug(q)
-        setResults(items)
-        if (items.length === 0) setInfo('검색 결과가 없습니다. 다른 이름으로 시도해보세요.')
-      } catch (e) {
-        if (e instanceof MissingApiKeyError) setError(e.message)
-        else if (e instanceof NedrugRequestError) setError(e.message)
-        else setError(`검색 실패: ${e instanceof Error ? e.message : String(e)}`)
-      } finally {
-        setLoading(false)
+
+      const promises: Promise<unknown>[] = [searchDrug(q)]
+      if (isFoodSafetyConfigured()) {
+        promises.push(searchHealthFood(q))
       }
+
+      const [drugRes, hfRes] = await Promise.allSettled(promises)
+
+      const merged: SearchResultWithRaw[] = []
+      let drugError: string | null = null
+      let hfError: string | null = null
+
+      if (drugRes.status === 'fulfilled') {
+        for (const item of drugRes.value as NedrugItem[]) {
+          const adapted = adaptDrug(item)
+          if (adapted) merged.push(adapted)
+        }
+      } else {
+        const e = drugRes.reason
+        if (e instanceof MissingApiKeyError) drugError = e.message
+        else if (e instanceof NedrugRequestError) drugError = e.message
+        else drugError = `의약품 검색 실패: ${e instanceof Error ? e.message : String(e)}`
+      }
+
+      if (hfRes) {
+        if (hfRes.status === 'fulfilled') {
+          for (const item of hfRes.value as HealthFoodItem[]) {
+            const adapted = adaptHealthFood(item)
+            if (adapted) merged.push(adapted)
+          }
+        } else {
+          const e = hfRes.reason
+          if (e instanceof FoodSafetyKeyMissingError || e instanceof FoodSafetyAuthError) {
+            hfError = e.message
+          } else {
+            hfError = `영양제 검색 실패: ${e instanceof Error ? e.message : String(e)}`
+          }
+        }
+      }
+
+      setResults(merged)
+
+      if (drugError && (!hfRes || hfRes.status === 'rejected')) {
+        setError(drugError)
+      } else if (drugError) {
+        setError(drugError)
+      } else if (hfError && hfRes && !isFoodSafetyConfigured()) {
+        // no foodsafety key: show subtle warning, not error
+        setWarn(hfError)
+      } else if (hfError) {
+        setWarn(hfError)
+      }
+
+      if (merged.length === 0 && !drugError) {
+        setInfo('검색 결과가 없습니다. 다른 이름으로 시도해보세요.')
+      }
+
+      setLoading(false)
     },
     [query],
   )
@@ -62,22 +154,19 @@ export function SearchScreen({ onMedicationsChanged }: Props) {
     [handleSearch],
   )
 
-  async function handleRegister(item: NedrugItem) {
-    if (!item.ITEM_SEQ || !item.ITEM_NAME) {
-      setError('이 항목은 등록에 필요한 정보가 부족합니다.')
-      return
-    }
-    setActionPending(item.ITEM_SEQ)
+  async function handleRegister(item: SearchResultWithRaw) {
+    if (item.kind !== 'drug') return
+    setActionPending(item.id)
     setError(null)
     setInfo(null)
     try {
       await addMedication({
-        itemSeq: item.ITEM_SEQ,
-        itemName: item.ITEM_NAME,
-        manufacturer: item.ENTP_NAME,
-        mainIngredient: item.MAIN_INGR,
+        itemSeq: item.id,
+        itemName: item.name,
+        manufacturer: item.manufacturer,
+        mainIngredient: item.ingredient,
       })
-      setInfo(`"${item.ITEM_NAME}" 을(를) 등록했습니다.`)
+      setInfo(`"${item.name}" 을(를) 등록했습니다.`)
       onMedicationsChanged?.()
     } catch (e) {
       if (e instanceof MedicationLimitError || e instanceof DuplicateMedicationError) {
@@ -90,12 +179,8 @@ export function SearchScreen({ onMedicationsChanged }: Props) {
     }
   }
 
-  async function handleCheck(item: NedrugItem) {
-    if (!item.ITEM_SEQ) {
-      setError('이 항목은 검사에 필요한 정보가 부족합니다.')
-      return
-    }
-    setActionPending(item.ITEM_SEQ)
+  async function handleCheck(item: SearchResultWithRaw) {
+    setActionPending(item.id)
     setError(null)
     setInfo(null)
     setInteractionResult(null)
@@ -110,6 +195,9 @@ export function SearchScreen({ onMedicationsChanged }: Props) {
     }
   }
 
+  const drugCount = results.filter((r) => r.kind === 'drug').length
+  const hfCount = results.filter((r) => r.kind === 'healthfood').length
+
   return (
     <section className="stack">
       <input
@@ -117,7 +205,7 @@ export function SearchScreen({ onMedicationsChanged }: Props) {
         type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="약 이름 (예: 타이레놀)"
+        placeholder="약 또는 영양제 이름 (예: 타이레놀, 오메가3)"
         autoCapitalize="off"
         autoCorrect="off"
         spellCheck={false}
@@ -145,39 +233,54 @@ export function SearchScreen({ onMedicationsChanged }: Props) {
       )}
 
       {error && <div className="banner banner--error">{error}</div>}
+      {warn && !error && <div className="banner banner--warn">{warn}</div>}
       {info && !error && <div className="banner banner--info">{info}</div>}
 
       {interactionResult && <InteractionResultCard result={interactionResult} />}
 
       {results.length > 0 && (
         <>
-          <div className="section-divider">검색 결과 ({results.length}개)</div>
-          {results.map((item, idx) => {
-            const isPending = item.ITEM_SEQ && actionPending === item.ITEM_SEQ
+          <div className="section-divider">
+            검색 결과 — 의약품 {drugCount}개{hfCount > 0 ? `, 영양제 ${hfCount}개` : ''}
+          </div>
+          {results.map((item) => {
+            const isPending = actionPending === item.id
+            const isDrug = item.kind === 'drug'
             return (
-              <div key={item.ITEM_SEQ ?? `${item.ITEM_NAME}-${idx}`} className="card">
-                <h3 className="card__title">{item.ITEM_NAME ?? '(이름 없음)'}</h3>
-                {item.ENTP_NAME && <p className="card__meta">제조사: {item.ENTP_NAME}</p>}
-                {item.MAIN_INGR && (
+              <div key={`${item.kind}-${item.id}`} className="card">
+                <div className="card__badge-row">
+                  <span className={`badge ${isDrug ? 'badge--drug' : 'badge--healthfood'}`}>
+                    {isDrug ? '💊 의약품' : '🌿 영양제'}
+                  </span>
+                </div>
+                <h3 className="card__title">{item.name}</h3>
+                {item.manufacturer && (
                   <p className="card__meta">
-                    성분:{' '}
-                    {item.MAIN_INGR.length > 120
-                      ? item.MAIN_INGR.slice(0, 120) + '…'
-                      : item.MAIN_INGR}
+                    {isDrug ? '제조사' : '업체'}: {item.manufacturer}
+                  </p>
+                )}
+                {item.ingredient && (
+                  <p className="card__meta">
+                    {isDrug ? '성분' : '원료'}:{' '}
+                    {item.ingredient.length > 120
+                      ? item.ingredient.slice(0, 120) + '…'
+                      : item.ingredient}
                   </p>
                 )}
                 <div className="card__actions">
-                  <button
-                    className="btn-small btn-small--primary"
-                    onClick={() => void handleRegister(item)}
-                    disabled={!!isPending}
-                  >
-                    {isPending ? '처리 중…' : '+ 이 약 등록'}
-                  </button>
+                  {isDrug && (
+                    <button
+                      className="btn-small btn-small--primary"
+                      onClick={() => void handleRegister(item)}
+                      disabled={isPending}
+                    >
+                      {isPending ? '처리 중…' : '+ 이 약 등록'}
+                    </button>
+                  )}
                   <button
                     className="btn-small"
                     onClick={() => void handleCheck(item)}
-                    disabled={!!isPending}
+                    disabled={isPending}
                   >
                     {isPending ? '처리 중…' : '⚠️ 충돌 검사'}
                   </button>
