@@ -1,64 +1,106 @@
 :root {
-  /* 공통 토큰 */
-  --pc-radius: 14px;
+  /* ────────── 공통 토큰 ────────── */
+  /* 라운드 스케일 (M3 5단계) */
+  --pc-radius-xs: 6px;
+  --pc-radius-s: 10px;
+  --pc-radius-m: 14px;
+  --pc-radius-l: 20px;
+  --pc-radius-xl: 28px;
+  --pc-radius-pill: 999px;
+  --pc-radius: var(--pc-radius-m); /* legacy */
+
+  /* 간격·크기 */
   --pc-pad: 16px;
   --pc-font-base: 18px;
   --pc-font-large: 22px;
   --pc-font-xl: 28px;
+  --pc-font-display: 32px;
   --pc-button-min-h: 56px;
-  --pc-bottom-nav-h: 64px;
+  --pc-bottom-nav-h: 68px;
 
-  /* 라이트 테마 (기본 — 60대 친화 우선) */
-  --pc-primary: #1B5E20;
+  /* 모션 (M3 ease) */
+  --pc-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --pc-ease-emphasized: cubic-bezier(0.3, 0, 0.1, 1);
+  --pc-ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --pc-duration-quick: 150ms;
+  --pc-duration-standard: 250ms;
+  --pc-duration-slow: 400ms;
+
+  /* ────────── 라이트 테마 — 따뜻한 케어 (Soft Sage + Warm) ────────── */
+  --pc-primary: #6B9E83;        /* sage green */
+  --pc-primary-deep: #4F7F66;   /* darker for hover */
+  --pc-primary-soft: #DCEBE0;   /* very light tint */
   --pc-primary-on: #FFFFFF;
-  --pc-bg: #FAFAFA;
-  --pc-surface: #FFFFFF;
-  --pc-text: #1A1A1A;
-  --pc-text-muted: #555555;
-  --pc-border: #DDDDDD;
-  --pc-divider: #EEEEEE;
 
-  --pc-danger: #B71C1C;
-  --pc-danger-bg: #FFEBEE;
-  --pc-warn: #E65100;
-  --pc-warn-bg: #FFF3E0;
-  --pc-safe: #2E7D32;
-  --pc-safe-bg: #E8F5E9;
-  --pc-unknown: #616161;
-  --pc-unknown-bg: #EEEEEE;
+  --pc-coral: #E89A7B;          /* warm peach accent */
+  --pc-coral-soft: #F8DDD0;
+  --pc-coral-deep: #C77A5C;
 
-  --pc-info-bg: #E3F2FD;
-  --pc-info-fg: #0D47A1;
+  --pc-bg: #FBF7F1;             /* warm cream background */
+  --pc-surface: #FFFEFA;        /* near white, warm */
+  --pc-surface-2: #F5EFE5;      /* subtle warm beige */
+  --pc-text: #2D2A24;           /* warm charcoal */
+  --pc-text-muted: #6B665C;     /* warm gray */
+  --pc-border: #E8DFD0;         /* warm border */
+  --pc-divider: #F0E9DC;        /* subtle warm */
 
-  --pc-shadow-sm: 0 1px 4px rgba(0,0,0,0.06);
-  --pc-shadow-md: 0 2px 8px rgba(0,0,0,0.10);
+  --pc-danger: #C75D5D;         /* warm red (not harsh) */
+  --pc-danger-bg: #FAE2DD;
+  --pc-warn: #C8893A;           /* warm amber */
+  --pc-warn-bg: #F8ECD2;
+  --pc-safe: #6B9A7C;           /* aligned with primary */
+  --pc-safe-bg: #DDEBE0;
+  --pc-unknown: #9A9388;        /* warm gray */
+  --pc-unknown-bg: #ECE7DB;
+
+  --pc-info-bg: #E3EDF7;
+  --pc-info-fg: #3A5A82;
+
+  /* 부드러운 multi-layer 그림자 (warm tinted) */
+  --pc-elev-1: 0 1px 2px rgba(45, 42, 36, 0.04), 0 2px 4px rgba(45, 42, 36, 0.04);
+  --pc-elev-2: 0 2px 4px rgba(45, 42, 36, 0.06), 0 4px 12px rgba(45, 42, 36, 0.06);
+  --pc-elev-3: 0 4px 8px rgba(45, 42, 36, 0.08), 0 12px 24px rgba(45, 42, 36, 0.08);
+  --pc-elev-4: 0 8px 16px rgba(45, 42, 36, 0.12), 0 16px 32px rgba(45, 42, 36, 0.10);
+  /* legacy alias */
+  --pc-shadow-sm: var(--pc-elev-1);
+  --pc-shadow-md: var(--pc-elev-2);
 }
 
-/* 다크 테마 — 60대 baseline(폰트·버튼·대비) 유지 */
+/* ────────── 다크 테마 — 따뜻한 다크 ────────── */
 html[data-theme='dark'] {
-  --pc-primary: #66BB6A;
-  --pc-primary-on: #0F1419;
-  --pc-bg: #0F1419;
-  --pc-surface: #1A2027;
-  --pc-text: #E8EAED;
-  --pc-text-muted: #9AA0A6;
-  --pc-border: #2D3540;
-  --pc-divider: #232A33;
+  --pc-primary: #92BFA3;
+  --pc-primary-deep: #B5D5C2;
+  --pc-primary-soft: #2C3D32;
+  --pc-primary-on: #1A1F1B;
 
-  --pc-danger: #EF5350;
-  --pc-danger-bg: #3B1F1F;
-  --pc-warn: #FFB74D;
-  --pc-warn-bg: #3B2C1A;
-  --pc-safe: #81C784;
-  --pc-safe-bg: #1A2E1F;
-  --pc-unknown: #B0B6BD;
-  --pc-unknown-bg: #232A33;
+  --pc-coral: #E8A78F;
+  --pc-coral-soft: #3A2D24;
+  --pc-coral-deep: #F2BFA8;
 
-  --pc-info-bg: #1F2D3F;
+  --pc-bg: #181513;
+  --pc-surface: #211D1A;
+  --pc-surface-2: #2A2520;
+  --pc-text: #EFE7DB;
+  --pc-text-muted: #ADA59A;
+  --pc-border: #3D3530;
+  --pc-divider: #2D2823;
+
+  --pc-danger: #E07F7F;
+  --pc-danger-bg: #3A1F1F;
+  --pc-warn: #DBA868;
+  --pc-warn-bg: #3A2C1A;
+  --pc-safe: #8DBA9C;
+  --pc-safe-bg: #1F2E25;
+  --pc-unknown: #B0A89C;
+  --pc-unknown-bg: #2A2520;
+
+  --pc-info-bg: #1F2A3A;
   --pc-info-fg: #82B1FF;
 
-  --pc-shadow-sm: 0 1px 4px rgba(0,0,0,0.4);
-  --pc-shadow-md: 0 2px 8px rgba(0,0,0,0.5);
+  --pc-elev-1: 0 1px 2px rgba(0, 0, 0, 0.30), 0 2px 4px rgba(0, 0, 0, 0.20);
+  --pc-elev-2: 0 2px 4px rgba(0, 0, 0, 0.35), 0 4px 12px rgba(0, 0, 0, 0.25);
+  --pc-elev-3: 0 4px 8px rgba(0, 0, 0, 0.40), 0 12px 24px rgba(0, 0, 0, 0.30);
+  --pc-elev-4: 0 8px 16px rgba(0, 0, 0, 0.50), 0 16px 32px rgba(0, 0, 0, 0.35);
 }
 
 * { box-sizing: border-box; }
@@ -69,12 +111,13 @@ html, body {
   background: var(--pc-bg);
   color: var(--pc-text);
   font-family:
-    -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+    'Pretendard', -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
     "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
   font-size: var(--pc-font-base);
   line-height: 1.55;
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
+  font-feature-settings: "ss01", "ss02"; /* Pretendard 한글 최적화 */
 }
 
 button, input, textarea { font: inherit; }
@@ -88,52 +131,79 @@ button, input, textarea { font: inherit; }
 }
 
 .app__header {
-  padding: 28px var(--pc-pad) 18px;
-  border-bottom: 1px solid var(--pc-divider);
-  background:
-    radial-gradient(120% 100% at 50% 0%, rgba(76, 175, 80, 0.08) 0%, transparent 60%),
-    var(--pc-surface);
+  padding: 32px var(--pc-pad) 24px;
   text-align: center;
   position: relative;
+  overflow: hidden;
+  background: var(--pc-surface);
+  border-radius: 0 0 var(--pc-radius-xl) var(--pc-radius-xl);
 }
 
-html[data-theme='dark'] .app__header {
-  background:
-    radial-gradient(120% 100% at 50% 0%, rgba(102, 187, 106, 0.14) 0%, transparent 60%),
-    var(--pc-surface);
+/* 부드러운 organic blob — 추상적 따뜻함 */
+.app__header::before {
+  content: '';
+  position: absolute;
+  top: -60%;
+  left: -20%;
+  width: 70%;
+  aspect-ratio: 1;
+  background: radial-gradient(circle, var(--pc-primary-soft) 0%, transparent 70%);
+  opacity: 0.7;
+  pointer-events: none;
+  filter: blur(8px);
+}
+.app__header::after {
+  content: '';
+  position: absolute;
+  bottom: -50%;
+  right: -15%;
+  width: 60%;
+  aspect-ratio: 1;
+  background: radial-gradient(circle, var(--pc-coral-soft) 0%, transparent 70%);
+  opacity: 0.6;
+  pointer-events: none;
+  filter: blur(8px);
 }
 
 .app__title {
   margin: 0;
-  font-size: var(--pc-font-xl);
+  font-size: var(--pc-font-display);
   font-weight: 800;
-  letter-spacing: -0.5px;
-  color: var(--pc-primary);
+  letter-spacing: -1px;
+  color: var(--pc-text);
   display: inline-block;
+  position: relative;
 }
 
 .app__title-emoji {
-  font-size: var(--pc-font-xl);
-  margin-right: 6px;
-  vertical-align: -2px;
+  font-size: var(--pc-font-display);
+  margin-right: 8px;
+  vertical-align: -3px;
+  filter: drop-shadow(0 2px 4px rgba(45, 42, 36, 0.10));
 }
 
 .app__subtitle {
-  margin: 6px 0 0;
+  margin: 8px 0 0;
   font-size: 16px;
   color: var(--pc-text-muted);
-  line-height: 1.5;
+  line-height: 1.55;
+  position: relative;
+  font-weight: 500;
 }
 
 .app__subtitle b {
-  color: var(--pc-primary);
+  color: var(--pc-primary-deep);
   font-weight: 700;
+}
+
+html[data-theme='dark'] .app__subtitle b {
+  color: var(--pc-primary-deep);
 }
 
 .app__main {
   flex: 1;
-  padding: var(--pc-pad);
-  padding-bottom: calc(var(--pc-bottom-nav-h) + env(safe-area-inset-bottom) + 24px);
+  padding: 20px var(--pc-pad);
+  padding-bottom: calc(var(--pc-bottom-nav-h) + env(safe-area-inset-bottom) + 32px);
 }
 
 .stack > * + * { margin-top: 14px; }
@@ -141,58 +211,66 @@ html[data-theme='dark'] .app__header {
 .btn {
   width: 100%;
   min-height: var(--pc-button-min-h);
-  padding: 0 20px;
-  border-radius: var(--pc-radius);
+  padding: 0 22px;
+  border-radius: var(--pc-radius-pill);
   border: none;
-  background: linear-gradient(135deg, var(--pc-primary) 0%, #2E7D32 100%);
+  background: var(--pc-primary);
   color: var(--pc-primary-on);
   font-size: var(--pc-font-large);
   font-weight: 700;
   cursor: pointer;
-  transition: transform 0.05s ease, box-shadow 0.15s ease, opacity 0.15s;
-  box-shadow: 0 2px 6px rgba(27, 94, 32, 0.25);
-  letter-spacing: -0.2px;
+  transition: transform var(--pc-duration-quick) var(--pc-ease-spring),
+              background var(--pc-duration-quick) var(--pc-ease-standard),
+              box-shadow var(--pc-duration-quick) var(--pc-ease-standard);
+  box-shadow: var(--pc-elev-1);
+  letter-spacing: -0.3px;
 }
-.btn:hover { box-shadow: 0 4px 10px rgba(27, 94, 32, 0.32); }
-.btn:active { transform: scale(0.99); opacity: 0.92; }
-.btn:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
-
-html[data-theme='dark'] .btn {
-  background: linear-gradient(135deg, #43A047 0%, #66BB6A 100%);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
-  color: #0F1419;
+.btn:hover {
+  background: var(--pc-primary-deep);
+  box-shadow: var(--pc-elev-2);
 }
+.btn:active { transform: scale(0.97); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; transform: none; }
 
 .btn--secondary {
-  background: var(--pc-surface);
-  color: var(--pc-primary);
-  border: 2px solid var(--pc-primary);
+  background: var(--pc-primary-soft);
+  color: var(--pc-primary-deep);
   box-shadow: none;
 }
+.btn--secondary:hover {
+  background: var(--pc-primary-soft);
+  filter: brightness(0.95);
+}
 html[data-theme='dark'] .btn--secondary {
-  background: var(--pc-surface);
-  color: var(--pc-primary);
-  border-color: var(--pc-primary);
+  background: var(--pc-primary-soft);
+  color: var(--pc-primary-deep);
 }
 
 .input {
   width: 100%;
   min-height: var(--pc-button-min-h);
-  padding: 0 var(--pc-pad);
-  border-radius: var(--pc-radius);
+  padding: 0 22px;
+  border-radius: var(--pc-radius-pill);
   border: 2px solid var(--pc-border);
   background: var(--pc-surface);
   font-size: var(--pc-font-large);
   outline: none;
+  transition: border-color var(--pc-duration-quick) var(--pc-ease-standard),
+              box-shadow var(--pc-duration-quick) var(--pc-ease-standard);
 }
-.input:focus { border-color: var(--pc-primary); }
+.input:focus {
+  border-color: var(--pc-primary);
+  box-shadow: 0 0 0 4px var(--pc-primary-soft);
+}
 
 .card {
   background: var(--pc-surface);
-  border-radius: var(--pc-radius);
-  padding: var(--pc-pad);
-  box-shadow: var(--pc-shadow-sm);
+  border-radius: var(--pc-radius-l);
+  padding: 18px var(--pc-pad);
+  box-shadow: var(--pc-elev-1);
   border: 1px solid var(--pc-divider);
+  transition: box-shadow var(--pc-duration-standard) var(--pc-ease-standard),
+              transform var(--pc-duration-quick) var(--pc-ease-spring);
 }
 
 .card__title {
@@ -225,20 +303,21 @@ html[data-theme='dark'] .btn--secondary {
 
 .badge {
   display: inline-block;
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 14px;
-  font-weight: 600;
-  background: #ECEFF1;
+  padding: 5px 12px;
+  border-radius: var(--pc-radius-pill);
+  font-size: 13px;
+  font-weight: 700;
+  background: var(--pc-divider);
   color: var(--pc-text-muted);
+  letter-spacing: 0.2px;
 }
 .badge--drug {
-  background: #E8F5E9;
-  color: var(--pc-primary);
+  background: var(--pc-primary-soft);
+  color: var(--pc-primary-deep);
 }
 .badge--healthfood {
-  background: #FFF3E0;
-  color: #BF360C;
+  background: var(--pc-coral-soft);
+  color: var(--pc-coral-deep);
 }
 
 /* ────── iOS 홈 화면 추가 안내 카드 ────── */
@@ -315,19 +394,19 @@ html[data-font-scale='large'] {
 /* ────── 시작하기 히어로 (등록 약 0개 시) ────── */
 
 .hero {
-  background: linear-gradient(135deg, #E8F5E9 0%, #FFF8E1 100%);
-  border-radius: 18px;
-  padding: 24px var(--pc-pad);
-  border: 1px solid #C8E6C9;
-  box-shadow: 0 4px 16px rgba(76, 175, 80, 0.08);
+  background: linear-gradient(135deg, var(--pc-primary-soft) 0%, var(--pc-coral-soft) 100%);
+  border-radius: var(--pc-radius-xl);
+  padding: 26px var(--pc-pad);
+  border: 1px solid var(--pc-primary-soft);
+  box-shadow: var(--pc-elev-2);
   position: relative;
   overflow: hidden;
 }
 
 html[data-theme='dark'] .hero {
-  background: linear-gradient(135deg, #1A2E1F 0%, #2C2A1A 100%);
-  border-color: #2D4030;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  background: linear-gradient(135deg, var(--pc-primary-soft) 0%, var(--pc-coral-soft) 100%);
+  border-color: var(--pc-divider);
+  box-shadow: var(--pc-elev-2);
 }
 
 .hero__title {
@@ -483,11 +562,12 @@ html[data-theme='dark'] .hero__cta {
   width: 100%;
   max-width: 720px;
   max-height: 92vh;
-  border-radius: 16px 16px 0 0;
+  border-radius: var(--pc-radius-xl) var(--pc-radius-xl) 0 0;
   padding: 20px var(--pc-pad) calc(20px + env(safe-area-inset-bottom));
   overflow-y: auto;
   position: relative;
-  animation: slide-up 0.25s ease;
+  animation: slide-up 0.3s var(--pc-ease-emphasized);
+  box-shadow: var(--pc-elev-4);
 }
 
 @media (min-width: 600px) {
@@ -495,7 +575,7 @@ html[data-theme='dark'] .hero__cta {
     align-items: center;
   }
   .modal-panel {
-    border-radius: 16px;
+    border-radius: var(--pc-radius-xl);
     max-height: 88vh;
   }
 }
@@ -832,18 +912,16 @@ html[data-theme='dark'] .doc-article__title {
   bottom: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: 100%;
-  max-width: 720px;
+  width: calc(100% - 16px);
+  max-width: 700px;
   background: var(--pc-surface);
-  border-top: 1px solid var(--pc-divider);
+  border: 1px solid var(--pc-divider);
+  border-radius: var(--pc-radius-xl);
   display: flex;
   z-index: 50;
-  padding-bottom: env(safe-area-inset-bottom);
-  box-shadow: 0 -1px 8px rgba(0, 0, 0, 0.06);
-}
-
-html[data-theme='dark'] .bottom-nav {
-  box-shadow: 0 -1px 12px rgba(0, 0, 0, 0.45);
+  margin-bottom: max(8px, env(safe-area-inset-bottom));
+  box-shadow: var(--pc-elev-3);
+  overflow: hidden;
 }
 
 .bottom-nav__item {
@@ -1137,18 +1215,21 @@ html[data-theme='dark'] .settings-row__icon {
 }
 
 .btn-small {
-  min-height: 40px;
-  padding: 0 14px;
-  font-size: 16px;
-  font-weight: 500;
-  border-radius: 8px;
+  min-height: 44px;
+  padding: 0 16px;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: var(--pc-radius-pill);
   border: 1px solid var(--pc-border);
   background: var(--pc-surface);
   color: var(--pc-text);
   cursor: pointer;
   white-space: nowrap;
+  transition: background var(--pc-duration-quick) var(--pc-ease-standard),
+              transform var(--pc-duration-quick) var(--pc-ease-spring);
 }
-.btn-small:active { opacity: 0.85; }
+.btn-small:hover { background: var(--pc-divider); }
+.btn-small:active { transform: scale(0.96); }
 
 .btn-small--danger {
   border-color: var(--pc-danger);
@@ -1177,12 +1258,12 @@ html[data-theme='dark'] .settings-row__icon {
 /* ────── 결과 카드 (빨/노/회/초) ────── */
 
 .result-card {
-  border-radius: 16px;
-  padding: 18px var(--pc-pad);
+  border-radius: var(--pc-radius-l);
+  padding: 22px var(--pc-pad);
   border-left: 6px solid var(--pc-border);
   position: relative;
   overflow: hidden;
-  box-shadow: var(--pc-shadow-sm);
+  box-shadow: var(--pc-elev-2);
 }
 
 .result-card--danger {
