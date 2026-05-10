@@ -76,6 +76,90 @@ export function parseDoc(xml: string | null | undefined): ParsedDoc | null {
 }
 
 /**
+ * 표 데이터를 분리한 결과 노드.
+ * - text: 일반 텍스트 (줄바꿈 보존)
+ * - table: 행/열 배열 (실제 React table로 렌더 권장)
+ */
+export type DocNode =
+  | { type: 'text'; content: string }
+  | { type: 'table'; rows: string[][] }
+
+const HTML_ENTITY_MAP: Record<string, string> = {
+  '&nbsp;': ' ',
+  '&amp;': '&',
+  '&lt;': '<',
+  '&gt;': '>',
+  '&quot;': '"',
+  '&#39;': "'",
+}
+
+function decodeEntities(s: string): string {
+  return s.replace(/&nbsp;|&amp;|&lt;|&gt;|&quot;|&#39;/gi, (m) => HTML_ENTITY_MAP[m.toLowerCase()] ?? m)
+}
+
+function stripTags(s: string): string {
+  return s.replace(/<[^>]+>/g, '')
+}
+
+/**
+ * PARAGRAPH 안에 <table>이 있으면 노드 단위로 분리.
+ * - 텍스트 노드: 줄바꿈 보존
+ * - 테이블 노드: rows/cells 배열로 추출 (React table로 렌더)
+ *
+ * 표가 없으면 [{type:'text', content: paragraphToReadable(raw)}] 단일 노드.
+ */
+export function paragraphToNodes(raw: string | null | undefined): DocNode[] {
+  if (!raw) return []
+  if (!/<table[^>]*>/i.test(raw)) {
+    const text = paragraphToReadable(raw)
+    return text ? [{ type: 'text', content: text }] : []
+  }
+
+  const nodes: DocNode[] = []
+  const tableRegex = /<table[^>]*>[\s\S]*?<\/table>/gi
+  let lastIndex = 0
+  let match: RegExpExecArray | null
+
+  while ((match = tableRegex.exec(raw)) !== null) {
+    // 표 앞의 텍스트
+    if (match.index > lastIndex) {
+      const before = paragraphToReadable(raw.slice(lastIndex, match.index))
+      if (before) nodes.push({ type: 'text', content: before })
+    }
+    // 표 자체 파싱
+    const rows = parseTableRows(match[0])
+    if (rows.length > 0) nodes.push({ type: 'table', rows })
+    lastIndex = match.index + match[0].length
+  }
+  // 마지막 표 뒤의 텍스트
+  if (lastIndex < raw.length) {
+    const after = paragraphToReadable(raw.slice(lastIndex))
+    if (after) nodes.push({ type: 'text', content: after })
+  }
+
+  return nodes
+}
+
+function parseTableRows(tableHtml: string): string[][] {
+  const rows: string[][] = []
+  const trRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi
+  let trMatch: RegExpExecArray | null
+  while ((trMatch = trRegex.exec(tableHtml)) !== null) {
+    const cells: string[] = []
+    const cellRegex = /<t[hd][^>]*>([\s\S]*?)<\/t[hd]>/gi
+    let cellMatch: RegExpExecArray | null
+    while ((cellMatch = cellRegex.exec(trMatch[1])) !== null) {
+      const cellHtml = cellMatch[1]
+      // 셀 내부 HTML 정리: <p>, <br> 등 제거하고 텍스트만
+      const cellText = decodeEntities(stripTags(cellHtml)).replace(/\s+/g, ' ').trim()
+      cells.push(cellText)
+    }
+    if (cells.length > 0 && cells.some((c) => c.length > 0)) rows.push(cells)
+  }
+  return rows
+}
+
+/**
  * PARAGRAPH 안에 HTML이 내포된 경우(식약처 표 등) 가독 가능한 텍스트로 변환.
  * - <br>, </p>, </tr>, </li>, </h*>, </tbody>, </table> → 줄바꿈
  * - </td><td...> → " | " (셀 구분)
