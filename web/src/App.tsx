@@ -1,48 +1,70 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { SearchScreen } from './components/SearchScreen'
 import { RegisteredList } from './components/RegisteredList'
-import { Disclaimer } from './components/Disclaimer'
 import { InstallHint } from './components/InstallHint'
-import { FontToggle } from './components/FontToggle'
+import { BottomNav, type ViewKey } from './components/BottomNav'
+import { SettingsPage } from './components/SettingsPage'
 import { DetailModal, type DetailTarget } from './components/DetailModal'
+import { initTheme } from './lib/theme'
 
 export default function App() {
+  const [view, setView] = useState<ViewKey>('home')
   const [refreshSignal, setRefreshSignal] = useState(0)
   const [detailTarget, setDetailTarget] = useState<DetailTarget>(null)
+
+  useEffect(() => {
+    initTheme()
+    // 저장된 글자 크기 적용
+    const savedFont = localStorage.getItem('pillcheck.fontScale')
+    if (savedFont === 'large') {
+      document.documentElement.setAttribute('data-font-scale', 'large')
+    }
+  }, [])
 
   return (
     <div className="app">
       <header className="app__header">
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-end',
-            gap: 12,
-            flexWrap: 'wrap',
-          }}
-        >
-          <div>
-            <h1 className="app__title">PillCheck</h1>
-            <p className="app__subtitle">약·영양제 상호작용 체크</p>
-          </div>
-          <FontToggle />
-        </div>
+        <h1 className="app__title">PillCheck</h1>
+        <p className="app__subtitle">약·영양제 상호작용 체크</p>
       </header>
-      <main className="app__main stack">
-        <InstallHint />
-        <RegisteredList
-          refreshSignal={refreshSignal}
-          onChange={() => setRefreshSignal((n) => n + 1)}
-        />
-        <div className="section-divider">새 제품 검사</div>
-        <SearchScreen
-          refreshSignal={refreshSignal}
-          onMedicationsChanged={() => setRefreshSignal((n) => n + 1)}
-          onOpenDetail={setDetailTarget}
-        />
+
+      <main className="app__main">
+        {view === 'home' && (
+          <section className="page">
+            <InstallHint />
+            <RegisteredList
+              refreshSignal={refreshSignal}
+              onChange={() => setRefreshSignal((n) => n + 1)}
+            />
+            <p
+              style={{
+                textAlign: 'center',
+                color: 'var(--pc-text-muted)',
+                fontSize: 15,
+                marginTop: 8,
+              }}
+            >
+              새 영양제·약 검사하려면 하단 <b>🔍 검색</b> 탭으로 이동하세요.
+            </p>
+          </section>
+        )}
+
+        {view === 'search' && (
+          <section className="page">
+            <h2 className="page__title">🔍 새 제품 검사</h2>
+            <SearchScreen
+              refreshSignal={refreshSignal}
+              onMedicationsChanged={() => setRefreshSignal((n) => n + 1)}
+              onOpenDetail={setDetailTarget}
+            />
+          </section>
+        )}
+
+        {view === 'settings' && <SettingsPage />}
       </main>
-      <Disclaimer />
+
+      <BottomNav current={view} onChange={setView} />
+
       <DetailModal target={detailTarget} onClose={() => setDetailTarget(null)} />
     </div>
   )

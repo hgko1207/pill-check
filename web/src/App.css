@@ -1,4 +1,14 @@
 :root {
+  /* 공통 토큰 */
+  --pc-radius: 14px;
+  --pc-pad: 16px;
+  --pc-font-base: 18px;
+  --pc-font-large: 22px;
+  --pc-font-xl: 28px;
+  --pc-button-min-h: 56px;
+  --pc-bottom-nav-h: 64px;
+
+  /* 라이트 테마 (기본 — 60대 친화 우선) */
   --pc-primary: #1B5E20;
   --pc-primary-on: #FFFFFF;
   --pc-bg: #FAFAFA;
@@ -6,6 +16,7 @@
   --pc-text: #1A1A1A;
   --pc-text-muted: #555555;
   --pc-border: #DDDDDD;
+  --pc-divider: #EEEEEE;
 
   --pc-danger: #B71C1C;
   --pc-danger-bg: #FFEBEE;
@@ -16,13 +27,38 @@
   --pc-unknown: #616161;
   --pc-unknown-bg: #EEEEEE;
 
-  --pc-radius: 14px;
-  --pc-pad: 16px;
+  --pc-info-bg: #E3F2FD;
+  --pc-info-fg: #0D47A1;
 
-  --pc-font-base: 18px;
-  --pc-font-large: 22px;
-  --pc-font-xl: 28px;
-  --pc-button-min-h: 56px;
+  --pc-shadow-sm: 0 1px 4px rgba(0,0,0,0.06);
+  --pc-shadow-md: 0 2px 8px rgba(0,0,0,0.10);
+}
+
+/* 다크 테마 — 60대 baseline(폰트·버튼·대비) 유지 */
+html[data-theme='dark'] {
+  --pc-primary: #66BB6A;
+  --pc-primary-on: #0F1419;
+  --pc-bg: #0F1419;
+  --pc-surface: #1A2027;
+  --pc-text: #E8EAED;
+  --pc-text-muted: #9AA0A6;
+  --pc-border: #2D3540;
+  --pc-divider: #232A33;
+
+  --pc-danger: #EF5350;
+  --pc-danger-bg: #3B1F1F;
+  --pc-warn: #FFB74D;
+  --pc-warn-bg: #3B2C1A;
+  --pc-safe: #81C784;
+  --pc-safe-bg: #1A2E1F;
+  --pc-unknown: #B0B6BD;
+  --pc-unknown-bg: #232A33;
+
+  --pc-info-bg: #1F2D3F;
+  --pc-info-fg: #82B1FF;
+
+  --pc-shadow-sm: 0 1px 4px rgba(0,0,0,0.4);
+  --pc-shadow-md: 0 2px 8px rgba(0,0,0,0.5);
 }
 
 * { box-sizing: border-box; }
@@ -53,7 +89,7 @@ button, input, textarea { font: inherit; }
 
 .app__header {
   padding: 24px var(--pc-pad) 12px;
-  border-bottom: 1px solid #EEE;
+  border-bottom: 1px solid var(--pc-divider);
   background: var(--pc-surface);
 }
 
@@ -74,6 +110,7 @@ button, input, textarea { font: inherit; }
 .app__main {
   flex: 1;
   padding: var(--pc-pad);
+  padding-bottom: calc(var(--pc-bottom-nav-h) + env(safe-area-inset-bottom) + 24px);
 }
 
 .stack > * + * { margin-top: 14px; }
@@ -116,8 +153,8 @@ button, input, textarea { font: inherit; }
   background: var(--pc-surface);
   border-radius: var(--pc-radius);
   padding: var(--pc-pad);
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-  border: 1px solid #EEE;
+  box-shadow: var(--pc-shadow-sm);
+  border: 1px solid var(--pc-divider);
 }
 
 .card__title {
@@ -139,7 +176,7 @@ button, input, textarea { font: inherit; }
   line-height: 1.5;
 }
 .banner--error { background: var(--pc-danger-bg); color: var(--pc-danger); }
-.banner--info  { background: #E3F2FD; color: #0D47A1; }
+.banner--info  { background: var(--pc-info-bg); color: var(--pc-info-fg); }
 .banner--warn  { background: var(--pc-warn-bg); color: var(--pc-warn); }
 
 /* ────── 검색 결과 카드 종류 뱃지 ────── */
@@ -435,7 +472,7 @@ html[data-font-scale='large'] {
   background: var(--pc-surface);
   border-radius: 12px;
   font-size: 16px;
-  border: 1px solid #EEE;
+  border: 1px solid var(--pc-divider);
 }
 
 .modal-meta dt {
@@ -479,7 +516,7 @@ html[data-font-scale='large'] {
 .doc-article {
   margin-bottom: 10px;
   padding-left: 10px;
-  border-left: 3px solid #E0E0E0;
+  border-left: 3px solid var(--pc-border);
 }
 .doc-article__title {
   font-size: 16px;
@@ -502,7 +539,7 @@ html[data-font-scale='large'] {
 .modal-disclaimer {
   margin-top: 24px;
   padding-top: 14px;
-  border-top: 1px solid #EEE;
+  border-top: 1px solid var(--pc-divider);
   font-size: 13px;
   color: var(--pc-text-muted);
   line-height: 1.55;
@@ -510,18 +547,166 @@ html[data-font-scale='large'] {
 
 /* 시판 중단 뱃지 */
 .badge--cancelled {
-  background: #FFEBEE;
+  background: var(--pc-danger-bg);
   color: var(--pc-danger);
+}
+
+/* ────── 하단 네비게이션 (앱 셸) ────── */
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 720px;
+  background: var(--pc-surface);
+  border-top: 1px solid var(--pc-divider);
+  display: flex;
+  z-index: 50;
+  padding-bottom: env(safe-area-inset-bottom);
+  box-shadow: 0 -1px 8px rgba(0, 0, 0, 0.06);
+}
+
+html[data-theme='dark'] .bottom-nav {
+  box-shadow: 0 -1px 12px rgba(0, 0, 0, 0.45);
+}
+
+.bottom-nav__item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 8px 0 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--pc-text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  min-height: var(--pc-bottom-nav-h);
+  transition: color 0.15s;
+}
+
+.bottom-nav__item:active {
+  background: var(--pc-divider);
+}
+
+.bottom-nav__item--active {
+  color: var(--pc-primary);
+  font-weight: 700;
+}
+
+.bottom-nav__icon {
+  font-size: 22px;
+  line-height: 1;
+}
+
+/* ────── 페이지 컨테이너 ────── */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.page__title {
+  margin: 0 0 12px;
+  font-size: var(--pc-font-large);
+  font-weight: 700;
+  color: var(--pc-text);
+}
+
+/* ────── 설정 페이지 ────── */
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px var(--pc-pad);
+  background: var(--pc-surface);
+  border-radius: var(--pc-radius);
+  border: 1px solid var(--pc-divider);
+}
+
+.settings-row__label {
+  font-size: var(--pc-font-base);
+  font-weight: 600;
+  color: var(--pc-text);
+}
+
+.settings-row__hint {
+  font-size: 14px;
+  color: var(--pc-text-muted);
+  margin-top: 2px;
+}
+
+.settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.settings-section-title {
+  margin: 16px 0 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--pc-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.settings-info {
+  font-size: 14px;
+  color: var(--pc-text-muted);
+  line-height: 1.6;
+  padding: 14px var(--pc-pad);
+}
+.settings-info b { color: var(--pc-text); }
+.settings-info a { color: var(--pc-primary); text-decoration: none; }
+.settings-info a:hover { text-decoration: underline; }
+
+/* ────── 세그먼티드 컨트롤 (테마, 글자 크기 선택) ────── */
+
+.segmented {
+  display: inline-flex;
+  background: var(--pc-divider);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 0;
+}
+
+.segmented__btn {
+  min-height: 40px;
+  padding: 0 14px;
+  font-size: 15px;
+  font-weight: 500;
+  border: none;
+  background: transparent;
+  color: var(--pc-text-muted);
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.segmented__btn--active {
+  background: var(--pc-surface);
+  color: var(--pc-primary);
+  font-weight: 700;
+  box-shadow: var(--pc-shadow-sm);
 }
 
 .disclaimer {
   margin-top: auto;
   padding: var(--pc-pad);
-  background: #F5F5F5;
+  background: var(--pc-divider);
   font-size: 14px;
   color: var(--pc-text-muted);
   line-height: 1.55;
-  border-top: 1px solid #EEE;
+  border-top: 1px solid var(--pc-divider);
 }
 
 /* ────── 등록된 약 목록 ────── */
@@ -538,7 +723,7 @@ html[data-font-scale='large'] {
   align-items: flex-start;
   gap: 12px;
   padding: 12px 0;
-  border-bottom: 1px solid #EEE;
+  border-bottom: 1px solid var(--pc-divider);
 }
 .med-list__item:last-child { border-bottom: none; }
 
