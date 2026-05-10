@@ -67,7 +67,12 @@ export default function App() {
           </section>
         )}
 
-        {view === 'settings' && <SettingsPage onShowGuide={() => setGuideOpen(true)} />}
+        {view === 'settings' && (
+          <SettingsPage
+            onShowGuide={() => setGuideOpen(true)}
+            onMedicationsChanged={() => setRefreshSignal((n) => n + 1)}
+          />
+        )}
       </main>
 
       <BottomNav current={view} onChange={setView} />

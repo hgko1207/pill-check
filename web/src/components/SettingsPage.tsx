@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { loadTheme, saveTheme, type Theme } from '../lib/theme'
+import { clearAllMedications, listMedications } from '../lib/db'
 
 const FONT_KEY = 'pillcheck.fontScale'
 type FontScale = 'normal' | 'large'
@@ -14,9 +15,34 @@ function applyFontScale(scale: FontScale) {
 
 interface SettingsProps {
   onShowGuide?: () => void
+  onMedicationsChanged?: () => void
 }
 
-export function SettingsPage({ onShowGuide }: SettingsProps = {}) {
+export function SettingsPage({ onShowGuide, onMedicationsChanged }: SettingsProps = {}) {
+  const [clearing, setClearing] = useState(false)
+
+  async function handleClearAll() {
+    setClearing(true)
+    try {
+      const list = await listMedications()
+      if (list.length === 0) {
+        alert('등록된 약이 없습니다.')
+        return
+      }
+      const ok = confirm(
+        `등록된 약 ${list.length}개를 모두 삭제하시겠습니까?\n\n` +
+          `이 작업은 되돌릴 수 없습니다.\n` +
+          `(개별 삭제는 🏠 홈 탭의 약 목록에서 가능합니다)`,
+      )
+      if (!ok) return
+      const removed = await clearAllMedications()
+      onMedicationsChanged?.()
+      alert(`✅ ${removed}개의 약을 모두 삭제했습니다.`)
+    } finally {
+      setClearing(false)
+    }
+  }
+
   const [theme, setTheme] = useState<Theme>('light')
   const [fontScale, setFontScale] = useState<FontScale>('normal')
 
@@ -102,6 +128,29 @@ export function SettingsPage({ onShowGuide }: SettingsProps = {}) {
               <div className="settings-row__label">사용법 다시 보기</div>
               <div className="settings-row__hint">
                 STEP 1~3 가이드 + 약 개별 삭제 방법
+              </div>
+            </div>
+          </div>
+          <span className="settings-row__chev" aria-hidden="true">›</span>
+        </button>
+      </div>
+
+      <div className="settings-section-title">데이터 관리</div>
+      <div className="settings-group">
+        <button
+          type="button"
+          className="settings-row settings-row--button settings-row--danger"
+          onClick={() => void handleClearAll()}
+          disabled={clearing}
+        >
+          <div className="settings-row__main">
+            <div className="settings-row__icon" aria-hidden="true">🗑️</div>
+            <div>
+              <div className="settings-row__label">
+                {clearing ? '삭제 중…' : '등록 약 전체 삭제'}
+              </div>
+              <div className="settings-row__hint">
+                등록된 약을 한 번에 모두 지웁니다 · 개별 삭제는 홈 탭에서 가능
               </div>
             </div>
           </div>

@@ -60,3 +60,9 @@ export async function addMedication(
 export async function removeMedication(id: number): Promise<void> {
   await db.medications.delete(id)
 }
+
+export async function clearAllMedications(): Promise<number> {
+  const count = await db.medications.count()
+  await db.medications.clear()
+  return count
+}

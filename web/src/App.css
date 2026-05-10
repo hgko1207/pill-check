@@ -782,6 +782,30 @@ html[data-theme='dark'] .page__title::before {
 .settings-row--button:active {
   transform: scale(0.99);
 }
+.settings-row--button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.settings-row--danger {
+  border-color: rgba(183, 28, 28, 0.25);
+}
+.settings-row--danger:hover {
+  background: var(--pc-danger-bg);
+  border-color: var(--pc-danger);
+}
+.settings-row--danger .settings-row__icon {
+  background: linear-gradient(135deg, rgba(183, 28, 28, 0.18), rgba(239, 83, 80, 0.10));
+}
+.settings-row--danger .settings-row__label {
+  color: var(--pc-danger);
+}
+html[data-theme='dark'] .settings-row--danger {
+  border-color: rgba(239, 83, 80, 0.30);
+}
+html[data-theme='dark'] .settings-row--danger:hover {
+  background: rgba(239, 83, 80, 0.10);
+}
 
 .settings-row__main {
   display: flex;
