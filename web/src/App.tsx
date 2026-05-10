@@ -24,8 +24,13 @@ export default function App() {
   return (
     <div className="app">
       <header className="app__header">
-        <h1 className="app__title">PillCheck</h1>
-        <p className="app__subtitle">약·영양제 상호작용 체크</p>
+        <h1 className="app__title">
+          <span className="app__title-emoji" aria-hidden="true">💊</span>
+          PillCheck
+        </h1>
+        <p className="app__subtitle">
+          약과 영양제, <b>함께 먹어도 괜찮을까요?</b>
+        </p>
       </header>
 
       <main className="app__main">

@@ -37,13 +37,13 @@ export function SettingsPage() {
     <section className="page">
       <h2 className="page__title">⚙️ 설정</h2>
 
-      <div className="settings-section-title">표시</div>
+      <div className="settings-section-title">화면</div>
       <div className="settings-group">
-        <div className="settings-row">
-          <div>
-            <div className="settings-row__label">글자 크기</div>
-            <div className="settings-row__hint">눈이 편하신 크기로 조정하세요</div>
-          </div>
+        <SettingsRow
+          icon="🔤"
+          label="글자 크기"
+          hint="눈이 편하신 크기로 조정하세요"
+        >
           <div className="segmented" role="radiogroup" aria-label="글자 크기">
             <button
               className={`segmented__btn ${fontScale === 'normal' ? 'segmented__btn--active' : ''}`}
@@ -62,13 +62,13 @@ export function SettingsPage() {
               크게
             </button>
           </div>
-        </div>
+        </SettingsRow>
 
-        <div className="settings-row">
-          <div>
-            <div className="settings-row__label">테마</div>
-            <div className="settings-row__hint">밝게 / 어둡게 / 기기 설정 따라가기</div>
-          </div>
+        <SettingsRow
+          icon="🎨"
+          label="테마"
+          hint="밝게 / 어둡게 / 기기 설정 따라가기"
+        >
           <div className="segmented" role="radiogroup" aria-label="테마">
             {(['light', 'dark', 'system'] as Theme[]).map((t) => (
               <button
@@ -82,33 +82,117 @@ export function SettingsPage() {
               </button>
             ))}
           </div>
-        </div>
+        </SettingsRow>
+      </div>
+
+      <div className="settings-section-title">데이터 출처</div>
+      <div className="settings-group">
+        <InfoRow
+          icon="🏛️"
+          title="식품의약품안전처 공공데이터"
+          desc="의약품 제품 허가정보 + DUR 품목정보(병용금기 81만건)"
+          link="https://www.data.go.kr/data/15095677/openapi.do"
+        />
+        <InfoRow
+          icon="🌿"
+          title="식품안전나라"
+          desc="건강기능식품 품목제조 신고사항 (영양제)"
+          link="https://www.foodsafetykorea.go.kr/api"
+        />
       </div>
 
       <div className="settings-section-title">앱 정보</div>
-      <div className="settings-info">
-        <p>
-          <b>PillCheck</b> — 약·영양제 상호작용 체크 (V1.6)
-        </p>
-        <p style={{ marginTop: 8 }}>
-          식품의약품안전처 공공데이터(의약품 제품 허가정보 + DUR 품목정보)와
-          식품안전나라 건강기능식품 정보를 결합하여 부모님 처방약과 새 영양제·일반약의
-          상호작용을 확인합니다.
-        </p>
-        <p style={{ marginTop: 8 }}>
-          소스 코드:{' '}
-          <a href="https://github.com/hgko1207/pill-check" target="_blank" rel="noreferrer">
-            github.com/hgko1207/pill-check
-          </a>
-        </p>
+      <div className="settings-group">
+        <InfoRow
+          icon="ℹ️"
+          title="버전"
+          desc="V1.6 — 앱 셸 + 다크 모드"
+        />
+        <InfoRow
+          icon="🔗"
+          title="소스 코드 (오픈소스)"
+          desc="github.com/hgko1207/pill-check"
+          link="https://github.com/hgko1207/pill-check"
+        />
+        <InfoRow
+          icon="📖"
+          title="설계 문서"
+          desc="DESIGN.md — 결정 근거·우선순위"
+          link="https://github.com/hgko1207/pill-check/blob/main/DESIGN.md"
+        />
       </div>
 
-      <div className="settings-section-title">면책</div>
-      <div className="settings-info">
+      <div className="settings-section-title">⚠️ 면책</div>
+      <div className="settings-warn">
         본 정보는 식품의약품안전처 공공데이터를 기반으로 한 <b>참고용 자료</b>입니다.
-        의료 행위가 아니며, 약사·의사 상담을 대체하지 않습니다. 실제 복용 결정은
-        반드시 전문가와 상의하세요.
+        <br />
+        의료 행위가 아니며, 약사·의사 상담을 대체하지 않습니다.
+        <br />
+        실제 복용 결정은 반드시 전문가와 상의하세요.
       </div>
     </section>
   )
+}
+
+function SettingsRow({
+  icon,
+  label,
+  hint,
+  children,
+}: {
+  icon: string
+  label: string
+  hint?: string
+  children?: React.ReactNode
+}) {
+  return (
+    <div className="settings-row">
+      <div className="settings-row__main">
+        <div className="settings-row__icon" aria-hidden="true">{icon}</div>
+        <div>
+          <div className="settings-row__label">{label}</div>
+          {hint && <div className="settings-row__hint">{hint}</div>}
+        </div>
+      </div>
+      {children && <div className="settings-row__control">{children}</div>}
+    </div>
+  )
+}
+
+function InfoRow({
+  icon,
+  title,
+  desc,
+  link,
+}: {
+  icon: string
+  title: string
+  desc: string
+  link?: string
+}) {
+  const content = (
+    <div className="settings-row">
+      <div className="settings-row__main">
+        <div className="settings-row__icon" aria-hidden="true">{icon}</div>
+        <div>
+          <div className="settings-row__label">{title}</div>
+          <div className="settings-row__hint">{desc}</div>
+        </div>
+      </div>
+      {link && <span className="settings-row__chev" aria-hidden="true">›</span>}
+    </div>
+  )
+  if (link) {
+    return (
+      <a
+        href={link}
+        target="_blank"
+        rel="noreferrer"
+        className="settings-row-link"
+      >
+        {content}
+      </a>
+    )
+  }
+  return content
 }
