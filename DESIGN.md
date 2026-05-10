@@ -249,13 +249,26 @@ CI/CD는 V1에서 Vercel/Cloudflare 자동 배포(Git push 시). 별도 작업 0
 - FontToggle 헤더 → 설정 페이지로 이동
 - 60대 baseline 유지 (어두워도 18px+ / 56px+ / 충분한 명도 대비)
 
-### V1.7 — LLM 하이브리드 해설 (V1.6 출시 후 검토)
+### V1.7 — LLM 하이브리드 해설 (구현 완료, 2026-05-11)
 
-DUR 매칭이 회색(데이터 부족)일 때 LLM이 자연스러운 해설 추가.
-- 일일 quota (5회 무료, 초과 시 약사 안내)
-- 의료 면책 강화 ("AI 생성 — 약사 확인 필수")
-- 비용: $0.05/100 요청 정도 예상 (Claude Haiku 기준)
-- 책임: DUR ground truth는 그대로, LLM은 보조 설명만
+DUR 매칭이 회색(데이터 부족) 또는 노랑(주의)일 때 사용자가 버튼 클릭 시 LLM이 자연스러운 해설 추가.
+
+**구현:**
+- LLM 제공자: **Google Gemini 1.5 Flash** (무료 티어 1500/일)
+  - Anthropic Claude / OpenAI GPT는 유료만, Gemini만 무료 티어 있음
+- 배포 형태: **Vercel Edge Function** (web/api/llm.ts)
+  - 서버측 `GEMINI_API_KEY`만 사용 → 클라이언트 번들에 키 노출 X
+  - 로컬 dev에서는 `VITE_GEMINI_API_KEY` 직접 호출 fallback
+- 일일 quota: **5회/사용자** (localStorage `pillcheck.llmQuota`)
+- 트리거: 결과 카드의 [🤖 AI 해설 받기] 버튼 (사용자 의사 확인)
+- 프롬프트: 보수적 — "~할 수 있습니다" 어조, 단정 금지, "약사·의사 상담 필수" 강제
+
+**책임:**
+- DUR 데이터가 ground truth, LLM은 보조 설명만
+- 모든 AI 응답에 "🤖 AI 해설 (참고용)" 라벨 + "약사·의사 확인 필수" 강조
+- 안전 필터(Gemini safety settings BLOCK_ONLY_HIGH) + 4문장 제한
+
+**비용:** Gemini Flash 1500/일 무료 티어 → 가족 베타엔 사실상 무료
 
 ### V1.5 — 상세정보 모달 (사용자 요청 추가, 2026-05-10)
 

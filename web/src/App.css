@@ -1132,6 +1132,102 @@ html[data-theme='dark'] .result-card--unknown {
   color: var(--pc-text);
 }
 
+/* ────── AI 해설 영역 (V1.7) ────── */
+
+.ai-actions {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--pc-divider);
+}
+
+.ai-actions__hint {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--pc-text-muted);
+  line-height: 1.5;
+}
+
+.btn-small--ai {
+  border: none;
+  background: linear-gradient(135deg, #5C6BC0 0%, #7E57C2 100%);
+  color: white;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(94, 53, 177, 0.25);
+}
+.btn-small--ai:hover {
+  box-shadow: 0 4px 10px rgba(94, 53, 177, 0.32);
+}
+.btn-small--ai:active {
+  transform: scale(0.99);
+}
+.btn-small--ai:disabled {
+  background: var(--pc-divider);
+  color: var(--pc-text-muted);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.ai-explanation {
+  margin-top: 14px;
+  padding: 14px var(--pc-pad);
+  background: linear-gradient(135deg, rgba(92, 107, 192, 0.07) 0%, rgba(126, 87, 194, 0.05) 100%);
+  border-radius: 12px;
+  border: 1px solid rgba(126, 87, 194, 0.18);
+}
+
+html[data-theme='dark'] .ai-explanation {
+  background: linear-gradient(135deg, rgba(149, 117, 205, 0.12) 0%, rgba(179, 157, 219, 0.06) 100%);
+  border-color: rgba(149, 117, 205, 0.25);
+}
+
+.ai-explanation__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.ai-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #5C6BC0 0%, #7E57C2 100%);
+  color: white;
+}
+
+.ai-quota-info {
+  font-size: 12px;
+  color: var(--pc-text-muted);
+  font-weight: 500;
+}
+
+.ai-explanation__text {
+  margin: 0 0 10px;
+  font-size: 16px;
+  line-height: 1.75;
+  color: var(--pc-text);
+  white-space: pre-line;
+  word-break: keep-all;
+}
+
+.ai-explanation__footer {
+  margin: 0;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(126, 87, 194, 0.20);
+  font-size: 13px;
+  color: var(--pc-text-muted);
+  line-height: 1.55;
+}
+
+.ai-explanation__footer b {
+  color: var(--pc-warn);
+  font-weight: 700;
+}
+
 /* ────── 섹션 구분선 ────── */
 
 .section-divider {

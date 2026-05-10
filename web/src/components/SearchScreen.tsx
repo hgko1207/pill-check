@@ -6,6 +6,7 @@ import { checkInteraction } from '../lib/dur'
 import { friendlyError } from '../lib/errors'
 import type { NedrugItem, InteractionResult, UnifiedSearchResult } from '../lib/types'
 import type { HealthFoodItem } from '../lib/healthfood-api'
+import type { RegisteredMedication } from '../lib/db'
 import { BarcodeScanner } from './BarcodeScanner'
 import { InteractionResultCard } from './InteractionResultCard'
 import type { DetailTarget } from './DetailModal'
@@ -63,7 +64,11 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
   const [info, setInfo] = useState<string | null>(null)
   const [warn, setWarn] = useState<string | null>(null)
   const [scannerOpen, setScannerOpen] = useState(false)
-  const [interactionResult, setInteractionResult] = useState<InteractionResult | null>(null)
+  const [interactionContext, setInteractionContext] = useState<{
+    result: InteractionResult
+    product: UnifiedSearchResult
+    registered: RegisteredMedication[]
+  } | null>(null)
   const [actionPending, setActionPending] = useState<string | null>(null)
   const [registeredItemSeqs, setRegisteredItemSeqs] = useState<Set<string>>(new Set())
 
@@ -89,7 +94,7 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
       setError(null)
       setInfo(null)
       setWarn(null)
-      setInteractionResult(null)
+      setInteractionContext(null)
 
       const promises: Promise<unknown>[] = [searchDrug(q)]
       if (isFoodSafetyConfigured()) {
@@ -177,11 +182,11 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
     setActionPending(item.id)
     setError(null)
     setInfo(null)
-    setInteractionResult(null)
+    setInteractionContext(null)
     try {
       const registered = await listMedications()
       const result = await checkInteraction(item, registered)
-      setInteractionResult(result)
+      setInteractionContext({ result, product: item, registered })
       // 결과 카드로 부드럽게 스크롤
       setTimeout(() => {
         document.querySelector('.result-card')?.scrollIntoView({
@@ -243,7 +248,13 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
       {warn && !error && <div className="banner banner--warn">{warn}</div>}
       {info && !error && <div className="banner banner--info">{info}</div>}
 
-      {interactionResult && <InteractionResultCard result={interactionResult} />}
+      {interactionContext && (
+        <InteractionResultCard
+          result={interactionContext.result}
+          product={interactionContext.product}
+          registered={interactionContext.registered}
+        />
+      )}
 
       {results.length > 0 && (
         <>
