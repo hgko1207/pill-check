@@ -12,7 +12,11 @@ function applyFontScale(scale: FontScale) {
   }
 }
 
-export function SettingsPage() {
+interface SettingsProps {
+  onShowGuide?: () => void
+}
+
+export function SettingsPage({ onShowGuide }: SettingsProps = {}) {
   const [theme, setTheme] = useState<Theme>('light')
   const [fontScale, setFontScale] = useState<FontScale>('normal')
 
@@ -85,41 +89,24 @@ export function SettingsPage() {
         </SettingsRow>
       </div>
 
-      <div className="settings-section-title">데이터 출처</div>
+      <div className="settings-section-title">도움말</div>
       <div className="settings-group">
-        <InfoRow
-          icon="🏛️"
-          title="식품의약품안전처 공공데이터"
-          desc="의약품 제품 허가정보 + DUR 품목정보(병용금기 81만건)"
-          link="https://www.data.go.kr/data/15095677/openapi.do"
-        />
-        <InfoRow
-          icon="🌿"
-          title="식품안전나라"
-          desc="건강기능식품 품목제조 신고사항 (영양제)"
-          link="https://www.foodsafetykorea.go.kr/api"
-        />
-      </div>
-
-      <div className="settings-section-title">앱 정보</div>
-      <div className="settings-group">
-        <InfoRow
-          icon="ℹ️"
-          title="버전"
-          desc="V1.6 — 앱 셸 + 다크 모드"
-        />
-        <InfoRow
-          icon="🔗"
-          title="소스 코드 (오픈소스)"
-          desc="github.com/hgko1207/pill-check"
-          link="https://github.com/hgko1207/pill-check"
-        />
-        <InfoRow
-          icon="📖"
-          title="설계 문서"
-          desc="DESIGN.md — 결정 근거·우선순위"
-          link="https://github.com/hgko1207/pill-check/blob/main/DESIGN.md"
-        />
+        <button
+          type="button"
+          className="settings-row settings-row--button"
+          onClick={onShowGuide}
+        >
+          <div className="settings-row__main">
+            <div className="settings-row__icon" aria-hidden="true">📖</div>
+            <div>
+              <div className="settings-row__label">사용법 다시 보기</div>
+              <div className="settings-row__hint">
+                STEP 1~3 가이드 + 약 개별 삭제 방법
+              </div>
+            </div>
+          </div>
+          <span className="settings-row__chev" aria-hidden="true">›</span>
+        </button>
       </div>
 
       <div className="settings-section-title">⚠️ 면책</div>
@@ -159,40 +146,3 @@ function SettingsRow({
   )
 }
 
-function InfoRow({
-  icon,
-  title,
-  desc,
-  link,
-}: {
-  icon: string
-  title: string
-  desc: string
-  link?: string
-}) {
-  const content = (
-    <div className="settings-row">
-      <div className="settings-row__main">
-        <div className="settings-row__icon" aria-hidden="true">{icon}</div>
-        <div>
-          <div className="settings-row__label">{title}</div>
-          <div className="settings-row__hint">{desc}</div>
-        </div>
-      </div>
-      {link && <span className="settings-row__chev" aria-hidden="true">›</span>}
-    </div>
-  )
-  if (link) {
-    return (
-      <a
-        href={link}
-        target="_blank"
-        rel="noreferrer"
-        className="settings-row-link"
-      >
-        {content}
-      </a>
-    )
-  }
-  return content
-}

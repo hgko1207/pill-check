@@ -50,7 +50,7 @@ export function RegisteredList({ refreshSignal, onChange }: Props) {
   if (meds.length === 0) {
     return (
       <section className="hero">
-        <h2 className="hero__title">👋 PillCheck 시작하기</h2>
+        <h2 className="hero__title">👋 약똑똑 시작하기</h2>
         <p className="hero__lead">
           부모님이 드시는 약과 새 영양제·일반약의
           <br />

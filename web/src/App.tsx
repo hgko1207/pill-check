@@ -5,12 +5,14 @@ import { InstallHint } from './components/InstallHint'
 import { BottomNav, type ViewKey } from './components/BottomNav'
 import { SettingsPage } from './components/SettingsPage'
 import { DetailModal, type DetailTarget } from './components/DetailModal'
+import { GuideModal } from './components/GuideModal'
 import { initTheme } from './lib/theme'
 
 export default function App() {
   const [view, setView] = useState<ViewKey>('home')
   const [refreshSignal, setRefreshSignal] = useState(0)
   const [detailTarget, setDetailTarget] = useState<DetailTarget>(null)
+  const [guideOpen, setGuideOpen] = useState(false)
 
   useEffect(() => {
     initTheme()
@@ -26,7 +28,7 @@ export default function App() {
       <header className="app__header">
         <h1 className="app__title">
           <span className="app__title-emoji" aria-hidden="true">💊</span>
-          PillCheck
+          약똑똑
         </h1>
         <p className="app__subtitle">
           약과 영양제, <b>함께 먹어도 괜찮을까요?</b>
@@ -65,12 +67,13 @@ export default function App() {
           </section>
         )}
 
-        {view === 'settings' && <SettingsPage />}
+        {view === 'settings' && <SettingsPage onShowGuide={() => setGuideOpen(true)} />}
       </main>
 
       <BottomNav current={view} onChange={setView} />
 
       <DetailModal target={detailTarget} onClose={() => setDetailTarget(null)} />
+      <GuideModal open={guideOpen} onClose={() => setGuideOpen(false)} />
     </div>
   )
 }

@@ -768,6 +768,21 @@ html[data-theme='dark'] .page__title::before {
   transition: background 0.15s, border-color 0.15s;
 }
 
+.settings-row--button {
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.settings-row--button:hover {
+  border-color: var(--pc-border);
+  background: var(--pc-divider);
+}
+.settings-row--button:active {
+  transform: scale(0.99);
+}
+
 .settings-row__main {
   display: flex;
   align-items: center;
