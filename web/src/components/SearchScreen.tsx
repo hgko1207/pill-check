@@ -8,11 +8,14 @@ import type { NedrugItem, InteractionResult, UnifiedSearchResult } from '../lib/
 import type { HealthFoodItem } from '../lib/healthfood-api'
 import { BarcodeScanner } from './BarcodeScanner'
 import { InteractionResultCard } from './InteractionResultCard'
+import type { DetailTarget } from './DetailModal'
 
 interface Props {
   onMedicationsChanged?: () => void
   /** 부모(App)에서 갱신 신호 — registered set을 다시 로드 */
   refreshSignal?: number
+  /** 카드 클릭 시 상세정보 모달 열기 */
+  onOpenDetail?: (target: DetailTarget) => void
 }
 
 interface DrugWithRaw extends UnifiedSearchResult {
@@ -52,7 +55,7 @@ function adaptHealthFood(item: HealthFoodItem): HealthFoodWithRaw | null {
   }
 }
 
-export function SearchScreen({ onMedicationsChanged, refreshSignal }: Props) {
+export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail }: Props) {
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [results, setResults] = useState<SearchResultWithRaw[]>([])
@@ -251,8 +254,29 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal }: Props) {
             const isPending = actionPending === item.id
             const isDrug = item.kind === 'drug'
             const isRegistered = isDrug && registeredItemSeqs.has(item.id)
+            const detailTarget: DetailTarget =
+              item.kind === 'drug'
+                ? { kind: 'drug', raw: item.raw }
+                : { kind: 'healthfood', raw: item.raw }
+            const openDetail = () => onOpenDetail?.(detailTarget)
             return (
-              <div key={`${item.kind}-${item.id}`} className="card">
+              <div
+                key={`${item.kind}-${item.id}`}
+                className={`card ${onOpenDetail ? 'card--clickable' : ''}`}
+                onClick={onOpenDetail ? openDetail : undefined}
+                onKeyDown={
+                  onOpenDetail
+                    ? (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          openDetail()
+                        }
+                      }
+                    : undefined
+                }
+                role={onOpenDetail ? 'button' : undefined}
+                tabIndex={onOpenDetail ? 0 : undefined}
+              >
                 <div className="card__badge-row">
                   <span className={`badge ${isDrug ? 'badge--drug' : 'badge--healthfood'}`}>
                     {isDrug ? '💊 의약품' : '🌿 영양제'}
@@ -275,7 +299,14 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal }: Props) {
                       : item.ingredient}
                   </p>
                 )}
-                <div className="card__actions">
+                {onOpenDetail && (
+                  <p className="card__detail-hint">탭하면 상세 정보 보기 →</p>
+                )}
+                {/* 액션 버튼: 카드 클릭 이벤트 버블링 방지 */}
+                <div
+                  className="card__actions"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   {isDrug && !isRegistered && (
                     <button
                       className="btn-small btn-small--primary"

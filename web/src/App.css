@@ -332,6 +332,188 @@ html[data-font-scale='large'] {
   to { transform: rotate(360deg); }
 }
 
+/* ────── 검색 결과 카드 클릭 가능 ────── */
+
+.card--clickable {
+  cursor: pointer;
+  transition: box-shadow 0.15s, transform 0.05s;
+}
+.card--clickable:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+.card--clickable:active {
+  transform: scale(0.99);
+}
+
+.card__detail-hint {
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--pc-primary);
+  font-weight: 500;
+}
+
+/* ────── 상세정보 모달 ────── */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: fade-in 0.2s ease;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-panel {
+  background: var(--pc-bg);
+  width: 100%;
+  max-width: 720px;
+  max-height: 92vh;
+  border-radius: 16px 16px 0 0;
+  padding: 20px var(--pc-pad) calc(20px + env(safe-area-inset-bottom));
+  overflow-y: auto;
+  position: relative;
+  animation: slide-up 0.25s ease;
+}
+
+@media (min-width: 600px) {
+  .modal-backdrop {
+    align-items: center;
+  }
+  .modal-panel {
+    border-radius: 16px;
+    max-height: 88vh;
+  }
+}
+
+@keyframes slide-up {
+  from { transform: translateY(20%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.modal-close {
+  position: sticky;
+  top: 0;
+  float: right;
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: var(--pc-surface);
+  color: var(--pc-text);
+  font-size: 22px;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 8px;
+  z-index: 1;
+}
+
+.modal-content {
+  clear: both;
+}
+
+.modal-title {
+  margin: 8px 0 14px;
+  font-size: var(--pc-font-xl);
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--pc-text);
+}
+
+.modal-meta {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 12px;
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  background: var(--pc-surface);
+  border-radius: 12px;
+  font-size: 16px;
+  border: 1px solid #EEE;
+}
+
+.modal-meta dt {
+  color: var(--pc-text-muted);
+  font-weight: 600;
+}
+.modal-meta dd {
+  margin: 0;
+  color: var(--pc-text);
+  word-break: break-word;
+}
+
+.modal-section {
+  margin-top: 18px;
+}
+
+.modal-section__heading {
+  margin: 0 0 8px;
+  font-size: var(--pc-font-large);
+  font-weight: 700;
+  color: var(--pc-primary);
+}
+
+.modal-text {
+  margin: 0 0 8px;
+  font-size: 17px;
+  line-height: 1.65;
+  color: var(--pc-text);
+  word-break: keep-all;
+}
+
+.doc-section {
+  margin-bottom: 14px;
+}
+.doc-section__title {
+  margin: 12px 0 6px;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--pc-text);
+}
+.doc-article {
+  margin-bottom: 10px;
+  padding-left: 10px;
+  border-left: 3px solid #E0E0E0;
+}
+.doc-article__title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--pc-text);
+  margin-bottom: 4px;
+}
+
+.modal-warn {
+  margin: 12px 0;
+  padding: 12px 14px;
+  background: var(--pc-warn-bg);
+  color: var(--pc-warn);
+  border-radius: 10px;
+  font-size: 16px;
+  line-height: 1.55;
+  border: 1px solid #FFCC80;
+}
+
+.modal-disclaimer {
+  margin-top: 24px;
+  padding-top: 14px;
+  border-top: 1px solid #EEE;
+  font-size: 13px;
+  color: var(--pc-text-muted);
+  line-height: 1.55;
+}
+
+/* 시판 중단 뱃지 */
+.badge--cancelled {
+  background: #FFEBEE;
+  color: var(--pc-danger);
+}
+
 .disclaimer {
   margin-top: auto;
   padding: var(--pc-pad);

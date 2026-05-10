@@ -4,9 +4,11 @@ import { RegisteredList } from './components/RegisteredList'
 import { Disclaimer } from './components/Disclaimer'
 import { InstallHint } from './components/InstallHint'
 import { FontToggle } from './components/FontToggle'
+import { DetailModal, type DetailTarget } from './components/DetailModal'
 
 export default function App() {
   const [refreshSignal, setRefreshSignal] = useState(0)
+  const [detailTarget, setDetailTarget] = useState<DetailTarget>(null)
 
   return (
     <div className="app">
@@ -37,9 +39,11 @@ export default function App() {
         <SearchScreen
           refreshSignal={refreshSignal}
           onMedicationsChanged={() => setRefreshSignal((n) => n + 1)}
+          onOpenDetail={setDetailTarget}
         />
       </main>
       <Disclaimer />
+      <DetailModal target={detailTarget} onClose={() => setDetailTarget(null)} />
     </div>
   )
 }
