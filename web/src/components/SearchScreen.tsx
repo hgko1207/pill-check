@@ -1,18 +1,9 @@
-import { useCallback, useState } from 'react'
-import { searchDrug, MissingApiKeyError, NedrugRequestError } from '../lib/nedrug-api'
-import {
-  searchHealthFood,
-  isFoodSafetyConfigured,
-  FoodSafetyKeyMissingError,
-  FoodSafetyAuthError,
-} from '../lib/healthfood-api'
-import {
-  addMedication,
-  listMedications,
-  MedicationLimitError,
-  DuplicateMedicationError,
-} from '../lib/db'
+import { useCallback, useEffect, useState } from 'react'
+import { searchDrug } from '../lib/nedrug-api'
+import { searchHealthFood, isFoodSafetyConfigured } from '../lib/healthfood-api'
+import { addMedication, listMedications } from '../lib/db'
 import { checkInteraction } from '../lib/dur'
+import { friendlyError } from '../lib/errors'
 import type { NedrugItem, InteractionResult, UnifiedSearchResult } from '../lib/types'
 import type { HealthFoodItem } from '../lib/healthfood-api'
 import { BarcodeScanner } from './BarcodeScanner'
@@ -20,6 +11,8 @@ import { InteractionResultCard } from './InteractionResultCard'
 
 interface Props {
   onMedicationsChanged?: () => void
+  /** 부모(App)에서 갱신 신호 — registered set을 다시 로드 */
+  refreshSignal?: number
 }
 
 interface DrugWithRaw extends UnifiedSearchResult {
@@ -59,7 +52,7 @@ function adaptHealthFood(item: HealthFoodItem): HealthFoodWithRaw | null {
   }
 }
 
-export function SearchScreen({ onMedicationsChanged }: Props) {
+export function SearchScreen({ onMedicationsChanged, refreshSignal }: Props) {
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [results, setResults] = useState<SearchResultWithRaw[]>([])
@@ -69,6 +62,18 @@ export function SearchScreen({ onMedicationsChanged }: Props) {
   const [scannerOpen, setScannerOpen] = useState(false)
   const [interactionResult, setInteractionResult] = useState<InteractionResult | null>(null)
   const [actionPending, setActionPending] = useState<string | null>(null)
+  const [registeredItemSeqs, setRegisteredItemSeqs] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    let cancelled = false
+    listMedications().then((list) => {
+      if (cancelled) return
+      setRegisteredItemSeqs(new Set(list.map((m) => m.itemSeq)))
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [refreshSignal])
 
   const handleSearch = useCallback(
     async (term?: string) => {
@@ -100,10 +105,7 @@ export function SearchScreen({ onMedicationsChanged }: Props) {
           if (adapted) merged.push(adapted)
         }
       } else {
-        const e = drugRes.reason
-        if (e instanceof MissingApiKeyError) drugError = e.message
-        else if (e instanceof NedrugRequestError) drugError = e.message
-        else drugError = `의약품 검색 실패: ${e instanceof Error ? e.message : String(e)}`
+        drugError = friendlyError(drugRes.reason)
       }
 
       if (hfRes) {
@@ -113,30 +115,22 @@ export function SearchScreen({ onMedicationsChanged }: Props) {
             if (adapted) merged.push(adapted)
           }
         } else {
-          const e = hfRes.reason
-          if (e instanceof FoodSafetyKeyMissingError || e instanceof FoodSafetyAuthError) {
-            hfError = e.message
-          } else {
-            hfError = `영양제 검색 실패: ${e instanceof Error ? e.message : String(e)}`
-          }
+          hfError = friendlyError(hfRes.reason)
         }
       }
 
       setResults(merged)
 
-      if (drugError && (!hfRes || hfRes.status === 'rejected')) {
+      // 의약품 검색이 실패하면 빨간 에러
+      // 영양제만 실패하면 노란 경고 (의약품 결과는 살아있음)
+      if (drugError) {
         setError(drugError)
-      } else if (drugError) {
-        setError(drugError)
-      } else if (hfError && hfRes && !isFoodSafetyConfigured()) {
-        // no foodsafety key: show subtle warning, not error
-        setWarn(hfError)
       } else if (hfError) {
         setWarn(hfError)
       }
 
       if (merged.length === 0 && !drugError) {
-        setInfo('검색 결과가 없습니다. 다른 이름으로 시도해보세요.')
+        setInfo('검색 결과가 없어요. 다른 이름으로 다시 시도해주세요.')
       }
 
       setLoading(false)
@@ -166,14 +160,11 @@ export function SearchScreen({ onMedicationsChanged }: Props) {
         manufacturer: item.manufacturer,
         mainIngredient: item.ingredient,
       })
-      setInfo(`"${item.name}" 을(를) 등록했습니다.`)
+      setInfo(`✅ "${item.name}" 을(를) 등록했어요.`)
+      setRegisteredItemSeqs((prev) => new Set([...prev, item.id]))
       onMedicationsChanged?.()
     } catch (e) {
-      if (e instanceof MedicationLimitError || e instanceof DuplicateMedicationError) {
-        setError(e.message)
-      } else {
-        setError(`등록 실패: ${e instanceof Error ? e.message : String(e)}`)
-      }
+      setError(friendlyError(e))
     } finally {
       setActionPending(null)
     }
@@ -188,8 +179,15 @@ export function SearchScreen({ onMedicationsChanged }: Props) {
       const registered = await listMedications()
       const result = await checkInteraction(item, registered)
       setInteractionResult(result)
+      // 결과 카드로 부드럽게 스크롤
+      setTimeout(() => {
+        document.querySelector('.result-card')?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+        })
+      }, 50)
     } catch (e) {
-      setError(`충돌 검사 실패: ${e instanceof Error ? e.message : String(e)}`)
+      setError(friendlyError(e))
     } finally {
       setActionPending(null)
     }
@@ -211,7 +209,13 @@ export function SearchScreen({ onMedicationsChanged }: Props) {
         spellCheck={false}
       />
       <button className="btn" onClick={() => void handleSearch()} disabled={loading}>
-        {loading ? '검색 중…' : '검색'}
+        {loading ? (
+          <>
+            <span className="spinner spinner--on-primary" /> 검색 중… (몇 초 안에 끝나요)
+          </>
+        ) : (
+          '검색'
+        )}
       </button>
       <button
         className="btn btn--secondary"
@@ -246,12 +250,16 @@ export function SearchScreen({ onMedicationsChanged }: Props) {
           {results.map((item) => {
             const isPending = actionPending === item.id
             const isDrug = item.kind === 'drug'
+            const isRegistered = isDrug && registeredItemSeqs.has(item.id)
             return (
               <div key={`${item.kind}-${item.id}`} className="card">
                 <div className="card__badge-row">
                   <span className={`badge ${isDrug ? 'badge--drug' : 'badge--healthfood'}`}>
                     {isDrug ? '💊 의약품' : '🌿 영양제'}
                   </span>
+                  {isRegistered && (
+                    <span className="badge badge--registered">✓ 등록됨</span>
+                  )}
                 </div>
                 <h3 className="card__title">{item.name}</h3>
                 {item.manufacturer && (
@@ -268,7 +276,7 @@ export function SearchScreen({ onMedicationsChanged }: Props) {
                   </p>
                 )}
                 <div className="card__actions">
-                  {isDrug && (
+                  {isDrug && !isRegistered && (
                     <button
                       className="btn-small btn-small--primary"
                       onClick={() => void handleRegister(item)}
@@ -282,7 +290,13 @@ export function SearchScreen({ onMedicationsChanged }: Props) {
                     onClick={() => void handleCheck(item)}
                     disabled={isPending}
                   >
-                    {isPending ? '처리 중…' : '⚠️ 충돌 검사'}
+                    {isPending ? (
+                      <>
+                        <span className="spinner" /> 검사 중…
+                      </>
+                    ) : (
+                      '⚠️ 충돌 검사'
+                    )}
                   </button>
                 </div>
               </div>

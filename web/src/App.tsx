@@ -34,7 +34,10 @@ export default function App() {
           onChange={() => setRefreshSignal((n) => n + 1)}
         />
         <div className="section-divider">새 제품 검사</div>
-        <SearchScreen onMedicationsChanged={() => setRefreshSignal((n) => n + 1)} />
+        <SearchScreen
+          refreshSignal={refreshSignal}
+          onMedicationsChanged={() => setRefreshSignal((n) => n + 1)}
+        />
       </main>
       <Disclaimer />
     </div>

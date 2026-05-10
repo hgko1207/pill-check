@@ -237,6 +237,101 @@ html[data-font-scale='large'] {
   --pc-button-min-h: 64px;
 }
 
+/* ────── 시작하기 히어로 (등록 약 0개 시) ────── */
+
+.hero {
+  background: linear-gradient(135deg, #E8F5E9 0%, #FFF8E1 100%);
+  border-radius: var(--pc-radius);
+  padding: 24px var(--pc-pad);
+  border: 1px solid #C8E6C9;
+}
+
+.hero__title {
+  margin: 0 0 8px;
+  font-size: var(--pc-font-xl);
+  font-weight: 700;
+  color: var(--pc-primary);
+}
+
+.hero__lead {
+  margin: 0 0 18px;
+  font-size: var(--pc-font-base);
+  line-height: 1.6;
+  color: var(--pc-text);
+}
+
+.hero__steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  counter-reset: hero-step;
+}
+
+.hero__steps li {
+  background: rgba(255, 255, 255, 0.65);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  font-size: 17px;
+  line-height: 1.55;
+}
+
+.hero__steps li b {
+  color: var(--pc-primary);
+}
+
+.hero__hint {
+  margin-top: 6px;
+  font-size: 16px;
+  color: var(--pc-text);
+  line-height: 1.55;
+}
+
+.hero__example {
+  font-size: 14px;
+  color: var(--pc-text-muted);
+}
+
+.hero__cta {
+  margin: 16px 0 0;
+  text-align: center;
+  font-size: var(--pc-font-base);
+  font-weight: 600;
+  color: var(--pc-primary);
+}
+
+/* ────── "이미 등록됨" 뱃지 ────── */
+
+.badge--registered {
+  background: #E0F2F1;
+  color: #00695C;
+  margin-left: 6px;
+}
+
+/* ────── 스피너 (로딩 시각화) ────── */
+
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  margin-right: 6px;
+  vertical-align: -2px;
+  opacity: 0.7;
+}
+
+.spinner--on-primary {
+  border-color: rgba(255, 255, 255, 0.5);
+  border-right-color: transparent;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 .disclaimer {
   margin-top: auto;
   padding: var(--pc-pad);
