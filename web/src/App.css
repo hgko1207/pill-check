@@ -592,32 +592,49 @@ html[data-theme='dark'] .hero__cta {
 }
 
 .modal-text {
-  margin: 0 0 8px;
+  margin: 0 0 10px;
   font-size: 17px;
-  line-height: 1.65;
+  line-height: 1.75;
   color: var(--pc-text);
   word-break: keep-all;
+  white-space: pre-line; /* paragraphToReadable이 \n 보존 */
+}
+
+.modal-text + .modal-text {
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--pc-divider);
 }
 
 .doc-section {
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 .doc-section__title {
-  margin: 12px 0 6px;
+  margin: 12px 0 8px;
   font-size: 17px;
   font-weight: 600;
   color: var(--pc-text);
 }
 .doc-article {
-  margin-bottom: 10px;
-  padding-left: 10px;
-  border-left: 3px solid var(--pc-border);
+  margin-bottom: 14px;
+  padding: 10px 0 10px 14px;
+  border-left: 3px solid var(--pc-primary);
+  background: linear-gradient(90deg, rgba(76, 175, 80, 0.04), transparent 60%);
+  border-radius: 0 8px 8px 0;
+}
+html[data-theme='dark'] .doc-article {
+  border-left-color: #66BB6A;
+  background: linear-gradient(90deg, rgba(102, 187, 106, 0.10), transparent 60%);
 }
 .doc-article__title {
   font-size: 16px;
-  font-weight: 600;
-  color: var(--pc-text);
-  margin-bottom: 4px;
+  font-weight: 700;
+  color: var(--pc-primary);
+  margin-bottom: 6px;
+  letter-spacing: -0.2px;
+}
+html[data-theme='dark'] .doc-article__title {
+  color: #A5D6A7;
 }
 
 .modal-warn {
@@ -1006,29 +1023,72 @@ html[data-theme='dark'] .settings-row__icon {
 /* ────── 결과 카드 (빨/노/회/초) ────── */
 
 .result-card {
-  border-radius: var(--pc-radius);
-  padding: 16px;
+  border-radius: 16px;
+  padding: 18px var(--pc-pad);
   border-left: 6px solid var(--pc-border);
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--pc-shadow-sm);
+}
+
+.result-card::before {
+  content: '';
+  position: absolute;
+  top: -30px;
+  right: -30px;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  opacity: 0.18;
+  pointer-events: none;
 }
 
 .result-card--danger {
-  background: var(--pc-danger-bg);
+  background: linear-gradient(135deg, var(--pc-danger-bg) 0%, rgba(255, 235, 238, 0.4) 100%);
   border-left-color: var(--pc-danger);
+}
+.result-card--danger::before {
+  background: radial-gradient(circle, var(--pc-danger), transparent 70%);
 }
 
 .result-card--warn {
-  background: var(--pc-warn-bg);
+  background: linear-gradient(135deg, var(--pc-warn-bg) 0%, rgba(255, 243, 224, 0.4) 100%);
   border-left-color: var(--pc-warn);
+}
+.result-card--warn::before {
+  background: radial-gradient(circle, var(--pc-warn), transparent 70%);
 }
 
 .result-card--safe {
-  background: var(--pc-safe-bg);
+  background: linear-gradient(135deg, var(--pc-safe-bg) 0%, rgba(232, 245, 233, 0.4) 100%);
   border-left-color: var(--pc-safe);
+}
+.result-card--safe::before {
+  background: radial-gradient(circle, var(--pc-safe), transparent 70%);
 }
 
 .result-card--unknown {
-  background: var(--pc-unknown-bg);
+  background: linear-gradient(135deg, var(--pc-unknown-bg) 0%, rgba(238, 238, 238, 0.3) 100%);
   border-left-color: var(--pc-unknown);
+}
+.result-card--unknown::before {
+  background: radial-gradient(circle, var(--pc-unknown), transparent 70%);
+}
+
+html[data-theme='dark'] .result-card {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+html[data-theme='dark'] .result-card--danger {
+  background: linear-gradient(135deg, var(--pc-danger-bg) 0%, rgba(59, 31, 31, 0.4) 100%);
+}
+html[data-theme='dark'] .result-card--warn {
+  background: linear-gradient(135deg, var(--pc-warn-bg) 0%, rgba(59, 44, 26, 0.4) 100%);
+}
+html[data-theme='dark'] .result-card--safe {
+  background: linear-gradient(135deg, var(--pc-safe-bg) 0%, rgba(26, 46, 31, 0.4) 100%);
+}
+html[data-theme='dark'] .result-card--unknown {
+  background: linear-gradient(135deg, var(--pc-unknown-bg) 0%, rgba(35, 42, 51, 0.4) 100%);
 }
 
 .result-card__title {

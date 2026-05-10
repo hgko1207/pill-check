@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import type { NedrugItem } from '../lib/types'
 import type { HealthFoodItem } from '../lib/healthfood-api'
-import { parseDoc, type ParsedDoc } from '../lib/xmlDoc'
+import { parseDoc, paragraphToReadable, type ParsedDoc } from '../lib/xmlDoc'
 
 export type DetailTarget =
   | { kind: 'drug'; raw: NedrugItem }
@@ -77,10 +77,10 @@ function DrugDetail({ item }: { item: NedrugItem }) {
         {item.MAIN_ITEM_INGR && (
           <Meta label="주성분" value={cleanIngrCode(item.MAIN_ITEM_INGR)} />
         )}
-        {item.CHART && <Meta label="모양·색상" value={item.CHART} />}
-        {item.STORAGE_METHOD && <Meta label="보관" value={item.STORAGE_METHOD} />}
-        {item.VALID_TERM && <Meta label="유효기간" value={item.VALID_TERM} />}
-        {item.PACK_UNIT && <Meta label="포장" value={item.PACK_UNIT} />}
+        {item.CHART && <Meta label="모양·색상" value={paragraphToReadable(item.CHART)} />}
+        {item.STORAGE_METHOD && <Meta label="보관" value={paragraphToReadable(item.STORAGE_METHOD)} />}
+        {item.VALID_TERM && <Meta label="유효기간" value={paragraphToReadable(item.VALID_TERM)} />}
+        {item.PACK_UNIT && <Meta label="포장" value={paragraphToReadable(item.PACK_UNIT)} />}
       </dl>
 
       {cancelled && (
@@ -97,7 +97,7 @@ function DrugDetail({ item }: { item: NedrugItem }) {
 
       {item.INGR_NAME && (
         <DetailSection heading="📋 전체 성분 (첨가제 포함)">
-          <p className="modal-text">{cleanIngrCode(item.INGR_NAME)}</p>
+          <p className="modal-text">{cleanIngrCode(paragraphToReadable(item.INGR_NAME))}</p>
         </DetailSection>
       )}
     </article>
@@ -107,6 +107,8 @@ function DrugDetail({ item }: { item: NedrugItem }) {
 function HealthFoodDetail({ item }: { item: HealthFoodItem }) {
   const rawmtrl = [item.RAWMTRL_NM, item.ETC_RAWMTRL_NM, item.INDIV_RAWMTRL_NM]
     .filter(Boolean)
+    .map((v) => paragraphToReadable(v as string))
+    .filter((v) => v.length > 0)
     .join(', ')
 
   return (
@@ -125,19 +127,19 @@ function HealthFoodDetail({ item }: { item: HealthFoodItem }) {
 
       {item.PRIMARY_FNCLTY && (
         <DetailSection heading="✨ 주된 기능성">
-          <p className="modal-text">{item.PRIMARY_FNCLTY}</p>
+          <p className="modal-text">{paragraphToReadable(item.PRIMARY_FNCLTY)}</p>
         </DetailSection>
       )}
 
       {item.NTK_MTHD && (
         <DetailSection heading="📅 섭취방법">
-          <p className="modal-text">{item.NTK_MTHD}</p>
+          <p className="modal-text">{paragraphToReadable(item.NTK_MTHD)}</p>
         </DetailSection>
       )}
 
       {item.IFTKN_ATNT_MATR_CN && (
         <DetailSection heading="⚠️ 섭취 시 주의사항">
-          <p className="modal-text">{item.IFTKN_ATNT_MATR_CN}</p>
+          <p className="modal-text">{paragraphToReadable(item.IFTKN_ATNT_MATR_CN)}</p>
         </DetailSection>
       )}
 
@@ -149,7 +151,7 @@ function HealthFoodDetail({ item }: { item: HealthFoodItem }) {
 
       {item.STDR_STND && (
         <DetailSection heading="📐 기준규격">
-          <p className="modal-text">{item.STDR_STND}</p>
+          <p className="modal-text">{paragraphToReadable(item.STDR_STND)}</p>
         </DetailSection>
       )}
     </article>
