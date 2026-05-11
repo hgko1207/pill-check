@@ -323,25 +323,30 @@ html[data-theme='dark'] .btn--secondary {
 /* ────── iOS 홈 화면 추가 안내 카드 ────── */
 
 .install-hint {
-  background: #FFF8E1;
-  border: 1px solid #FFE082;
-  border-radius: var(--pc-radius);
-  padding: 14px var(--pc-pad);
+  background: var(--pc-coral-soft);
+  border: 1px solid var(--pc-coral-soft);
+  border-radius: var(--pc-radius-l);
+  padding: 16px var(--pc-pad);
   position: relative;
+  box-shadow: var(--pc-elev-1);
 }
 
 .install-hint__title {
   margin: 0 0 6px;
   font-size: 17px;
   font-weight: 700;
-  color: #F57F17;
+  color: var(--pc-coral-deep);
 }
 
 .install-hint__body {
   margin: 0;
   font-size: 16px;
   line-height: 1.55;
-  color: #5D4037;
+  color: var(--pc-text);
+}
+
+.install-hint__body b {
+  color: var(--pc-coral-deep);
 }
 
 .install-hint__close {
@@ -350,11 +355,16 @@ html[data-theme='dark'] .btn--secondary {
   right: 8px;
   background: transparent;
   border: none;
-  font-size: 22px;
-  color: #BF360C;
+  font-size: 20px;
+  color: var(--pc-coral-deep);
   cursor: pointer;
-  padding: 4px 10px;
+  padding: 6px 10px;
   line-height: 1;
+  border-radius: var(--pc-radius-pill);
+  transition: background var(--pc-duration-quick) var(--pc-ease-standard);
+}
+.install-hint__close:hover {
+  background: rgba(255, 255, 255, 0.4);
 }
 
 /* ────── 폰트 크기 토글 (60대 baseline) ────── */
@@ -439,26 +449,22 @@ html[data-theme='dark'] .hero__title {
 
 .hero__steps li {
   background: rgba(255, 255, 255, 0.75);
-  border-radius: 12px;
+  border-radius: var(--pc-radius-m);
   padding: 14px 16px;
   margin-bottom: 10px;
   font-size: 17px;
   line-height: 1.55;
-  border: 1px solid rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.5);
 }
 
 html[data-theme='dark'] .hero__steps li {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .hero__steps li b {
-  color: var(--pc-primary);
+  color: var(--pc-primary-deep);
   font-weight: 700;
-}
-
-html[data-theme='dark'] .hero__steps li b {
-  color: #A5D6A7;
 }
 
 .hero__hint {
@@ -489,8 +495,8 @@ html[data-theme='dark'] .hero__cta {
 /* ────── "이미 등록됨" 뱃지 ────── */
 
 .badge--registered {
-  background: #E0F2F1;
-  color: #00695C;
+  background: var(--pc-safe-bg);
+  color: var(--pc-safe);
   margin-left: 6px;
 }
 
@@ -750,20 +756,16 @@ html[data-theme='dark'] .hero__cta {
 }
 
 .dur-table th {
-  background: var(--pc-divider);
+  background: var(--pc-primary-soft);
   font-weight: 700;
-  color: var(--pc-text);
+  color: var(--pc-primary-deep);
   font-size: 14px;
   position: sticky;
   top: 0;
 }
 
 .dur-table tbody tr:nth-child(odd) td {
-  background: rgba(0, 0, 0, 0.015);
-}
-
-html[data-theme='dark'] .dur-table tbody tr:nth-child(odd) td {
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--pc-surface-2);
 }
 
 .dur-table tbody tr:last-child td {
@@ -852,9 +854,9 @@ html[data-theme='dark'] .dur-table tbody tr:nth-child(odd) td {
 
 .doc-article {
   margin-bottom: 16px;
-  padding: 12px 14px;
-  background: var(--pc-divider);
-  border-radius: 10px;
+  padding: 14px 16px;
+  background: var(--pc-surface-2);
+  border-radius: var(--pc-radius-m);
 }
 
 .doc-article + .doc-article {
@@ -881,13 +883,18 @@ html[data-theme='dark'] .doc-article__title {
 
 .modal-warn {
   margin: 12px 0;
-  padding: 12px 14px;
+  padding: 14px 16px;
   background: var(--pc-warn-bg);
   color: var(--pc-warn);
-  border-radius: 10px;
+  border-radius: var(--pc-radius-m);
   font-size: 16px;
-  line-height: 1.55;
-  border: 1px solid #FFCC80;
+  line-height: 1.6;
+  border-left: 4px solid var(--pc-warn);
+}
+
+.modal-warn b {
+  color: var(--pc-warn);
+  font-weight: 700;
 }
 
 .modal-disclaimer {
@@ -1065,19 +1072,16 @@ html[data-theme='dark'] .settings-row--danger:hover {
 }
 
 .settings-row__icon {
-  font-size: 24px;
+  font-size: 22px;
   line-height: 1;
   flex-shrink: 0;
-  width: 38px;
-  height: 38px;
+  width: 42px;
+  height: 42px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, rgba(76, 175, 80, 0.10), rgba(67, 160, 71, 0.06));
-  border-radius: 10px;
-}
-html[data-theme='dark'] .settings-row__icon {
-  background: linear-gradient(135deg, rgba(102, 187, 106, 0.18), rgba(165, 214, 167, 0.08));
+  background: linear-gradient(135deg, var(--pc-primary-soft), var(--pc-coral-soft));
+  border-radius: var(--pc-radius-m);
 }
 
 .settings-row__label {
@@ -1148,29 +1152,40 @@ html[data-theme='dark'] .settings-row__icon {
 .segmented {
   display: inline-flex;
   background: var(--pc-divider);
-  border-radius: 10px;
-  padding: 3px;
+  border-radius: var(--pc-radius-pill);
+  padding: 4px;
   gap: 0;
 }
 
 .segmented__btn {
   min-height: 40px;
-  padding: 0 14px;
+  padding: 0 16px;
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 600;
   border: none;
   background: transparent;
   color: var(--pc-text-muted);
   cursor: pointer;
-  border-radius: 8px;
-  transition: background 0.15s, color 0.15s;
+  border-radius: var(--pc-radius-pill);
+  transition: background var(--pc-duration-quick) var(--pc-ease-standard),
+              color var(--pc-duration-quick) var(--pc-ease-standard),
+              transform var(--pc-duration-quick) var(--pc-ease-spring);
+}
+.segmented__btn:hover {
+  color: var(--pc-text);
+}
+.segmented__btn:active {
+  transform: scale(0.96);
 }
 
 .segmented__btn--active {
   background: var(--pc-surface);
-  color: var(--pc-primary);
+  color: var(--pc-primary-deep);
   font-weight: 700;
-  box-shadow: var(--pc-shadow-sm);
+  box-shadow: var(--pc-elev-1);
+}
+.segmented__btn--active:hover {
+  color: var(--pc-primary-deep);
 }
 
 .disclaimer {
@@ -1234,11 +1249,21 @@ html[data-theme='dark'] .settings-row__icon {
 .btn-small--danger {
   border-color: var(--pc-danger);
   color: var(--pc-danger);
+  background: var(--pc-surface);
+}
+.btn-small--danger:hover {
+  background: var(--pc-danger-bg);
 }
 
 .btn-small--primary {
-  border-color: var(--pc-primary);
-  color: var(--pc-primary);
+  border: none;
+  background: var(--pc-primary);
+  color: var(--pc-primary-on);
+  box-shadow: var(--pc-elev-1);
+}
+.btn-small--primary:hover {
+  background: var(--pc-primary-deep);
+  box-shadow: var(--pc-elev-2);
 }
 
 /* ────── 검색 결과 카드 액션 영역 ────── */
@@ -1260,7 +1285,9 @@ html[data-theme='dark'] .settings-row__icon {
 .result-card {
   border-radius: var(--pc-radius-l);
   padding: 22px var(--pc-pad);
-  border-left: 6px solid var(--pc-border);
+  border: 1px solid var(--pc-divider);
+  border-left-width: 5px;
+  border-left-style: solid;
   position: relative;
   overflow: hidden;
   box-shadow: var(--pc-elev-2);
@@ -1348,16 +1375,14 @@ html[data-theme='dark'] .result-card {
 
 .btn-small--ai {
   border: none;
-  background: linear-gradient(135deg, #5C6BC0 0%, #7E57C2 100%);
+  background: var(--pc-coral);
   color: white;
   font-weight: 700;
-  box-shadow: 0 2px 6px rgba(94, 53, 177, 0.25);
+  box-shadow: var(--pc-elev-1);
 }
 .btn-small--ai:hover {
-  box-shadow: 0 4px 10px rgba(94, 53, 177, 0.32);
-}
-.btn-small--ai:active {
-  transform: scale(0.99);
+  background: var(--pc-coral-deep);
+  box-shadow: var(--pc-elev-2);
 }
 .btn-small--ai:disabled {
   background: var(--pc-divider);
@@ -1368,15 +1393,10 @@ html[data-theme='dark'] .result-card {
 
 .ai-explanation {
   margin-top: 14px;
-  padding: 14px var(--pc-pad);
-  background: linear-gradient(135deg, rgba(92, 107, 192, 0.07) 0%, rgba(126, 87, 194, 0.05) 100%);
-  border-radius: 12px;
-  border: 1px solid rgba(126, 87, 194, 0.18);
-}
-
-html[data-theme='dark'] .ai-explanation {
-  background: linear-gradient(135deg, rgba(149, 117, 205, 0.12) 0%, rgba(179, 157, 219, 0.06) 100%);
-  border-color: rgba(149, 117, 205, 0.25);
+  padding: 16px var(--pc-pad);
+  background: var(--pc-coral-soft);
+  border-radius: var(--pc-radius-l);
+  border: 1px solid var(--pc-coral-soft);
 }
 
 .ai-explanation__header {
@@ -1391,11 +1411,12 @@ html[data-theme='dark'] .ai-explanation {
 .ai-badge {
   display: inline-block;
   padding: 4px 12px;
-  border-radius: 999px;
+  border-radius: var(--pc-radius-pill);
   font-size: 13px;
   font-weight: 700;
-  background: linear-gradient(135deg, #5C6BC0 0%, #7E57C2 100%);
+  background: var(--pc-coral);
   color: white;
+  letter-spacing: 0.2px;
 }
 
 .ai-quota-info {
@@ -1416,7 +1437,7 @@ html[data-theme='dark'] .ai-explanation {
 .ai-explanation__footer {
   margin: 0;
   padding-top: 10px;
-  border-top: 1px dashed rgba(126, 87, 194, 0.20);
+  border-top: 1px dashed var(--pc-border);
   font-size: 13px;
   color: var(--pc-text-muted);
   line-height: 1.55;
