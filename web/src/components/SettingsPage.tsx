@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { loadTheme, saveTheme, type Theme } from '../lib/theme'
 import { clearAllMedications, listMedications } from '../lib/db'
+import { useDialog } from '../lib/dialog'
 
 const FONT_KEY = 'pillcheck.fontScale'
 type FontScale = 'normal' | 'large'
@@ -20,24 +21,38 @@ interface SettingsProps {
 
 export function SettingsPage({ onShowGuide, onMedicationsChanged }: SettingsProps = {}) {
   const [clearing, setClearing] = useState(false)
+  const { confirm, toast } = useDialog()
 
   async function handleClearAll() {
     setClearing(true)
     try {
       const list = await listMedications()
       if (list.length === 0) {
-        alert('등록된 약이 없습니다.')
+        toast('등록된 약이 없습니다.', 'info')
         return
       }
-      const ok = confirm(
-        `등록된 약 ${list.length}개를 모두 삭제하시겠습니까?\n\n` +
-          `이 작업은 되돌릴 수 없습니다.\n` +
-          `(개별 삭제는 🏠 홈 탭의 약 목록에서 가능합니다)`,
-      )
+      const ok = await confirm({
+        title: '약 전체 삭제',
+        message: (
+          <>
+            등록된 약 <b>{list.length}개</b>를 모두 삭제하시겠습니까?
+            <br />
+            <br />
+            이 작업은 되돌릴 수 없습니다.
+            <br />
+            <span style={{ fontSize: 14, color: 'var(--pc-text-muted)' }}>
+              (개별 삭제는 🏠 홈 탭의 약 목록에서 가능합니다)
+            </span>
+          </>
+        ),
+        confirmLabel: '모두 삭제',
+        cancelLabel: '취소',
+        variant: 'danger',
+      })
       if (!ok) return
       const removed = await clearAllMedications()
       onMedicationsChanged?.()
-      alert(`✅ ${removed}개의 약을 모두 삭제했습니다.`)
+      toast(`${removed}개의 약을 모두 삭제했어요.`, 'success')
     } finally {
       setClearing(false)
     }

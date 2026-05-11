@@ -6,9 +6,18 @@ import { BottomNav, type ViewKey } from './components/BottomNav'
 import { SettingsPage } from './components/SettingsPage'
 import { DetailModal, type DetailTarget } from './components/DetailModal'
 import { GuideModal } from './components/GuideModal'
+import { DialogProvider } from './lib/dialog'
 import { initTheme } from './lib/theme'
 
 export default function App() {
+  return (
+    <DialogProvider>
+      <AppContent />
+    </DialogProvider>
+  )
+}
+
+function AppContent() {
   const [view, setView] = useState<ViewKey>('home')
   const [refreshSignal, setRefreshSignal] = useState(0)
   const [detailTarget, setDetailTarget] = useState<DetailTarget>(null)

@@ -5,6 +5,7 @@ import {
   MAX_MEDICATIONS,
   type RegisteredMedication,
 } from '../lib/db'
+import { useDialog } from '../lib/dialog'
 
 interface Props {
   refreshSignal?: number
@@ -14,6 +15,7 @@ interface Props {
 export function RegisteredList({ refreshSignal, onChange }: Props) {
   const [meds, setMeds] = useState<RegisteredMedication[]>([])
   const [loading, setLoading] = useState(true)
+  const { confirm, toast } = useDialog()
 
   useEffect(() => {
     let cancelled = false
@@ -31,10 +33,23 @@ export function RegisteredList({ refreshSignal, onChange }: Props) {
   }, [refreshSignal])
 
   async function handleRemove(id: number, name: string) {
-    if (!confirm(`"${name}" 을(를) 삭제하시겠습니까?`)) return
+    const ok = await confirm({
+      title: '약 삭제',
+      message: (
+        <>
+          <b>{name}</b>
+          <br />이 약을 삭제하시겠습니까?
+        </>
+      ),
+      confirmLabel: '삭제',
+      cancelLabel: '취소',
+      variant: 'danger',
+    })
+    if (!ok) return
     await removeMedication(id)
     const next = await listMedications()
     setMeds(next)
+    toast(`"${name}" 을(를) 삭제했어요.`, 'success')
     onChange?.()
   }
 

@@ -246,6 +246,15 @@ html[data-theme='dark'] .btn--secondary {
   color: var(--pc-primary-deep);
 }
 
+.btn--danger {
+  background: var(--pc-danger);
+  color: white;
+}
+.btn--danger:hover {
+  background: var(--pc-danger);
+  filter: brightness(0.92);
+}
+
 .input {
   width: 100%;
   min-height: var(--pc-button-min-h);
@@ -1458,3 +1467,172 @@ html[data-theme='dark'] .result-card {
   letter-spacing: 0.5px;
   font-weight: 600;
 }
+
+/* ────── 키보드 포커스 표시 (WCAG 2.4.7) ────── */
+
+*:focus {
+  outline: none;
+}
+
+button:focus-visible,
+a:focus-visible,
+[role='button']:focus-visible,
+[role='radio']:focus-visible,
+.segmented__btn:focus-visible,
+.bottom-nav__item:focus-visible,
+.settings-row--button:focus-visible,
+summary:focus-visible {
+  outline: 3px solid var(--pc-primary);
+  outline-offset: 3px;
+  border-radius: inherit;
+}
+
+.input:focus-visible {
+  outline: 3px solid var(--pc-primary);
+  outline-offset: 0;
+}
+
+/* 카드 클릭 가능: outline은 외곽선이 되어야 자연스러움 */
+.card--clickable:focus-visible {
+  outline: 3px solid var(--pc-primary);
+  outline-offset: 2px;
+}
+
+/* ────── ConfirmDialog (커스텀 확인 다이얼로그) ────── */
+
+.confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(45, 42, 36, 0.45);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: fade-in 0.18s var(--pc-ease-standard);
+}
+
+.confirm-panel {
+  background: var(--pc-surface);
+  border-radius: var(--pc-radius-xl);
+  padding: 24px 22px 20px;
+  width: 100%;
+  max-width: 380px;
+  box-shadow: var(--pc-elev-4);
+  animation: confirm-pop 0.25s var(--pc-ease-emphasized);
+}
+
+@keyframes confirm-pop {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.confirm-title {
+  margin: 0 0 12px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--pc-text);
+  letter-spacing: -0.3px;
+}
+
+.confirm-message {
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--pc-text);
+  margin-bottom: 22px;
+}
+
+.confirm-message b {
+  font-weight: 700;
+  color: var(--pc-text);
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.confirm-btn {
+  flex: 1;
+  min-height: 52px;
+  font-size: 17px;
+  padding: 0 16px;
+}
+
+/* ────── Toast (상단 슬라이드 알림) ────── */
+
+.toast {
+  position: fixed;
+  top: max(env(safe-area-inset-top), 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px 12px 16px;
+  background: var(--pc-surface);
+  border: 1px solid var(--pc-divider);
+  border-radius: var(--pc-radius-pill);
+  box-shadow: var(--pc-elev-3);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--pc-text);
+  max-width: calc(100% - 24px);
+  animation: toast-in 0.3s var(--pc-ease-emphasized);
+}
+
+.toast--leaving {
+  animation: toast-out 0.25s var(--pc-ease-standard) forwards;
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translate(-50%, -16px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+@keyframes toast-out {
+  from { opacity: 1; transform: translate(-50%, 0); }
+  to { opacity: 0; transform: translate(-50%, -12px); }
+}
+
+.toast__icon {
+  font-size: 18px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.toast__message {
+  flex: 1;
+  min-width: 0;
+}
+
+.toast__close {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--pc-text-muted);
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: var(--pc-radius-pill);
+  padding: 0;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.toast__close:hover {
+  background: var(--pc-divider);
+  color: var(--pc-text);
+}
+
+.toast--success { border-color: var(--pc-safe-bg); }
+.toast--info { border-color: var(--pc-info-bg); }
+.toast--error {
+  background: var(--pc-danger-bg);
+  border-color: var(--pc-danger);
+  color: var(--pc-danger);
+}
+.toast--error .toast__close { color: var(--pc-danger); }
