@@ -7,7 +7,6 @@
   --pc-radius-l: 20px;
   --pc-radius-xl: 28px;
   --pc-radius-pill: 999px;
-  --pc-radius: var(--pc-radius-m); /* legacy */
 
   /* 간격·크기 */
   --pc-pad: 16px;
@@ -61,9 +60,6 @@
   --pc-elev-2: 0 2px 4px rgba(45, 42, 36, 0.06), 0 4px 12px rgba(45, 42, 36, 0.06);
   --pc-elev-3: 0 4px 8px rgba(45, 42, 36, 0.08), 0 12px 24px rgba(45, 42, 36, 0.08);
   --pc-elev-4: 0 8px 16px rgba(45, 42, 36, 0.12), 0 16px 32px rgba(45, 42, 36, 0.10);
-  /* legacy alias */
-  --pc-shadow-sm: var(--pc-elev-1);
-  --pc-shadow-md: var(--pc-elev-2);
 }
 
 /* ────────── 다크 테마 — 따뜻한 다크 ────────── */
@@ -295,7 +291,7 @@ html[data-theme='dark'] .btn--secondary {
 
 .banner {
   padding: 14px var(--pc-pad);
-  border-radius: var(--pc-radius);
+  border-radius: var(--pc-radius-m);
   font-weight: 500;
   font-size: 16px;
   line-height: 1.5;
@@ -437,7 +433,7 @@ html[data-theme='dark'] .hero {
 }
 
 html[data-theme='dark'] .hero__title {
-  color: #A5D6A7;
+  color: var(--pc-primary-deep);
 }
 
 .hero__lead {
@@ -498,7 +494,7 @@ html[data-theme='dark'] .hero__steps li {
 }
 
 html[data-theme='dark'] .hero__cta {
-  color: #A5D6A7;
+  color: var(--pc-primary-deep);
 }
 
 /* ────── "이미 등록됨" 뱃지 ────── */
@@ -540,7 +536,7 @@ html[data-theme='dark'] .hero__cta {
   transition: box-shadow 0.18s, transform 0.08s, border-color 0.18s;
 }
 .card--clickable:hover {
-  box-shadow: var(--pc-shadow-md);
+  box-shadow: var(--pc-elev-2);
   border-color: var(--pc-border);
 }
 .card--clickable:active {
@@ -601,24 +597,27 @@ html[data-theme='dark'] .hero__cta {
 }
 
 .modal-close {
-  position: sticky;
-  top: 0;
-  float: right;
+  position: absolute;
+  top: 16px;
+  right: 16px;
   width: 44px;
   height: 44px;
   border: none;
   background: var(--pc-surface);
   color: var(--pc-text);
-  font-size: 22px;
-  border-radius: 50%;
+  font-size: 20px;
+  border-radius: var(--pc-radius-pill);
   cursor: pointer;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-  margin-bottom: 8px;
+  box-shadow: var(--pc-elev-1);
   z-index: 1;
+  transition: background var(--pc-duration-quick) var(--pc-ease-standard),
+              transform var(--pc-duration-quick) var(--pc-ease-spring);
 }
+.modal-close:hover { background: var(--pc-divider); }
+.modal-close:active { transform: scale(0.93); }
 
 .modal-content {
-  clear: both;
+  padding-right: 52px; /* 닫기 버튼 영역 회피 */
 }
 
 .modal-title {
@@ -886,7 +885,7 @@ html[data-theme='dark'] .hero__cta {
 }
 
 html[data-theme='dark'] .doc-article__title {
-  color: #A5D6A7;
+  color: var(--pc-primary-deep);
   border-color: var(--pc-divider);
 }
 
@@ -1012,11 +1011,7 @@ html[data-theme='dark'] .doc-article__title {
   width: 4px;
   height: 70%;
   border-radius: 2px;
-  background: linear-gradient(180deg, var(--pc-primary) 0%, #43A047 100%);
-}
-
-html[data-theme='dark'] .page__title::before {
-  background: linear-gradient(180deg, #66BB6A 0%, #A5D6A7 100%);
+  background: var(--pc-primary);
 }
 
 /* ────── 설정 페이지 ────── */
@@ -1028,9 +1023,10 @@ html[data-theme='dark'] .page__title::before {
   gap: 12px;
   padding: 14px var(--pc-pad);
   background: var(--pc-surface);
-  border-radius: var(--pc-radius);
+  border-radius: var(--pc-radius-m);
   border: 1px solid var(--pc-divider);
-  transition: background 0.15s, border-color 0.15s;
+  transition: background var(--pc-duration-quick) var(--pc-ease-standard),
+              border-color var(--pc-duration-quick) var(--pc-ease-standard);
 }
 
 .settings-row--button {
@@ -1365,6 +1361,30 @@ html[data-theme='dark'] .result-card {
 
 .conflict-list b {
   color: var(--pc-text);
+}
+
+.conflict-list__source {
+  margin-top: 4px;
+  font-size: 14px;
+  color: var(--pc-text-muted);
+}
+
+/* 홈 탭 하단 안내 텍스트 */
+.home-tab-hint {
+  text-align: center;
+  color: var(--pc-text-muted);
+  font-size: 15px;
+  margin-top: 8px;
+  line-height: 1.55;
+}
+.home-tab-hint b {
+  color: var(--pc-primary-deep);
+  font-weight: 700;
+}
+
+/* 인라인 placement banner 변형 (마진 통합) */
+.banner--inline {
+  margin-top: 10px;
 }
 
 /* ────── AI 해설 영역 (V1.7) ────── */

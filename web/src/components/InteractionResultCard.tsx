@@ -76,7 +76,7 @@ export function InteractionResultCard({ result, product, registered }: Props) {
           {result.details.map((d, i) => (
             <li key={i}>
               <b>{d.registeredMedName}</b> ↔ <b>{d.conflictWith}</b>
-              <div style={{ fontSize: 14, color: 'var(--pc-text-muted)', marginTop: 4 }}>
+              <div className="conflict-list__source">
                 {d.source}
                 {d.prohbtContent ? ` · ${d.prohbtContent.slice(0, 120)}` : ''}
               </div>
@@ -110,9 +110,7 @@ export function InteractionResultCard({ result, product, registered }: Props) {
       )}
 
       {aiError && (
-        <div className="banner banner--error" style={{ marginTop: 10 }}>
-          {aiError}
-        </div>
+        <div className="banner banner--error banner--inline">{aiError}</div>
       )}
 
       {aiText && (

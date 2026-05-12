@@ -52,14 +52,7 @@ function AppContent() {
               refreshSignal={refreshSignal}
               onChange={() => setRefreshSignal((n) => n + 1)}
             />
-            <p
-              style={{
-                textAlign: 'center',
-                color: 'var(--pc-text-muted)',
-                fontSize: 15,
-                marginTop: 8,
-              }}
-            >
+            <p className="home-tab-hint">
               새 영양제·약 검사하려면 하단 <b>🔍 검색</b> 탭으로 이동하세요.
             </p>
           </section>
