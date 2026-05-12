@@ -1,10 +1,16 @@
 import Dexie, { type Table } from 'dexie'
 
+export type MedicationKind = 'drug' | 'healthfood'
+
 export interface RegisteredMedication {
   id?: number
+  /** 처방약(drug) 또는 영양제(healthfood) — V2부터 추가, V1 기존 데이터는 마이그레이션에서 'drug' 부여 */
+  kind: MedicationKind
+  /** 식별자 — drug: 식약처 ITEM_SEQ / healthfood: PRDLST_REPORT_NO 또는 PRMS_DT */
   itemSeq: string
   itemName: string
   manufacturer?: string
+  /** drug: MAIN_ITEM_INGR/MAIN_INGR · healthfood: RAWMTRL_NM (원료성분) */
   mainIngredient?: string
   registeredAt: number
 }
@@ -14,9 +20,25 @@ class PillCheckDB extends Dexie {
 
   constructor() {
     super('pillcheck')
+
+    // V1: kind 필드 없음
     this.version(1).stores({
       medications: '++id, itemSeq, itemName, registeredAt',
     })
+
+    // V2: kind 필드 추가 — 기존 데이터는 모두 'drug'로 마이그레이션
+    this.version(2)
+      .stores({
+        medications: '++id, itemSeq, itemName, registeredAt, kind',
+      })
+      .upgrade((tx) => {
+        return tx
+          .table<RegisteredMedication>('medications')
+          .toCollection()
+          .modify((med) => {
+            if (!med.kind) med.kind = 'drug'
+          })
+      })
   }
 }
 

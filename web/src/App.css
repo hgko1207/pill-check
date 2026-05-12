@@ -1185,10 +1185,24 @@ html[data-theme='dark'] .settings-row--danger:hover {
 }
 .med-list__item:last-child { border-bottom: none; }
 
+.med-list__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.med-list__name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 2px;
+}
+
 .med-list__name {
   font-size: var(--pc-font-large);
-  font-weight: 600;
+  font-weight: 700;
   color: var(--pc-text);
+  letter-spacing: -0.3px;
 }
 
 .med-list__ingr {

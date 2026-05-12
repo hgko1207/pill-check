@@ -32,13 +32,14 @@ export function RegisteredList({ refreshSignal, onChange }: Props) {
     }
   }, [refreshSignal])
 
-  async function handleRemove(id: number, name: string) {
+  async function handleRemove(id: number, name: string, kind: 'drug' | 'healthfood') {
+    const kindLabel = kind === 'drug' ? '약' : '영양제'
     const ok = await confirm({
-      title: '약 삭제',
+      title: `${kindLabel} 삭제`,
       message: (
         <>
           <b>{name}</b>
-          <br />이 약을 삭제하시겠습니까?
+          <br />이 {kindLabel}을(를) 삭제하시겠습니까?
         </>
       ),
       confirmLabel: '삭제',
@@ -74,19 +75,19 @@ export function RegisteredList({ refreshSignal, onChange }: Props) {
 
         <ol className="hero__steps">
           <li>
-            <b>STEP 1.</b> 부모님이 드시는 약 등록
+            <b>STEP 1.</b> 부모님이 드시는 약·영양제 등록
             <div className="hero__hint">
-              아래 <b>검색창</b>에 약 이름 입력 → 결과의 <b>"+ 이 약 등록"</b> 클릭
+              <b>🔍 검색</b> 탭에서 이름 입력 → 결과의 <b>"+ 등록"</b> 클릭
               <br />
-              <span className="hero__example">예: 와파린, 노바스크, 리피토</span>
+              <span className="hero__example">예: 와파린, 종합비타민, 오메가3, 노바스크</span>
             </div>
           </li>
           <li>
-            <b>STEP 2.</b> 새 영양제·약 충돌 검사
+            <b>STEP 2.</b> 새로 살 영양제·약 충돌 검사
             <div className="hero__hint">
               사고 싶은 제품 검색 → <b>"⚠️ 충돌 검사"</b> 클릭
               <br />
-              <span className="hero__example">예: 오메가3, 비타민D, 종합비타민</span>
+              <span className="hero__example">예: 비타민D, 칼슘제, 새 일반의약품</span>
             </div>
           </li>
           <li>
@@ -105,13 +106,22 @@ export function RegisteredList({ refreshSignal, onChange }: Props) {
   return (
     <section className="card">
       <h2 className="card__title">
-        부모님 복용 약 ({meds.length}/{MAX_MEDICATIONS})
+        부모님 복용 약·영양제 ({meds.length}/{MAX_MEDICATIONS})
       </h2>
       <ul className="med-list">
         {meds.map((m) => (
           <li key={m.id} className="med-list__item">
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div className="med-list__name">{m.itemName}</div>
+            <div className="med-list__content">
+              <div className="med-list__name-row">
+                <span
+                  className={`badge ${
+                    m.kind === 'healthfood' ? 'badge--healthfood' : 'badge--drug'
+                  }`}
+                >
+                  {m.kind === 'healthfood' ? '🌿 영양제' : '💊 의약품'}
+                </span>
+                <span className="med-list__name">{m.itemName}</span>
+              </div>
               {m.mainIngredient && (
                 <div className="med-list__ingr">
                   {m.mainIngredient.length > 80
@@ -122,7 +132,9 @@ export function RegisteredList({ refreshSignal, onChange }: Props) {
             </div>
             <button
               className="btn-small btn-small--danger"
-              onClick={() => m.id != null && handleRemove(m.id, m.itemName)}
+              onClick={() =>
+                m.id != null && handleRemove(m.id, m.itemName, m.kind)
+              }
               aria-label={`${m.itemName} 삭제`}
             >
               삭제

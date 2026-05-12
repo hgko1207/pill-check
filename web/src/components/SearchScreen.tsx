@@ -157,18 +157,23 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
   )
 
   async function handleRegister(item: SearchResultWithRaw) {
-    if (item.kind !== 'drug') return
+    if (!item.id || !item.name) {
+      setError('이 항목은 등록에 필요한 정보가 부족합니다.')
+      return
+    }
     setActionPending(item.id)
     setError(null)
     setInfo(null)
     try {
       await addMedication({
+        kind: item.kind,
         itemSeq: item.id,
         itemName: item.name,
         manufacturer: item.manufacturer,
         mainIngredient: item.ingredient,
       })
-      setInfo(`✅ "${item.name}" 을(를) 등록했어요.`)
+      const label = item.kind === 'drug' ? '약' : '영양제'
+      setInfo(`✅ "${item.name}" ${label}을(를) 등록했어요.`)
       setRegisteredItemSeqs((prev) => new Set([...prev, item.id]))
       onMedicationsChanged?.()
     } catch (e) {
@@ -318,13 +323,17 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
                   className="card__actions"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  {isDrug && !isRegistered && (
+                  {!isRegistered && (
                     <button
                       className="btn-small btn-small--primary"
                       onClick={() => void handleRegister(item)}
                       disabled={isPending}
                     >
-                      {isPending ? '처리 중…' : '+ 이 약 등록'}
+                      {isPending
+                        ? '처리 중…'
+                        : isDrug
+                          ? '+ 이 약 등록'
+                          : '+ 이 영양제 등록'}
                     </button>
                   )}
                   <button
