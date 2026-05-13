@@ -216,7 +216,7 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
         type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="약 또는 영양제 이름 (예: 타이레놀, 오메가3)"
+        placeholder="약·영양제 검색 (예: 타이레놀)"
         autoCapitalize="off"
         autoCorrect="off"
         spellCheck={false}

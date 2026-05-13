@@ -75,25 +75,25 @@ export function RegisteredList({ refreshSignal, onChange }: Props) {
 
         <ol className="hero__steps">
           <li>
-            <b>STEP 1.</b> 부모님이 드시는 약·영양제 등록
+            <b>STEP 1.</b> 부모님 약·영양제 등록
             <div className="hero__hint">
-              <b>🔍 검색</b> 탭에서 이름 입력 → 결과의 <b>"+ 등록"</b> 클릭
+              <b>🔍 검색</b> 탭에서 이름 입력 후 <b>"+ 등록"</b>
               <br />
-              <span className="hero__example">예: 와파린, 종합비타민, 오메가3, 노바스크</span>
+              <span className="hero__example">예: 와파린, 종합비타민, 오메가3</span>
             </div>
           </li>
           <li>
-            <b>STEP 2.</b> 새로 살 영양제·약 충돌 검사
+            <b>STEP 2.</b> 새 영양제·약 충돌 검사
             <div className="hero__hint">
-              사고 싶은 제품 검색 → <b>"⚠️ 충돌 검사"</b> 클릭
+              검색 후 <b>"⚠️ 충돌 검사"</b> 버튼
               <br />
-              <span className="hero__example">예: 비타민D, 칼슘제, 새 일반의약품</span>
+              <span className="hero__example">예: 비타민D, 칼슘제</span>
             </div>
           </li>
           <li>
             <b>STEP 3.</b> 결과 확인
             <div className="hero__hint">
-              🔴 위험 / 🟡 주의 / ⚪ 정보 부족 / 🟢 확인됨 — 색상별 안내
+              🔴 위험 · 🟡 주의 · ⚪ 정보 부족 · 🟢 확인됨
             </div>
           </li>
         </ol>

@@ -37,36 +37,36 @@ export function GuideModal({ open, onClose }: Props) {
             </p>
             <ol className="hero__steps">
               <li>
-                <b>STEP 1.</b> 부모님이 드시는 <b>약·영양제 등록</b>
+                <b>STEP 1.</b> 부모님 <b>약·영양제 등록</b>
                 <div className="hero__hint">
-                  <b>🔍 검색</b> 탭에서 이름 입력 → 결과의 <b>"+ 등록"</b> 클릭
+                  <b>🔍 검색</b> 탭에서 이름 입력 후 <b>"+ 등록"</b>
                   <br />
                   <span className="hero__example">
-                    예: 와파린·노바스크·리피토(처방약), 종합비타민·오메가3·홍삼(영양제)
+                    예: 와파린·노바스크(약), 종합비타민·오메가3(영양제)
                   </span>
                 </div>
               </li>
               <li>
-                <b>STEP 2.</b> 새로 살 영양제·일반약 <b>충돌 검사</b>
+                <b>STEP 2.</b> 새 영양제·일반약 <b>충돌 검사</b>
                 <div className="hero__hint">
-                  사고 싶은 제품 검색 → <b>"⚠️ 충돌 검사"</b> 클릭
+                  검색 후 <b>"⚠️ 충돌 검사"</b> 버튼
                   <br />
-                  <span className="hero__example">예: 비타민D, 칼슘제, 새 일반의약품</span>
+                  <span className="hero__example">예: 비타민D, 칼슘제</span>
                 </div>
               </li>
               <li>
                 <b>STEP 3.</b> 결과 확인 (색상별)
                 <div className="hero__hint">
-                  🔴 위험 / 🟡 주의 / ⚪ 정보 부족 / 🟢 확인됨
+                  🔴 위험 · 🟡 주의 · ⚪ 정보 부족 · 🟢 확인됨
                 </div>
               </li>
               <li>
-                <b>약·영양제 중단 시</b> — 개별 삭제
+                <b>중단한 약·영양제 삭제</b>
                 <div className="hero__hint">
-                  <b>🏠 홈</b> 탭 등록 목록 → 각 항목 우측 <b>"삭제"</b> 버튼
+                  <b>🏠 홈</b> 탭 목록 → 각 항목 우측 <b>"삭제"</b>
                   <br />
                   <span className="hero__example">
-                    먹다가 중단하신 것만 골라 빼시면 됩니다.
+                    중단하신 것만 골라 빼시면 됩니다.
                   </span>
                 </div>
               </li>
