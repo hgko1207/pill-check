@@ -110,7 +110,7 @@ export function RegisteredList({ refreshSignal, onChange }: Props) {
       </h2>
       <ul className="med-list">
         {meds.map((m) => (
-          <li key={m.id} className="med-list__item">
+          <li key={m.id} className={`med-list__item med-list__item--${m.kind}`}>
             <div className="med-list__content">
               <div className="med-list__name-row">
                 <span

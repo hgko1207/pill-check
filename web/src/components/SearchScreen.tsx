@@ -261,6 +261,19 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
         />
       )}
 
+      {/* 검색 전 빈 상태 — 사용자 안내 */}
+      {!loading && results.length === 0 && !error && !info && !interactionContext && (
+        <div className="empty-state" role="status">
+          <div className="empty-state__emoji" aria-hidden="true">💊🌿</div>
+          <h3 className="empty-state__title">약·영양제 이름을 입력하세요</h3>
+          <p className="empty-state__body">
+            <b>처방약</b>은 등록해서 부모님 복용 목록에 추가하고,
+            <br />
+            <b>새 영양제</b>는 충돌 검사로 안전 확인하세요.
+          </p>
+        </div>
+      )}
+
       {results.length > 0 && (
         <>
           <div className="section-divider">
@@ -278,7 +291,7 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
             return (
               <div
                 key={`${item.kind}-${item.id}`}
-                className={`card ${onOpenDetail ? 'card--clickable' : ''}`}
+                className={`card card--kind-${item.kind} ${onOpenDetail ? 'card--clickable' : ''}`}
                 onClick={onOpenDetail ? openDetail : undefined}
                 onKeyDown={
                   onOpenDetail

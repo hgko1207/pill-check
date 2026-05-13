@@ -240,11 +240,26 @@ html[data-theme='dark'] .btn--secondary {
 .card {
   background: var(--pc-surface);
   border-radius: var(--pc-radius-l);
-  padding: 18px var(--pc-pad);
+  padding: 20px var(--pc-pad);
   box-shadow: var(--pc-elev-1);
   border: 1px solid var(--pc-divider);
   transition: box-shadow var(--pc-duration-standard) var(--pc-ease-standard),
-              transform var(--pc-duration-quick) var(--pc-ease-spring);
+              transform var(--pc-duration-quick) var(--pc-ease-spring),
+              border-color var(--pc-duration-standard) var(--pc-ease-standard);
+}
+
+/* 종류별 좌측 색상 강조 — 의약품/영양제 시각 구분 (Tone A) */
+.card--kind-drug {
+  border-left: 4px solid var(--pc-primary-soft);
+}
+.card--kind-drug:hover {
+  border-left-color: var(--pc-primary);
+}
+.card--kind-healthfood {
+  border-left: 4px solid var(--pc-coral-soft);
+}
+.card--kind-healthfood:hover {
+  border-left-color: var(--pc-coral);
 }
 
 .card__title {
@@ -502,14 +517,13 @@ html[data-theme='dark'] .hero__cta {
 
 .card--clickable {
   cursor: pointer;
-  transition: box-shadow 0.18s, transform 0.08s, border-color 0.18s;
 }
 .card--clickable:hover {
   box-shadow: var(--pc-elev-2);
-  border-color: var(--pc-border);
+  transform: translateY(-2px);
 }
 .card--clickable:active {
-  transform: scale(0.99);
+  transform: translateY(0) scale(0.99);
 }
 
 .card__detail-hint {
@@ -1180,10 +1194,23 @@ html[data-theme='dark'] .settings-row--danger:hover {
   justify-content: space-between;
   align-items: flex-start;
   gap: 12px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--pc-divider);
+  padding: 14px 12px;
+  border-radius: var(--pc-radius-m);
+  margin-bottom: 8px;
+  background: var(--pc-surface-2);
+  border-left: 4px solid transparent;
+  transition: background var(--pc-duration-quick) var(--pc-ease-standard);
 }
-.med-list__item:last-child { border-bottom: none; }
+.med-list__item:last-child { margin-bottom: 0; }
+.med-list__item:hover { background: var(--pc-divider); }
+
+/* 종류별 좌측 강조 (Tone A) */
+.med-list__item--drug {
+  border-left-color: var(--pc-primary);
+}
+.med-list__item--healthfood {
+  border-left-color: var(--pc-coral);
+}
 
 .med-list__content {
   flex: 1;
@@ -1363,6 +1390,43 @@ html[data-theme='dark'] .result-card {
 /* 인라인 placement banner 변형 (마진 통합) */
 .banner--inline {
   margin-top: 10px;
+}
+
+/* ────── Empty state (검색 전·결과 없음) ────── */
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px 32px;
+  color: var(--pc-text-muted);
+  background: var(--pc-surface-2);
+  border-radius: var(--pc-radius-l);
+  border: 1px dashed var(--pc-border);
+}
+
+.empty-state__emoji {
+  font-size: 48px;
+  line-height: 1;
+  margin-bottom: 14px;
+  filter: drop-shadow(0 2px 6px rgba(45, 42, 36, 0.08));
+}
+
+.empty-state__title {
+  margin: 0 0 6px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--pc-text);
+}
+
+.empty-state__body {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--pc-text-muted);
+}
+
+.empty-state__body b {
+  color: var(--pc-text);
+  font-weight: 600;
 }
 
 /* ────── AI 해설 영역 (V1.7) ────── */
