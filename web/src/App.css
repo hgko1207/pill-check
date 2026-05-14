@@ -1100,12 +1100,12 @@ html[data-theme='dark'] .settings-row--danger:hover {
   flex-shrink: 0;
 }
 
-/* 좁은 화면(갤럭시 360~412dp)에서는 토글이 다음 줄로 떨어지며 폭 가득 차서
+/* 좁은 화면(갤럭시 360~412dp)에서는 토글이 다음 줄로 떨어지며 카드 폭 가득 차서
    터치 영역 넉넉하게 — 텍스트 가독성도 회복 */
 @media (max-width: 480px) {
   .settings-row__control {
     flex: 1 1 100%;
-    margin-left: 54px; /* 아이콘(42) + gap(12) 만큼 들여쓰기 */
+    margin-left: 0; /* 카드 왼쪽 끝까지 펼침 */
   }
   .settings-row__control .segmented {
     display: flex;
@@ -1134,11 +1134,14 @@ html[data-theme='dark'] .settings-row--danger:hover {
 }
 
 .settings-section-title {
-  margin: 22px 0 10px;
-  font-size: 16px;
-  font-weight: 700;
+  margin: 24px 0 6px;
+  font-size: 17px;
+  font-weight: 800;
   color: var(--pc-text);
-  letter-spacing: -0.2px;
+  letter-spacing: -0.3px;
+}
+.settings-section-title:first-of-type {
+  margin-top: 8px;
 }
 
 .settings-warn {
