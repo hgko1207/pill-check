@@ -15,10 +15,14 @@ export interface RegisteredMedication {
   registeredAt: number
 }
 
-/** DUR API sample 영구 캐시 (V3) — PWA 재실행해도 살아남아 API 콜 절감 */
+/**
+ * DUR API 영구 캐시
+ * - V3: id='sample' 단일 row (1000건 샘플) — deprecated
+ * - V4: id='itemSeq:XXXX' 등록약별 row (정확한 DUR 매칭) — current
+ */
 export interface DurCacheRow {
-  id: string // 'sample'
-  data: unknown // DurTabooItem[] (lib/dur.ts에 정의)
+  id: string // 'itemSeq:1234' 형식
+  data: unknown // DurTabooItem[] (lib/dur.ts)
   fetchedAt: number
 }
 
@@ -53,6 +57,15 @@ class PillCheckDB extends Dexie {
       medications: '++id, itemSeq, itemName, registeredAt, kind',
       durCache: 'id',
     })
+
+    // V4: DUR 캐시 키 체계 변경 (sample → itemSeq:X)
+    //     기존 'sample' row는 더 이상 안 쓰므로 제거
+    this.version(4)
+      .stores({
+        medications: '++id, itemSeq, itemName, registeredAt, kind',
+        durCache: 'id, fetchedAt',
+      })
+      .upgrade((tx) => tx.table('durCache').clear())
   }
 }
 
