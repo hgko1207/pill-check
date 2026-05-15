@@ -28,6 +28,7 @@ interface Props {
 export function InteractionResultCard({ result, product, registered }: Props) {
   const meta = LEVEL_LABEL[result.level]
   const [aiText, setAiText] = useState<string | null>(null)
+  const [aiFromCache, setAiFromCache] = useState(false)
   const [aiLoading, setAiLoading] = useState(false)
   const [aiError, setAiError] = useState<string | null>(null)
   const [remaining, setRemaining] = useState<number>(LLM_DAILY_LIMIT)
@@ -35,6 +36,7 @@ export function InteractionResultCard({ result, product, registered }: Props) {
   // 결과/제품 바뀌면 AI 응답 초기화
   useEffect(() => {
     setAiText(null)
+    setAiFromCache(false)
     setAiError(null)
     setRemaining(getRemainingQuota())
   }, [product?.kind, product?.id, result.title])
@@ -50,8 +52,9 @@ export function InteractionResultCard({ result, product, registered }: Props) {
     setAiError(null)
     try {
       const prompt = buildLLMPrompt(product, registered)
-      const text = await generateExplanation(prompt)
+      const { text, fromCache } = await generateExplanation(prompt)
       setAiText(text)
+      setAiFromCache(fromCache)
       setRemaining(getRemainingQuota())
     } catch (e) {
       setAiError(friendlyError(e))
@@ -116,7 +119,9 @@ export function InteractionResultCard({ result, product, registered }: Props) {
       {aiText && (
         <div className="ai-explanation">
           <div className="ai-explanation__header">
-            <span className="ai-badge">🤖 AI 해설 (참고용)</span>
+            <span className="ai-badge">
+              🤖 AI 해설 (참고용){aiFromCache && ' · 캐시됨'}
+            </span>
             <span className="ai-quota-info">
               남은 횟수 {remaining}/{LLM_DAILY_LIMIT}
             </span>

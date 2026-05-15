@@ -5,10 +5,81 @@
  * Local dev: VITE_GEMINI_API_KEY 있으면 직접 호출, 없으면 친화 에러
  *
  * 일일 quota: 5회 (사용자별 localStorage)
+ * 응답 캐시: 30일, 최대 20건 (LRU) — 같은 조합 재방문 시 쿼터 안 소비
  */
 
 const QUOTA_KEY = 'pillcheck.llmQuota'
+const CACHE_KEY = 'pillcheck.llmCache'
+const CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000 // 30일
+const CACHE_MAX_ENTRIES = 20
 export const LLM_DAILY_LIMIT = 5
+
+interface CacheEntry {
+  text: string
+  cachedAt: number
+  lastUsed: number
+}
+type CacheMap = Record<string, CacheEntry>
+
+function loadCache(): CacheMap {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY)
+    if (!raw) return {}
+    return JSON.parse(raw) as CacheMap
+  } catch {
+    return {}
+  }
+}
+
+function saveCache(cache: CacheMap): void {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(cache))
+  } catch {
+    /* quota exceeded 등 무시 */
+  }
+}
+
+/** 간단한 djb2 해시 — 프롬프트 → 캐시 키 */
+function hashKey(input: string): string {
+  let h = 5381
+  for (let i = 0; i < input.length; i++) {
+    h = ((h << 5) + h + input.charCodeAt(i)) | 0
+  }
+  return h.toString(36)
+}
+
+export function getCachedExplanation(prompt: string): string | null {
+  const cache = loadCache()
+  const key = hashKey(prompt)
+  const entry = cache[key]
+  if (!entry) return null
+  if (Date.now() - entry.cachedAt > CACHE_TTL_MS) {
+    delete cache[key]
+    saveCache(cache)
+    return null
+  }
+  // LRU 갱신
+  entry.lastUsed = Date.now()
+  cache[key] = entry
+  saveCache(cache)
+  return entry.text
+}
+
+function setCachedExplanation(prompt: string, text: string): void {
+  const cache = loadCache()
+  const key = hashKey(prompt)
+  const now = Date.now()
+  cache[key] = { text, cachedAt: now, lastUsed: now }
+
+  // LRU: 20건 초과 시 가장 오래 안 쓴 항목 제거
+  const keys = Object.keys(cache)
+  if (keys.length > CACHE_MAX_ENTRIES) {
+    const sorted = keys.sort((a, b) => cache[a].lastUsed - cache[b].lastUsed)
+    const toRemove = sorted.slice(0, keys.length - CACHE_MAX_ENTRIES)
+    for (const k of toRemove) delete cache[k]
+  }
+  saveCache(cache)
+}
 
 interface QuotaState {
   date: string // YYYY-MM-DD
@@ -111,7 +182,16 @@ async function callApiRoute(prompt: string): Promise<string> {
   return data.text
 }
 
-export async function generateExplanation(prompt: string): Promise<string> {
+export interface ExplanationResult {
+  text: string
+  fromCache: boolean
+}
+
+export async function generateExplanation(prompt: string): Promise<ExplanationResult> {
+  // 캐시 히트 — 쿼터 차감 안 함
+  const cached = getCachedExplanation(prompt)
+  if (cached) return { text: cached, fromCache: true }
+
   if (getRemainingQuota() === 0) throw new QuotaExceededError()
 
   const isDev = import.meta.env.DEV
@@ -127,5 +207,6 @@ export async function generateExplanation(prompt: string): Promise<string> {
   }
 
   incrementQuota()
-  return text
+  setCachedExplanation(prompt, text)
+  return { text, fromCache: false }
 }

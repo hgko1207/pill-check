@@ -1,5 +1,5 @@
 import type { InteractionResult, InteractionDetail, UnifiedSearchResult } from './types'
-import type { RegisteredMedication } from './db'
+import { db, type RegisteredMedication } from './db'
 
 const NEDRUG_KEY = import.meta.env.VITE_NEDRUG_API_KEY ?? ''
 const isDev = import.meta.env.DEV
@@ -26,15 +26,32 @@ interface DurResponseBody {
 }
 
 const DUR_SAMPLE_PAGE_SIZE = 1000
+const DUR_CACHE_KEY = 'sample'
+const DUR_CACHE_TTL_MS = 24 * 60 * 60 * 1000 // 24h — DUR 데이터는 자주 안 바뀜
 
 let cachedSample: DurTabooItem[] | null = null
 let cacheLoadedAt = 0
-const CACHE_TTL_MS = 10 * 60 * 1000 // 10분
 
-async function fetchDurSample(): Promise<DurTabooItem[]> {
-  if (cachedSample && Date.now() - cacheLoadedAt < CACHE_TTL_MS) {
-    return cachedSample
+async function loadFromIndexedDB(): Promise<DurTabooItem[] | null> {
+  try {
+    const row = await db.durCache.get(DUR_CACHE_KEY)
+    if (!row) return null
+    if (Date.now() - row.fetchedAt > DUR_CACHE_TTL_MS) return null
+    return row.data as DurTabooItem[]
+  } catch {
+    return null
   }
+}
+
+async function saveToIndexedDB(data: DurTabooItem[]): Promise<void> {
+  try {
+    await db.durCache.put({ id: DUR_CACHE_KEY, data, fetchedAt: Date.now() })
+  } catch {
+    /* IDB 쓰기 실패는 치명적 아님 — 다음 세션에 다시 fetch */
+  }
+}
+
+async function fetchFromApi(): Promise<DurTabooItem[]> {
   if (!NEDRUG_KEY) throw new Error('식약처 API 키가 없습니다.')
 
   const url =
@@ -48,11 +65,29 @@ async function fetchDurSample(): Promise<DurTabooItem[]> {
   if (!res.ok) throw new Error(`DUR API 응답 오류 (${res.status})`)
   const data = (await res.json()) as DurResponseBody
   const items = data.body?.items ?? []
-  const arr = Array.isArray(items) ? items : [items]
+  return Array.isArray(items) ? items : [items]
+}
 
-  cachedSample = arr
+async function fetchDurSample(): Promise<DurTabooItem[]> {
+  // 1단계: 세션 in-memory 캐시 (즉시)
+  if (cachedSample && Date.now() - cacheLoadedAt < DUR_CACHE_TTL_MS) {
+    return cachedSample
+  }
+
+  // 2단계: IndexedDB 영구 캐시 (재방문 시 API 콜 절감)
+  const fromIDB = await loadFromIndexedDB()
+  if (fromIDB && fromIDB.length > 0) {
+    cachedSample = fromIDB
+    cacheLoadedAt = Date.now()
+    return fromIDB
+  }
+
+  // 3단계: API fetch + IDB 저장
+  const fresh = await fetchFromApi()
+  cachedSample = fresh
   cacheLoadedAt = Date.now()
-  return arr
+  void saveToIndexedDB(fresh) // fire-and-forget
+  return fresh
 }
 
 function lower(s: string | null | undefined): string {
