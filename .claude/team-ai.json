@@ -1,0 +1,9 @@
+{
+  "protectedPaths": [],
+  "allowPaths": [],
+  "protectedBranches": [],
+  "blockedCommands": [],
+  "formatCommand": [],
+  "formatExtensions": [],
+  "reinjectSections": []
+}

@@ -4,7 +4,9 @@ Thumbs.db
 
 # Editor
 .idea/
-.vscode/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
 *.swp
 *~
 
@@ -40,3 +42,9 @@ npm-debug.log*
 
 # Week 0 GATE 1 결과 (개인 데이터 가능)
 scripts/week0/gate_result.json
+
+# --- Claude Code 팀 세팅 (team-ai-kit) ---
+# 개인 설정·메모는 공유하지 않는다
+.claude/settings.local.json
+CLAUDE.local.md
+.claude/agent-memory-local/
