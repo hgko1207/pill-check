@@ -6,6 +6,8 @@ Repo: d:/project/2026/pill-check
 Status: APPROVED
 Mode: Builder (with possible launch path)
 
+> **2026-11-11 추가 — 다음 단계 설계**: 영양제 "TV 말 확인"(제품명 → 식약처 원료·기능성·함량·회수 + 성분 대조 + 가격 보기 버튼). 설계는 [`docs/designs/tv-claim-check.md`](docs/designs/tv-claim-check.md), 근거 시험은 `scripts/gate-search/SALES-CHECK.md`. "성분 → 판매 제품 순위"는 시험 실패로 아래 Premise 2대로 V2 '비교'에 남긴다.
+
 ---
 
 ## Problem Statement

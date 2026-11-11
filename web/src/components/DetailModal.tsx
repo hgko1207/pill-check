@@ -1,6 +1,14 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import type { NedrugItem } from '../lib/types'
-import type { HealthFoodItem } from '../lib/healthfood-api'
+import { IngredientCheck } from './IngredientCheck'
+import {
+  doseLines,
+  shopSearchUrls,
+  fetchRecalls,
+  findRecall,
+  type HealthFoodItem,
+  type RecallItem,
+} from '../lib/healthfood-api'
 import {
   parseDoc,
   paragraphToReadable,
@@ -135,6 +143,8 @@ function HealthFoodDetail({ item }: { item: HealthFoodItem }) {
     .map((v) => paragraphToReadable(v as string))
     .filter((v) => v.length > 0)
     .join(', ')
+  const doses = doseLines(item)
+  const shop = item.PRDLST_NM ? shopSearchUrls(item.PRDLST_NM) : null
 
   return (
     <article className="modal-content">
@@ -148,14 +158,37 @@ function HealthFoodDetail({ item }: { item: HealthFoodItem }) {
         <h2 className="modal-title">{item.PRDLST_NM ?? '(이름 없음)'}</h2>
         {item.BSSH_NM && (
           <dl className="summary__quick">
-            <SummaryItem label="업체" value={item.BSSH_NM} />
+            <SummaryItem label="제조" value={item.BSSH_NM} />
           </dl>
         )}
       </header>
 
+      <RecallNotice item={item} />
+
+      <DetailSection heading="TV에서 들은 성분 확인">
+        <IngredientCheck item={item} />
+      </DetailSection>
+
       {item.PRIMARY_FNCLTY && (
         <DetailSection heading="주된 기능성">
           <p className="modal-text">{paragraphToReadable(item.PRIMARY_FNCLTY)}</p>
+        </DetailSection>
+      )}
+
+      {doses.length > 0 && (
+        <DetailSection heading="함량">
+          <ul className="dose-list">
+            {doses.map((d, i) => (
+              <li key={i} className="dose-list__item">
+                <span className="dose-list__name">{d.name}</span>
+                <span className="dose-list__amount">
+                  {d.amount}
+                  {d.per && <span className="dose-list__per"> (제품 {d.per}당)</span>}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="dose-list__note">식약처에 신고한 표시량이에요.</p>
         </DetailSection>
       )}
 
@@ -177,6 +210,20 @@ function HealthFoodDetail({ item }: { item: HealthFoodItem }) {
         </DetailSection>
       )}
 
+      {shop && (
+        <DetailSection heading="가격 보기">
+          <div className="shop-links">
+            <a className="btn btn--secondary shop-links__btn" href={shop.naver} target="_blank" rel="noopener noreferrer">
+              네이버에서 가격 보기
+            </a>
+            <a className="btn btn--secondary shop-links__btn" href={shop.coupang} target="_blank" rel="noopener noreferrer">
+              쿠팡에서 가격 보기
+            </a>
+          </div>
+          <p className="dose-list__note">제품 이름으로 쇼핑몰 검색 결과를 새 창에서 열어요. 판매 이름이 조금 다를 수 있어요.</p>
+        </DetailSection>
+      )}
+
       <details className="more-details">
         <summary className="more-details__summary">더 자세히 보기</summary>
         <dl className="modal-meta">
@@ -195,6 +242,46 @@ function HealthFoodDetail({ item }: { item: HealthFoodItem }) {
         )}
       </details>
     </article>
+  )
+}
+
+/** 식약처 회수 목록과 대조. 일치할 때만 빨간 표시 (일치 없음은 "안전"이 아니므로 아무것도 안 보인다) */
+function RecallNotice({ item }: { item: HealthFoodItem }) {
+  const [state, setState] = useState<
+    { status: 'loading' } | { status: 'error' } | { status: 'done'; recall?: RecallItem }
+  >({ status: 'loading' })
+
+  useEffect(() => {
+    let cancelled = false
+    setState({ status: 'loading' })
+    fetchRecalls()
+      .then((recalls) => {
+        if (!cancelled) setState({ status: 'done', recall: findRecall(item, recalls) })
+      })
+      .catch(() => {
+        if (!cancelled) setState({ status: 'error' })
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [item])
+
+  if (state.status === 'error') {
+    return <p className="recall-check-failed">회수 이력을 확인하지 못했어요. 잠시 후 다시 열어 보세요.</p>
+  }
+  if (state.status !== 'done' || !state.recall) return null
+  return (
+    <section className="modal-warn modal-warn--danger" role="alert">
+      🚨 <b>식약처 회수 이력이 있는 제품이에요.</b>
+      {state.recall.RTRVLPRVNS && (
+        <>
+          <br />
+          회수 사유: {state.recall.RTRVLPRVNS}
+        </>
+      )}
+      <br />
+      드시기 전에 약사와 상담하세요.
+    </section>
   )
 }
 

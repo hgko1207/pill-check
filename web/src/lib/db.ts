@@ -1,4 +1,5 @@
 import Dexie, { type Table } from 'dexie'
+import { normName } from './healthfood-api'
 
 export type MedicationKind = 'drug' | 'healthfood'
 
@@ -6,7 +7,7 @@ export interface RegisteredMedication {
   id?: number
   /** 처방약(drug) 또는 영양제(healthfood) — V2부터 추가, V1 기존 데이터는 마이그레이션에서 'drug' 부여 */
   kind: MedicationKind
-  /** 식별자 — drug: 식약처 ITEM_SEQ / healthfood: PRDLST_REPORT_NO 또는 PRMS_DT */
+  /** 식별자 — drug: 식약처 ITEM_SEQ / healthfood: PRDLST_REPORT_NO (2026-11-11 이전 등록분은 PRMS_DT 허가일자) */
   itemSeq: string
   itemName: string
   manufacturer?: string
@@ -99,6 +100,16 @@ export async function addMedication(
 
   const existing = await db.medications.where('itemSeq').equals(med.itemSeq).first()
   if (existing) throw new DuplicateMedicationError()
+
+  // 영양제는 같은 제품명(공장만 다른 신고)도 같은 제품으로 본다.
+  // 옛 등록분은 itemSeq가 허가일자라 위 검사로는 못 잡는다.
+  if (med.kind === 'healthfood') {
+    const name = normName(med.itemName)
+    const all = await db.medications.toArray()
+    if (all.some((m) => m.kind === 'healthfood' && normName(m.itemName) === name)) {
+      throw new DuplicateMedicationError()
+    }
+  }
 
   return db.medications.add({
     ...med,
