@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { searchDrug } from '../lib/nedrug-api'
-import { searchHealthFood, isFoodSafetyConfigured } from '../lib/healthfood-api'
+import { searchHealthFood, isFoodSafetyConfigured, groupSameName } from '../lib/healthfood-api'
 import { addMedication, listMedications } from '../lib/db'
 import { checkInteraction } from '../lib/dur'
 import { friendlyError } from '../lib/errors'
@@ -9,6 +9,7 @@ import type { HealthFoodItem } from '../lib/healthfood-api'
 import type { RegisteredMedication } from '../lib/db'
 import { BarcodeScanner } from './BarcodeScanner'
 import { InteractionResultCard } from './InteractionResultCard'
+import { IngredientCard } from './IngredientCard'
 import type { DetailTarget } from './DetailModal'
 
 interface Props {
@@ -27,6 +28,8 @@ interface DrugWithRaw extends UnifiedSearchResult {
 interface HealthFoodWithRaw extends UnifiedSearchResult {
   kind: 'healthfood'
   raw: HealthFoodItem
+  /** 같은 제품명으로 묶인 신고 건수 (제조 공장만 다름) */
+  sameNameCount: number
 }
 
 type SearchResultWithRaw = DrugWithRaw | HealthFoodWithRaw
@@ -43,7 +46,7 @@ function adaptDrug(item: NedrugItem): DrugWithRaw | null {
   }
 }
 
-function adaptHealthFood(item: HealthFoodItem): HealthFoodWithRaw | null {
+function adaptHealthFood(item: HealthFoodItem, sameNameCount: number): HealthFoodWithRaw | null {
   const id = item.PRMS_DT || item.STTEMNT_NO || item.PRDLST_NM
   if (!id || !item.PRDLST_NM) return null
   return {
@@ -53,11 +56,14 @@ function adaptHealthFood(item: HealthFoodItem): HealthFoodWithRaw | null {
     manufacturer: item.BSSH_NM,
     ingredient: item.RAWMTRL_NM,
     raw: item,
+    sameNameCount,
   }
 }
 
 export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail }: Props) {
   const [query, setQuery] = useState('')
+  /** 마지막으로 검색한 말 (입력 중인 query와 구분) */
+  const [searchedTerm, setSearchedTerm] = useState('')
   const [loading, setLoading] = useState(false)
   const [results, setResults] = useState<SearchResultWithRaw[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -91,6 +97,7 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
         return
       }
       setLoading(true)
+      setSearchedTerm(q)
       setError(null)
       setInfo(null)
       setWarn(null)
@@ -118,8 +125,8 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
 
       if (hfRes) {
         if (hfRes.status === 'fulfilled') {
-          for (const item of hfRes.value as HealthFoodItem[]) {
-            const adapted = adaptHealthFood(item)
+          for (const { item, count } of groupSameName(hfRes.value as HealthFoodItem[])) {
+            const adapted = adaptHealthFood(item, count)
             if (adapted) merged.push(adapted)
           }
         } else {
@@ -274,6 +281,8 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
         </div>
       )}
 
+      {!loading && searchedTerm && <IngredientCard term={searchedTerm} />}
+
       {results.length > 0 && (
         <>
           <div className="section-divider">
@@ -317,7 +326,12 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
                 <h3 className="card__title">{item.name}</h3>
                 {item.manufacturer && (
                   <p className="card__meta">
-                    {isDrug ? '제조사' : '업체'}: {item.manufacturer}
+                    {isDrug ? '제조사' : '제조'}: {item.manufacturer}
+                  </p>
+                )}
+                {item.kind === 'healthfood' && item.sameNameCount > 1 && (
+                  <p className="card__meta">
+                    같은 이름 신고 {item.sameNameCount}건 (제조 공장 다름)
                   </p>
                 )}
                 {item.ingredient && (
