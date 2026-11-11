@@ -227,6 +227,7 @@ html[data-theme='dark'] .btn--secondary {
   border-radius: var(--pc-radius-pill);
   border: 2px solid var(--pc-border);
   background: var(--pc-surface);
+  color: var(--pc-text);
   font-size: var(--pc-font-large);
   outline: none;
   transition: border-color var(--pc-duration-quick) var(--pc-ease-standard),
@@ -905,7 +906,6 @@ html[data-theme='dark'] .hero__cta {
 .ingr-check__input {
   flex: 1;
   min-width: 0;
-  color: var(--pc-text);
   font-size: var(--pc-font-base);
   padding: 0 18px;
 }
@@ -916,10 +916,6 @@ html[data-theme='dark'] .hero__cta {
 }
 .ingr-check__result {
   margin-top: 14px;
-}
-/* 회색 바탕 위 회색 제목은 대비가 낮아(약 2.4:1) 본문 색으로 */
-.ingr-check__result .result-card__title--unknown {
-  color: var(--pc-text);
 }
 .ingr-check__asked {
   margin: 0 0 4px;
@@ -1550,7 +1546,8 @@ html[data-theme='dark'] .result-card {
 .result-card__title--danger { color: var(--pc-danger); }
 .result-card__title--warn { color: var(--pc-warn); }
 .result-card__title--safe { color: var(--pc-safe); }
-.result-card__title--unknown { color: var(--pc-unknown); }
+/* 회색 바탕 위 회색 글씨(--pc-unknown)는 대비가 약 2.4:1이라 본문 색. 회색은 바탕·테두리가 맡는다 */
+.result-card__title--unknown { color: var(--pc-text); }
 
 .result-card__message {
   margin: 0;

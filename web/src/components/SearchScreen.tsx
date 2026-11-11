@@ -47,7 +47,8 @@ function adaptDrug(item: NedrugItem): DrugWithRaw | null {
 }
 
 function adaptHealthFood(item: HealthFoodItem, sameNameCount: number): HealthFoodWithRaw | null {
-  const id = item.PRMS_DT || item.STTEMNT_NO || item.PRDLST_NM
+  // 품목보고번호는 제품마다 고유(로컬 I0030 46,295건 중 빈 값·중복 0). 허가일자(PRMS_DT)는 여러 제품이 같아 쓰지 않는다
+  const id = item.PRDLST_REPORT_NO || item.PRDLST_NM
   if (!id || !item.PRDLST_NM) return null
   return {
     kind: 'healthfood',
@@ -59,6 +60,8 @@ function adaptHealthFood(item: HealthFoodItem, sameNameCount: number): HealthFoo
     sameNameCount,
   }
 }
+
+const isOldName = (item: HealthFoodItem) => /^\s*\(구\)/.test(item.PRDLST_NM ?? '')
 
 export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail }: Props) {
   const [query, setQuery] = useState('')
@@ -125,7 +128,11 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
 
       if (hfRes) {
         if (hfRes.status === 'fulfilled') {
-          for (const { item, count } of groupSameName(hfRes.value as HealthFoodItem[])) {
+          // 이름이 "(구)"로 시작하는 옛 신고는 뒤로 (빼지는 않는다). sort는 안정 정렬이라 나머지 순서는 그대로
+          const groups = groupSameName(hfRes.value as HealthFoodItem[]).sort(
+            (a, b) => Number(isOldName(a.item)) - Number(isOldName(b.item)),
+          )
+          for (const { item, count } of groups) {
             const adapted = adaptHealthFood(item, count)
             if (adapted) merged.push(adapted)
           }

@@ -90,7 +90,7 @@ function insideParens(s: string, at: number): string {
 }
 
 /** 띄어쓰기·"(주)"·주식회사 표기를 뗀 이름 (제품명·업체명 비교용) */
-const normName = (s: string | undefined) => (s ?? '').replace(/\s|\(주\)|주식회사|㈜/g, '')
+export const normName = (s: string | undefined) => (s ?? '').replace(/\s|\(주\)|주식회사|㈜/g, '')
 
 /**
  * 같은 제품명(띄어쓰기·"(주)"만 다름)을 하나로 묶는다. 제조 공장만 다른 신고가 여러 건이기 때문.
