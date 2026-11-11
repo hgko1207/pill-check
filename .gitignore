@@ -48,3 +48,6 @@ scripts/week0/gate_result.json
 .claude/settings.local.json
 CLAUDE.local.md
 .claude/agent-memory-local/
+
+# 2단계 가능성 시험 내려받은 데이터
+scripts/gate-search/data/
