@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=390">
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:390px;height:844px;overflow:hidden}
+body{font-family:'Nanum Gothic',sans-serif;background:#F4F7F6;color:#1E2B2A}
+.top{padding:16px 20px 6px;display:flex;justify-content:space-between;align-items:center}
+.top b{font-size:20px;font-weight:800;color:#0E7C66}
+.top span{font-size:15px;color:#5B6B69}
+.prod{margin:8px 20px 0;padding:14px 16px;background:#fff;border-radius:18px;border:1px solid #DCE5E3}
+.prod small{font-size:14px;color:#5B6B69}
+.prod div{font-size:21px;font-weight:800;margin-top:2px}
+.res{margin:14px 20px 0;padding:20px 18px;background:#FCE9E7;border-radius:22px;border:2px solid #D93A2B}
+.res .tag{display:inline-block;background:#D93A2B;color:#fff;font-size:15px;font-weight:800;padding:5px 12px;border-radius:999px}
+.res h1{font-size:34px;font-weight:800;margin-top:10px;letter-spacing:-1px;color:#9E2318}
+.res p{font-size:18px;line-height:1.55;margin-top:8px}
+.lbl{margin:18px 20px 8px;font-size:16px;font-weight:800}
+.box{margin:0 20px;background:#fff;border-radius:22px;padding:12px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;border:1px solid #DCE5E3}
+.cell{border-radius:14px;background:#EEF3F2;padding:10px 6px 12px;text-align:center;position:relative;min-height:150px}
+.lid{height:30px;border-radius:12px 12px 6px 6px;margin:-4px -2px 10px;background:#B9D8D0}
+.cell .day{font-size:13px;font-weight:800;color:#5B6B69}
+.cell .n{font-size:15px;font-weight:800;margin-top:6px;line-height:1.3;word-break:keep-all}
+.cell .st{font-size:13px;margin-top:8px;color:#5B6B69;line-height:1.3;word-break:keep-all}
+.cell.hit{background:#FCE9E7;outline:2px solid #D93A2B}
+.cell.hit .lid{background:#D93A2B;transform:translateY(-10px) rotate(-8deg)}
+.cell.hit .st{color:#9E2318;font-weight:800}
+.cell.unk .lid{background:#E8D9A8}
+.acts{display:flex;gap:10px;margin:16px 20px 0}
+.btn{flex:1;min-height:56px;border-radius:999px;border:2px solid #0E7C66;background:#fff;color:#0E7C66;font:800 18px 'Nanum Gothic'}
+.btn.p{background:#0E7C66;color:#fff}
+.disc{margin:12px 20px 0;font-size:13px;line-height:1.5;color:#5B6B69}
+.tabs{position:absolute;bottom:0;left:0;right:0;height:74px;background:#fff;border-top:1px solid #DCE5E3;display:flex;padding:8px 14px}
+.tabs div{flex:1;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#7A8988;border-radius:16px}
+.tabs .on{background:#DDEFEA;color:#0E7C66}
+</style></head><body>
+<div class="top"><b>약똑똑</b><span>11월 12일</span></div>
+<div class="prod"><small>확인한 제품 · 의약품</small><div>이트라코나졸캡슐 100mg</div></div>
+<section class="res">
+  <span class="tag">빨강 · 병용금기</span>
+  <h1>함께 드시면 안 돼요</h1>
+  <p><b>심바스타틴정 20mg</b>과 같이 먹으면 안 되는 약이에요. 약사 선생님께 이 화면을 보여 주세요.</p>
+</section>
+<div class="lbl">내 약통 4칸과 비교했어요</div>
+<div class="box">
+  <div class="cell hit"><div class="lid"></div><div class="day">1번 칸</div><div class="n">심바<br>스타틴<br>20mg</div><div class="st">함께 먹으면 안 됨</div></div>
+  <div class="cell"><div class="lid"></div><div class="day">2번 칸</div><div class="n">암로디핀<br>5mg</div><div class="st">충돌 확인 안 됨</div></div>
+  <div class="cell"><div class="lid"></div><div class="day">3번 칸</div><div class="n">메트<br>포르민<br>500mg</div><div class="st">충돌 확인 안 됨</div></div>
+  <div class="cell unk"><div class="lid"></div><div class="day">4번 칸</div><div class="n">비타민D<br>1000IU</div><div class="st">정보 부족</div></div>
+</div>
+<div class="acts"><button class="btn">AI 해설 보기</button><button class="btn p">다른 제품 확인</button></div>
+<p class="disc">근거: 식약처 DUR 병용금기. 식약처 공공데이터 기반 참고 자료예요. 약사·의사 상담을 대체하지 않아요.</p>
+<nav class="tabs"><div class="on">제품 확인</div><div>내 약통</div><div>설정</div></nav>
+</body></html>

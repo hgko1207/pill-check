@@ -1,15 +1,12 @@
-export type ViewKey = 'home' | 'search' | 'settings'
+import { Pill, Search, Settings } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 
-interface NavItem {
-  key: ViewKey
-  icon: string
-  label: string
-}
+export type ViewKey = 'check' | 'meds' | 'settings'
 
-const ITEMS: NavItem[] = [
-  { key: 'home', icon: '🏠', label: '홈' },
-  { key: 'search', icon: '🔍', label: '검색' },
-  { key: 'settings', icon: '⚙️', label: '설정' },
+const ITEMS: { key: ViewKey; label: string; Icon: LucideIcon }[] = [
+  { key: 'check', label: '확인', Icon: Search },
+  { key: 'meds', label: '내 약', Icon: Pill },
+  { key: 'settings', label: '설정', Icon: Settings },
 ]
 
 interface Props {
@@ -19,22 +16,21 @@ interface Props {
 
 export function BottomNav({ current, onChange }: Props) {
   return (
-    <nav className="bottom-nav" aria-label="주요 화면 이동">
-      {ITEMS.map((item) => {
-        const isActive = current === item.key
-        return (
+    <nav className="tabbar" aria-label="주요 화면">
+      <div className="tabbar__inner">
+        {ITEMS.map(({ key, label, Icon }) => (
           <button
-            key={item.key}
-            className={`bottom-nav__item ${isActive ? 'bottom-nav__item--active' : ''}`}
-            onClick={() => onChange(item.key)}
-            aria-current={isActive ? 'page' : undefined}
-            aria-label={item.label}
+            key={key}
+            type="button"
+            className="tabbar__item"
+            onClick={() => onChange(key)}
+            aria-current={current === key ? 'page' : undefined}
           >
-            <span className="bottom-nav__icon" aria-hidden="true">{item.icon}</span>
-            <span>{item.label}</span>
+            <Icon aria-hidden="true" />
+            <span>{label}</span>
           </button>
-        )
-      })}
+        ))}
+      </div>
     </nav>
   )
 }

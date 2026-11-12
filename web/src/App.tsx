@@ -18,10 +18,19 @@ export default function App() {
 }
 
 function AppContent() {
-  const [view, setView] = useState<ViewKey>('home')
+  const [view, setView] = useState<ViewKey>('check')
   const [refreshSignal, setRefreshSignal] = useState(0)
   const [detailTarget, setDetailTarget] = useState<DetailTarget>(null)
   const [guideOpen, setGuideOpen] = useState(false)
+  const [rootSignal, setRootSignal] = useState(0)
+
+  // 탭을 누르면 상세·사용법을 닫고, 지금 탭을 다시 누르면 그 탭의 처음으로 돌아간다
+  function handleTab(next: ViewKey) {
+    setDetailTarget(null)
+    setGuideOpen(false)
+    if (next === view) setRootSignal((n) => n + 1)
+    else setView(next)
+  }
 
   useEffect(() => {
     initTheme()
@@ -34,39 +43,37 @@ function AppContent() {
 
   return (
     <div className="app">
-      <header className="app__header">
-        <h1 className="app__title">
-          <span className="app__title-emoji" aria-hidden="true">💊</span>
-          약똑똑
-        </h1>
-        <p className="app__subtitle">
-          약과 영양제, <b>함께 먹어도 괜찮을까요?</b>
-        </p>
-      </header>
-
       <main className="app__main">
-        {view === 'home' && (
-          <section className="page">
-            <InstallHint />
-            <RegisteredList
-              refreshSignal={refreshSignal}
-              onChange={() => setRefreshSignal((n) => n + 1)}
-            />
-            <p className="home-tab-hint">
-              새 영양제·약 검사하려면 하단 <b>🔍 검색</b> 탭으로 이동하세요.
-            </p>
-          </section>
-        )}
-
-        {view === 'search' && (
-          <section className="page">
-            <h2 className="page__title">🔍 새 제품 검사</h2>
+        {view === 'check' && (
+          <>
+            <header className="screen-head">
+              <h1 className="screen-head__title">어떤 제품을 확인할까요?</h1>
+              <p className="screen-head__desc">
+                내 약과 함께 먹어도 되는지 식약처 자료로 알려&nbsp;드려요.
+              </p>
+            </header>
             <SearchScreen
               refreshSignal={refreshSignal}
               onMedicationsChanged={() => setRefreshSignal((n) => n + 1)}
               onOpenDetail={setDetailTarget}
+              onShowMeds={() => setView('meds')}
+              rootSignal={rootSignal}
             />
-          </section>
+            <InstallHint />
+          </>
+        )}
+
+        {view === 'meds' && (
+          <>
+            <header className="screen-head">
+              <h1 className="screen-head__title">내 약</h1>
+            </header>
+            <RegisteredList
+              refreshSignal={refreshSignal}
+              onChange={() => setRefreshSignal((n) => n + 1)}
+              onAdd={() => setView('check')}
+            />
+          </>
         )}
 
         {view === 'settings' && (
@@ -77,7 +84,7 @@ function AppContent() {
         )}
       </main>
 
-      <BottomNav current={view} onChange={setView} />
+      <BottomNav current={view} onChange={handleTab} />
 
       <DetailModal target={detailTarget} onClose={() => setDetailTarget(null)} />
       <GuideModal open={guideOpen} onClose={() => setGuideOpen(false)} />

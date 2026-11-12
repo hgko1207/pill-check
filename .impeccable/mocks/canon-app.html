@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>약똑똑 앱 표준 시안</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<style>
+:root{
+  --bg:#F2F4F6;--surface:#FFFFFF;--text:#191F28;--text-2:#4E5968;--text-3:#6B7684;--line:#E5E8EB;
+  --brand:#4A4FD0;--brand-soft:#ECEDFB;--brand-strong:#3A3EB0;
+  --danger:#D7263D;--danger-bg:#FDECEE;--warn:#B25E00;--warn-bg:#FFF4E0;
+  --safe:#12805C;--safe-bg:#E6F6EF;--unknown:#6B7684;--unknown-bg:#F2F4F6;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Pretendard Variable',Pretendard,system-ui,sans-serif;background:#D9DDE3;color:var(--text);
+  word-break:keep-all;overflow-wrap:anywhere;text-wrap:pretty;-webkit-font-smoothing:antialiased;padding:32px 24px}
+.row{display:flex;gap:28px;justify-content:center;flex-wrap:wrap}
+.cap{text-align:center;font-size:15px;color:#4E5968;margin-top:10px;font-weight:600}
+.phone{width:390px;height:844px;background:var(--bg);border-radius:44px;overflow:hidden;position:relative;
+  box-shadow:0 18px 40px rgba(25,31,40,.18)}
+.status{height:44px;display:flex;justify-content:space-between;align-items:center;padding:0 28px;font-size:15px;font-weight:600}
+.scroll{position:absolute;top:44px;left:0;right:0;bottom:84px;overflow:hidden}
+.scroll.cta{bottom:164px}
+svg.i{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+/* tab bar */
+.tabs{position:absolute;bottom:0;left:0;right:0;height:84px;background:rgba(255,255,255,.96);border-top:1px solid var(--line);
+  display:flex;padding:8px 8px 22px}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:15px;font-weight:600;color:#8B95A1}
+.tab.on{color:var(--text)}
+.tab.on svg{color:var(--brand)}
+/* shared */
+.pad{padding:0 20px}
+h1.big{font-size:28px;line-height:1.3;font-weight:700;letter-spacing:-.02em;text-wrap:balance}
+.sub{font-size:17px;line-height:1.5;color:var(--text-2);margin-top:6px}
+.group{background:var(--surface);border-radius:20px;margin:0 16px;overflow:hidden}
+.gt{font-size:15px;font-weight:600;color:var(--text-3);padding:22px 32px 8px}
+.item{display:flex;align-items:center;gap:12px;min-height:64px;padding:12px 18px}
+.item+.item{border-top:1px solid var(--line)}
+.item .t{flex:1;min-width:0}
+.item .n{font-size:18px;font-weight:600;line-height:1.35}
+.item .m{font-size:15px;color:var(--text-3);margin-top:2px}
+.state{font-size:15px;font-weight:700;white-space:nowrap;display:flex;align-items:center;gap:6px}
+.dot{width:8px;height:8px;border-radius:50%}
+.btn{min-height:56px;border-radius:16px;border:0;font:700 18px 'Pretendard Variable',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;width:100%}
+.btn.p{background:var(--brand);color:#fff}
+.btn.s{background:var(--brand-soft);color:var(--brand-strong)}
+.btn.g{background:var(--surface);color:var(--text);border:1px solid var(--line)}
+.note{font-size:14px;line-height:1.55;color:var(--text-3);padding:14px 24px 0}
+/* home */
+.search{margin:20px 16px 0;height:60px;background:var(--surface);border-radius:18px;display:flex;align-items:center;gap:10px;padding:0 18px;
+  font-size:18px;color:#8B95A1;box-shadow:0 1px 2px rgba(25,31,40,.06)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 16px 0}
+.tile{background:var(--surface);border-radius:20px;padding:18px;min-height:112px;display:flex;flex-direction:column;justify-content:space-between}
+.tile .ic{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:var(--brand-soft);color:var(--brand)}
+.tile b{font-size:18px;font-weight:700}
+.chev{color:#B0B8C1}
+/* result */
+.nav{height:52px;display:flex;align-items:center;gap:6px;padding:0 10px;font-size:17px;font-weight:600}
+.verdict{margin:6px 16px 0;background:var(--danger-bg);border-radius:24px;padding:22px 22px 20px}
+.verdict .vi{width:52px;height:52px;border-radius:50%;background:var(--danger);color:#fff;display:flex;align-items:center;justify-content:center}
+.verdict .vi svg{width:30px;height:30px;stroke-width:2.4}
+.verdict h1{font-size:30px;font-weight:800;color:var(--danger);margin-top:14px;letter-spacing:-.02em;line-height:1.25}
+.verdict p{font-size:18px;line-height:1.55;margin-top:8px;color:var(--text)}
+.verdict .src{font-size:15px;color:#8A3340;margin-top:12px;font-weight:600}
+.bottom{position:absolute;left:0;right:0;bottom:84px;padding:12px 16px;background:var(--bg);border-top:1px solid var(--line);display:flex;gap:10px}
+/* detail */
+.recall{margin:14px 16px 0;background:var(--danger-bg);border-radius:18px;padding:14px 16px;display:flex;gap:12px;align-items:flex-start;color:var(--danger)}
+.recall b{display:block;font-size:17px;color:var(--text)}
+.recall span{font-size:16px;color:var(--text-2)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;padding:4px 18px 16px}
+.chip{height:44px;padding:0 16px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font:600 16px 'Pretendard Variable';display:flex;align-items:center}
+.chip.on{background:var(--text);color:#fff;border-color:var(--text)}
+.ans{margin:0 18px 16px;border-radius:16px;background:var(--safe-bg);padding:14px 16px}
+.ans .h{display:flex;gap:8px;align-items:center;font-size:19px;font-weight:700;color:var(--safe)}
+.ans p{font-size:16px;line-height:1.5;margin-top:6px}
+.dose{display:flex;justify-content:space-between;gap:12px;font-size:17px;padding:12px 18px}
+.dose+.dose{border-top:1px solid var(--line)}
+.dose b{white-space:nowrap}
+</style></head><body>
+<div class="row">
+
+<div><div class="phone">
+  <div class="status"><span>9:41</span><span>약똑똑</span></div>
+  <div class="scroll">
+    <div class="pad" style="padding-top:18px"><h1 class="big">어떤 제품을<br>확인할까요?</h1>
+      <p class="sub">내 약과 함께 먹어도 되는지<br>식약처 자료로 알려&nbsp;드려요.</p></div>
+    <div class="search"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>약·영양제 이름 입력</div>
+    <div class="two">
+      <div class="tile"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M8 7v10"/><path d="M12 7v10"/><path d="M17 7v10"/></svg></span><b>바코드로 찾기</b></div>
+      <div class="tile"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg></span><b>TV에서 들은<br>성분 확인</b></div>
+    </div>
+    <div class="gt">내 약 4개</div>
+    <div class="group">
+      <div class="item"><div class="t"><div class="n">심바스타틴정 20mg</div><div class="m">처방약</div></div><svg class="i chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></div>
+      <div class="item"><div class="t"><div class="n">암로디핀정 5mg</div><div class="m">처방약</div></div><svg class="i chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></div>
+      <div class="item"><div class="t"><div class="n" style="color:var(--brand)">전체 보기</div></div><svg class="i chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></div>
+    </div>
+  </div>
+  <nav class="tabs">
+    <div class="tab on"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>확인</div>
+    <div class="tab"><svg class="i" viewBox="0 0 24 24"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>내 약</div>
+    <div class="tab"><svg class="i" viewBox="0 0 24 24"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>설정</div>
+  </nav>
+</div><p class="cap">홈 — 제품 확인 시작</p></div>
+
+<div><div class="phone">
+  <div class="status"><span>9:41</span><span></span></div>
+  <div class="scroll cta">
+    <div class="nav"><svg class="i" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>이트라코나졸캡슐 100mg</div>
+    <div class="verdict">
+      <div class="vi"><svg class="i" viewBox="0 0 24 24"><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg></div>
+      <h1>함께 드시면 안 돼요</h1>
+      <p>내 약 <b>심바스타틴정 20mg</b>과<br>함께 먹으면&nbsp;안&nbsp;돼요.<br>약사 선생님께 이 화면을 보여&nbsp;주세요.</p>
+      <div class="src">식약처 DUR 병용금기</div>
+    </div>
+    <div class="gt">내 약 4개와 비교했어요</div>
+    <div class="group">
+      <div class="item"><div class="t"><div class="n">심바스타틴정 20mg</div></div><span class="state" style="color:var(--danger)"><i class="dot" style="background:var(--danger)"></i>함께 안 됨</span></div>
+      <div class="item"><div class="t"><div class="n">암로디핀정 5mg</div></div><span class="state" style="color:var(--safe)"><i class="dot" style="background:var(--safe)"></i>충돌 확인 안 됨</span></div>
+      <div class="item"><div class="t"><div class="n">메트포르민정 500mg</div></div><span class="state" style="color:var(--safe)"><i class="dot" style="background:var(--safe)"></i>충돌 확인 안 됨</span></div>
+      <div class="item"><div class="t"><div class="n">비타민D 1000IU</div></div><span class="state" style="color:var(--unknown)"><i class="dot" style="background:var(--unknown)"></i>정보 부족</span></div>
+    </div>
+    <p class="note">참고용이에요. 약사·의사 상담을 대체하지 않아요.</p>
+  </div>
+  <div class="bottom"><button class="btn s" style="flex:1">AI 해설</button><button class="btn p" style="flex:1.6">다른 제품 확인</button></div>
+  <nav class="tabs">
+    <div class="tab on"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>확인</div>
+    <div class="tab"><svg class="i" viewBox="0 0 24 24"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>내 약</div>
+    <div class="tab"><svg class="i" viewBox="0 0 24 24"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>설정</div>
+  </nav>
+</div><p class="cap">충돌 결과</p></div>
+
+<div><div class="phone">
+  <div class="status"><span>9:41</span><span></span></div>
+  <div class="scroll">
+    <div class="nav"><svg class="i" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>영양제</div>
+    <div class="pad"><h1 class="big" style="font-size:26px">비피움 비쓰리 다이어트</h1><p class="sub" style="font-size:16px">제조 (주)알피바이오 · 캡슐</p></div>
+    <div class="gt">TV에서 들은 성분 확인</div>
+    <div class="group">
+      <div class="chips" style="padding-top:16px"><span class="chip on">비피더스 B-3</span><span class="chip">루테인</span><span class="chip">비타민 D</span><span class="chip">밀크씨슬</span><span class="chip">오메가3</span></div>
+      <div class="ans"><div class="h"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>들어 있어요</div><p>원료: Bifidobacterium breve B-3 프로바이오틱스</p></div>
+    </div>
+    <div class="gt">함량</div>
+    <div class="group">
+      <div class="dose"><span>프로바이오틱스 수</span><b>50억 CFU</b></div>
+      <div class="dose"><span>판토텐산</span><b>1.5mg</b></div>
+    </div>
+  </div>
+  <nav class="tabs">
+    <div class="tab on"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>확인</div>
+    <div class="tab"><svg class="i" viewBox="0 0 24 24"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>내 약</div>
+    <div class="tab"><svg class="i" viewBox="0 0 24 24"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>설정</div>
+  </nav>
+</div><p class="cap">영양제 상세</p></div>
+
+</div>
+</body></html>

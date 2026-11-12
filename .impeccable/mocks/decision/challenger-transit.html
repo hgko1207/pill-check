@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=390">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:390px;height:844px;overflow:hidden}
+body{font-family:'Noto Sans KR',sans-serif;background:#fff;color:#0B1F4B}
+.sign{background:#0B1F4B;color:#fff;padding:14px 20px 18px}
+.sign .row{display:flex;justify-content:space-between;font-size:15px;opacity:.85}
+.sign .prod{display:flex;align-items:center;gap:10px;margin-top:10px}
+.badge{width:34px;height:34px;border-radius:50%;background:#fff;color:#0B1F4B;font-weight:900;font-size:16px;display:flex;align-items:center;justify-content:center}
+.sign .prod b{font-size:21px;font-weight:700}
+.alert{background:#D7263D;color:#fff;padding:16px 20px 18px}
+.alert small{font-size:15px;font-weight:700;letter-spacing:1px;opacity:.9}
+.alert h1{font-size:36px;font-weight:900;letter-spacing:-1px;margin-top:2px}
+.alert p{font-size:18px;line-height:1.5;margin-top:6px}
+.lh{padding:16px 20px 4px;font-size:16px;font-weight:700;display:flex;justify-content:space-between}
+.lh span:last-child{font-weight:500;color:#51607F}
+.line{position:relative;margin:6px 20px 0;padding-left:56px}
+.line:before{content:'';position:absolute;left:21px;top:14px;bottom:30px;width:10px;background:#2E9E5B;border-radius:5px}
+.st{position:relative;min-height:84px;padding-top:4px}
+.st:before{content:'';position:absolute;left:-44px;top:8px;width:22px;height:22px;border-radius:50%;background:#fff;border:5px solid #2E9E5B}
+.st .n{font-size:21px;font-weight:700}
+.st .s{font-size:16px;color:#51607F;margin-top:2px}
+.st.hit:before{left:-50px;top:2px;width:34px;height:34px;border:7px solid #D7263D}
+.st.hit .n{color:#D7263D}
+.st.hit .s{color:#D7263D;font-weight:700}
+.st.unk:before{border-color:#F2A900}
+.acts{display:flex;gap:10px;padding:4px 20px 0}
+.btn{flex:1;min-height:56px;border-radius:10px;border:2px solid #0B1F4B;background:#fff;color:#0B1F4B;font:700 18px 'Noto Sans KR'}
+.btn.p{background:#0B1F4B;color:#fff}
+.disc{margin:12px 20px 0;font-size:13px;line-height:1.5;color:#51607F}
+.tabs{position:absolute;bottom:0;left:0;right:0;height:72px;background:#0B1F4B;display:flex}
+.tabs div{flex:1;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;color:#A9B4CC}
+.tabs .on{color:#fff;box-shadow:inset 0 -5px 0 #F2A900}
+</style></head><body>
+<div class="sign">
+  <div class="row"><span>약똑똑</span><span>확인한 제품</span></div>
+  <div class="prod"><span class="badge">약</span><b>이트라코나졸캡슐 100mg</b></div>
+</div>
+<section class="alert">
+  <small>빨강 · 병용금기</small>
+  <h1>함께 드시면 안 돼요</h1>
+  <p>심바스타틴정 20mg에서 멈추세요. 약사 선생님께 이 화면을 보여 주세요.</p>
+</section>
+<div class="lh"><span>내 약 노선</span><span>4개 역 · 충돌 1</span></div>
+<div class="line">
+  <div class="st hit"><div class="n">심바스타틴정 20mg</div><div class="s">처방약 · 함께 먹으면 안 됨</div></div>
+  <div class="st"><div class="n">암로디핀정 5mg</div><div class="s">처방약 · 충돌 확인 안 됨</div></div>
+  <div class="st"><div class="n">메트포르민정 500mg</div><div class="s">처방약 · 충돌 확인 안 됨</div></div>
+  <div class="st unk"><div class="n">비타민D 1000IU</div><div class="s">영양제 · 확인할 정보 부족</div></div>
+</div>
+<div class="acts"><button class="btn">AI 해설 보기</button><button class="btn p">다른 제품 확인</button></div>
+<p class="disc">근거: 식약처 DUR 병용금기. 공공데이터 기반 참고 자료이며 약사·의사 상담을 대체하지 않아요.</p>
+<nav class="tabs"><div class="on">제품 확인</div><div>내 약</div><div>설정</div></nav>
+</body></html>

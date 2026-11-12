@@ -55,4 +55,6 @@ export interface InteractionResult {
   title: string
   message: string
   details?: InteractionDetail[]
+  /** 등록약과 실제로 대조했는지 (등록약 없음·자료 못 받음이면 false) */
+  checked?: boolean
 }

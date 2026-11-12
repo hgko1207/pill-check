@@ -1,0 +1,178 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-12T00:00:00Z",
+  "title": "Design System: 약똑똑 (PillCheck)",
+  "extensions": {
+    "colorMeta": {
+      "primary": { "role": "primary", "displayName": "Calm Indigo", "canonical": "#4A4FD0", "dark": "#5B60E6", "tonalRamp": ["#15163F", "#24266B", "#3A3EB0", "#4A4FD0", "#7376DC", "#9DA0E8", "#C9CBF3", "#ECEDFB"] },
+      "primary-deep": { "role": "primary", "displayName": "Deep Indigo", "canonical": "#3A3EB0", "dark": "#B6B9F8", "tonalRamp": ["#15163F", "#24266B", "#3A3EB0", "#4A4FD0", "#7376DC", "#9DA0E8", "#C9CBF3", "#ECEDFB"] },
+      "primary-soft": { "role": "primary", "displayName": "Indigo Mist", "canonical": "#ECEDFB", "dark": "#2B2D52", "tonalRamp": ["#15163F", "#24266B", "#3A3EB0", "#4A4FD0", "#7376DC", "#9DA0E8", "#C9CBF3", "#ECEDFB"] },
+      "primary-on": { "role": "primary", "displayName": "On Indigo", "canonical": "#FFFFFF", "dark": "#FFFFFF" },
+      "danger": { "role": "secondary", "displayName": "Contraindication Red", "canonical": "#D7263D", "dark": "#FF7A88", "tonalRamp": ["#3A0D14", "#8A1F2E", "#B01E33", "#D7263D", "#E85A6B", "#F39AA5", "#F9C9CF", "#FDECEE"] },
+      "danger-bg": { "role": "secondary", "displayName": "Contraindication Wash", "canonical": "#FDECEE", "dark": "#3A1D23" },
+      "danger-ink": { "role": "secondary", "displayName": "Contraindication Ink", "canonical": "#8A1F2E", "dark": "#FFD3D8" },
+      "warn": { "role": "secondary", "displayName": "Caution Amber", "canonical": "#B25E00", "dark": "#F5B54A", "tonalRamp": ["#2E1800", "#6E3B00", "#8F4C00", "#B25E00", "#D98A2E", "#F0B868", "#FADBA8", "#FFF4E0"] },
+      "warn-bg": { "role": "secondary", "displayName": "Caution Wash", "canonical": "#FFF4E0", "dark": "#3A2C14" },
+      "warn-ink": { "role": "secondary", "displayName": "Caution Ink", "canonical": "#6E3B00", "dark": "#FFE4B8" },
+      "unknown": { "role": "secondary", "displayName": "Unconfirmed Gray", "canonical": "#5B6573", "dark": "#A7B0BC", "tonalRamp": ["#1A1E24", "#343B45", "#48505C", "#5B6573", "#7E8896", "#A7B0BC", "#CDD3DA", "#E9ECF0"] },
+      "unknown-bg": { "role": "secondary", "displayName": "Unconfirmed Wash", "canonical": "#E9ECF0", "dark": "#2A2C33" },
+      "unknown-ink": { "role": "secondary", "displayName": "Unconfirmed Ink", "canonical": "#343B45", "dark": "#E1E5EA" },
+      "safe": { "role": "secondary", "displayName": "Found Green", "canonical": "#12805C", "dark": "#4CC38A", "note": "Token exists; conflict logic (lib/dur.ts) never emits it. Used for TV-ingredient 'found', success notice, success toast icon.", "tonalRamp": ["#05261B", "#0B5A40", "#0F6D4E", "#12805C", "#3FA680", "#7CC8A9", "#B8E4D1", "#E6F6EF"] },
+      "safe-bg": { "role": "secondary", "displayName": "Found Wash", "canonical": "#E6F6EF", "dark": "#15302A" },
+      "safe-ink": { "role": "secondary", "displayName": "Found Ink", "canonical": "#0B5A40", "dark": "#C2F0DA" },
+      "bg": { "role": "neutral", "displayName": "Toss Fog", "canonical": "#F2F4F6", "dark": "#17171C", "tonalRamp": ["#191F28", "#4E5968", "#5F6B78", "#6B7684", "#B0B8C1", "#E5E8EB", "#F2F4F6", "#FFFFFF"] },
+      "surface": { "role": "neutral", "displayName": "Paper White", "canonical": "#FFFFFF", "dark": "#212128" },
+      "surface-2": { "role": "neutral", "displayName": "Soft Panel", "canonical": "#F7F8FA", "dark": "#2A2A32" },
+      "pressed": { "role": "neutral", "displayName": "Pressed Gray", "canonical": "#EEF0F3", "dark": "#2E2E37" },
+      "text": { "role": "neutral", "displayName": "Ink", "canonical": "#191F28", "dark": "#F2F3F5" },
+      "text-muted": { "role": "neutral", "displayName": "Slate", "canonical": "#4E5968", "dark": "#C2C8D0" },
+      "text-subtle": { "role": "neutral", "displayName": "Pebble", "canonical": "#5F6B78", "dark": "#9AA3AE" },
+      "placeholder": { "role": "neutral", "displayName": "Placeholder Gray", "canonical": "#6B7684", "dark": "#7F8893" },
+      "border": { "role": "neutral", "displayName": "Hairline", "canonical": "#E5E8EB", "dark": "#34343D" },
+      "divider": { "role": "neutral", "displayName": "Divider", "canonical": "#EEF0F2", "dark": "#2C2C34" },
+      "chevron": { "role": "neutral", "displayName": "Chevron Gray", "canonical": "#B0B8C1", "dark": "#5E6570" }
+    },
+    "typographyMeta": {
+      "verdict": { "displayName": "Verdict", "purpose": "결과 블록의 결론 한 문장. 화면당 하나.", "largeScale": "34px" },
+      "large-title": { "displayName": "Large Title", "purpose": "탭 화면 머리, 상세 화면 제품명.", "largeScale": "32px" },
+      "title": { "displayName": "Title", "purpose": "대화상자·성분 카드·빈 상태 제목.", "largeScale": "25px" },
+      "body": { "displayName": "Body", "purpose": "본문·버튼·줄 제목·입력. 18px 바닥선.", "largeScale": "21px" },
+      "sub": { "displayName": "Sub", "purpose": "설명문, 면책 문구, 안내 띠, 칩·작은 버튼.", "largeScale": "19px" },
+      "label": { "displayName": "Label", "purpose": "묶음 제목, 탭 이름, 줄 부제, 상태 표시.", "largeScale": "17px" },
+      "caption": { "displayName": "Caption", "purpose": "꼬리표 글자만.", "largeScale": "16px" }
+    },
+    "shadows": [
+      { "name": "elev-1", "value": "0 1px 2px rgba(25, 31, 40, 0.05)", "dark": "0 1px 2px rgba(0, 0, 0, 0.3)", "purpose": "입력칸, 빠른 메뉴 타일." },
+      { "name": "elev-2", "value": "0 2px 8px rgba(25, 31, 40, 0.08)", "dark": "0 2px 8px rgba(0, 0, 0, 0.35)", "purpose": "세그먼트 컨트롤의 선택된 칸." },
+      { "name": "elev-3", "value": "0 8px 24px rgba(25, 31, 40, 0.12)", "dark": "0 8px 24px rgba(0, 0, 0, 0.45)", "purpose": "토스트." },
+      { "name": "elev-4", "value": "0 16px 40px rgba(25, 31, 40, 0.18)", "dark": "0 16px 40px rgba(0, 0, 0, 0.55)", "purpose": "확인 대화상자." },
+      { "name": "scrim", "value": "rgba(17, 20, 26, 0.48)", "dark": "rgba(0, 0, 0, 0.6)", "purpose": "대화상자 뒤 덮개." },
+      { "name": "focus-ring", "value": "outline: 3px solid var(--pc-primary); outline-offset: 2px", "purpose": "모든 요소 공통 키보드 포커스." }
+    ],
+    "motion": [
+      { "name": "ease-standard", "value": "cubic-bezier(0.2, 0, 0, 1)", "purpose": "누름·색 전환." },
+      { "name": "ease-out", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "등장(결과 블록, 덮는 화면, 대화상자, 토스트)." },
+      { "name": "duration-quick", "value": "140ms", "purpose": "누름, 색 전환, 펼치기 화살표, scrim." },
+      { "name": "duration-standard", "value": "240ms", "purpose": "덮는 화면 진입, 대화상자, 토스트, 성분 결과." },
+      { "name": "duration-slow", "value": "420ms", "purpose": "결과 블록 rise-in(서명 동작)." },
+      { "name": "verdict-rise-in", "value": "translateY(12px)→0, opacity 0→1, 420ms ease-out", "purpose": "결과 블록이 한 번 올라온다." },
+      { "name": "verdict-icon-draw", "value": "stroke-dashoffset 100→0, 520ms, delay 140ms, ease-out", "purpose": "결과 아이콘 선이 그려진다." },
+      { "name": "sheet-in", "value": "translateX(24px)→0, opacity 0→1, 240ms ease-out", "purpose": "결과·상세 덮는 화면 진입." },
+      { "name": "reduced-motion", "value": "animation/transition duration 0.01ms", "purpose": "prefers-reduced-motion에서 모든 움직임 생략." }
+    ],
+    "breakpoints": [
+      { "name": "content-max", "value": "560px" },
+      { "name": "narrow-check", "value": "412px" }
+    ],
+    "scales": {
+      "large-font": { "selector": "html[data-font-scale='large']", "fontSizes": [16, 17, 19, 21, 25, 32, 34], "buttonMinH": "64px", "rowMinH": "72px" }
+    }
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "화면에서 다음에 누를 한 곳. 가로를 채우는 56px 인디고 블록.",
+      "html": "<button class=\"ds-btn ds-btn-primary\">다른 제품 확인</button>",
+      "css": ".ds-btn { min-height: 56px; padding: 0 20px; border: 0; border-radius: 16px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; font-family: 'Pretendard Variable', Pretendard, system-ui, sans-serif; font-size: 18px; font-weight: 700; line-height: 1.3; cursor: pointer; transition: background 140ms cubic-bezier(0.2,0,0,1), transform 140ms cubic-bezier(0.2,0,0,1); } .ds-btn:active { transform: scale(0.98); } .ds-btn:focus-visible { outline: 3px solid #4A4FD0; outline-offset: 2px; } .ds-btn-primary { background: #4A4FD0; color: #FFFFFF; } .ds-btn-primary:hover { background: #3A3EB0; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "보조 행동(AI 해설). 옅은 인디고 바탕.",
+      "html": "<button class=\"ds-btn2\">AI 해설</button>",
+      "css": ".ds-btn2 { min-height: 56px; padding: 0 20px; border: 0; border-radius: 16px; width: 100%; font-family: 'Pretendard Variable', Pretendard, system-ui, sans-serif; font-size: 18px; font-weight: 700; background: #ECEDFB; color: #3A3EB0; cursor: pointer; transition: transform 140ms cubic-bezier(0.2,0,0,1); } .ds-btn2:active { transform: scale(0.98); } .ds-btn2:focus-visible { outline: 3px solid #4A4FD0; outline-offset: 2px; }"
+    },
+    {
+      "name": "Plain Button",
+      "kind": "button",
+      "refersTo": "button-plain",
+      "description": "흰 바탕 + 1px 테두리의 중립 버튼.",
+      "html": "<button class=\"ds-btn-plain\">취소</button>",
+      "css": ".ds-btn-plain { min-height: 56px; padding: 0 20px; border: 1px solid #E5E8EB; border-radius: 16px; width: 100%; font-family: 'Pretendard Variable', Pretendard, system-ui, sans-serif; font-size: 18px; font-weight: 700; background: #FFFFFF; color: #191F28; cursor: pointer; } .ds-btn-plain:active { background: #EEF0F3; } .ds-btn-plain:focus-visible { outline: 3px solid #4A4FD0; outline-offset: 2px; }"
+    },
+    {
+      "name": "Search Field",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "60px 흰 입력칸, 포커스 시 인디고 테두리.",
+      "html": "<label class=\"ds-field\"><svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"11\" cy=\"11\" r=\"8\"/><path d=\"m21 21-4.3-4.3\"/></svg><input class=\"ds-field__input\" placeholder=\"제품 이름을 입력하세요\"></label>",
+      "css": ".ds-field { display: flex; align-items: center; gap: 10px; min-height: 60px; padding: 0 16px; border-radius: 16px; background: #FFFFFF; border: 2px solid transparent; box-shadow: 0 1px 2px rgba(25,31,40,0.05); color: #5F6B78; transition: border-color 140ms cubic-bezier(0.2,0,0,1); } .ds-field:focus-within { border-color: #4A4FD0; } .ds-field__input { flex: 1; min-width: 0; height: 56px; border: 0; background: none; font-family: 'Pretendard Variable', Pretendard, system-ui, sans-serif; font-size: 18px; color: #191F28; caret-color: #4A4FD0; outline: none; } .ds-field__input::placeholder { color: #6B7684; }"
+    },
+    {
+      "name": "Choice Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "56px 알약형 선택 칩. 선택은 Ink 반전.",
+      "html": "<div style=\"display:flex;gap:8px\"><button class=\"ds-chip\" aria-pressed=\"true\">비타민 D</button><button class=\"ds-chip\" aria-pressed=\"false\">오메가3</button></div>",
+      "css": ".ds-chip { min-height: 56px; padding: 0 18px; border-radius: 999px; border: 1px solid #E5E8EB; background: #FFFFFF; color: #191F28; font-family: 'Pretendard Variable', Pretendard, system-ui, sans-serif; font-size: 16px; font-weight: 600; cursor: pointer; transition: background 140ms cubic-bezier(0.2,0,0,1); } .ds-chip:active { background: #EEF0F3; } .ds-chip[aria-pressed='true'] { background: #191F28; border-color: #191F28; color: #F2F4F6; } .ds-chip:focus-visible { outline: 3px solid #4A4FD0; outline-offset: 2px; }"
+    },
+    {
+      "name": "Grouped List",
+      "kind": "card",
+      "refersTo": "group",
+      "description": "흰 inset grouped 목록, 20px 모서리, 줄 구분선, 오른쪽 상태 점+글자.",
+      "html": "<div class=\"ds-wrap\"><h2 class=\"ds-group-label\">내 약 2개와 비교했어요</h2><ul class=\"ds-group\"><li class=\"ds-row\"><span class=\"ds-row__title\">와파린정 2mg</span><span class=\"ds-status ds-status--danger\">함께 안&nbsp;돼요</span></li><li class=\"ds-row\"><span class=\"ds-row__title\">아스피린프로텍트정</span><span class=\"ds-status ds-status--unknown\">확인된 충돌 없음</span></li></ul></div>",
+      "css": ".ds-wrap { background: #F2F4F6; padding: 0 0 16px; font-family: 'Pretendard Variable', Pretendard, system-ui, sans-serif; word-break: keep-all; } .ds-group-label { margin: 0; padding: 24px 28px 8px; font-size: 15px; font-weight: 600; color: #4E5968; } .ds-group { margin: 0 16px; padding: 0; list-style: none; background: #FFFFFF; border-radius: 20px; overflow: hidden; } .ds-row { display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 12px 18px; color: #191F28; } .ds-row + .ds-row { border-top: 1px solid #EEF0F2; } .ds-row:hover { background: #EEF0F3; } .ds-row__title { flex: 1; min-width: 0; font-size: 18px; font-weight: 600; line-height: 1.4; } .ds-status { display: inline-flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 700; white-space: nowrap; } .ds-status::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: currentColor; } .ds-status--danger { color: #D7263D; } .ds-status--warn { color: #B25E00; } .ds-status--unknown { color: #5B6573; }"
+    },
+    {
+      "name": "Verdict Block",
+      "kind": "custom",
+      "refersTo": "verdict-danger",
+      "description": "결과 화면의 주인공: 옅은 결과색 블록 + 52px 원형 아이콘 + 30px 결론. 올라오며 아이콘이 그려진다.",
+      "html": "<section class=\"ds-verdict ds-verdict--danger\"><span class=\"ds-verdict__icon\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M18 6 6 18\"/><path d=\"m6 6 12 12\"/></svg></span><h1 class=\"ds-verdict__title\">함께 먹으면 안&nbsp;돼요</h1><p class=\"ds-verdict__message\">등록한 약과 병용금기 성분이 있어요. 약사에게 이 화면을 보여&nbsp;주세요.</p><p class=\"ds-verdict__source\">근거: 식약처 DUR 병용금기</p></section>",
+      "css": ".ds-verdict { margin: 4px 16px 0; padding: 24px 22px 22px; border-radius: 24px; font-family: 'Pretendard Variable', Pretendard, system-ui, sans-serif; word-break: keep-all; text-wrap: pretty; animation: ds-rise 420ms cubic-bezier(0.16,1,0.3,1); } .ds-verdict__icon { width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; } .ds-verdict__icon svg { width: 30px; height: 30px; stroke-dasharray: 100; stroke-dashoffset: 100; animation: ds-draw 520ms 140ms cubic-bezier(0.16,1,0.3,1) forwards; } .ds-verdict__title { margin: 14px 0 0; font-size: 30px; line-height: 1.25; font-weight: 800; letter-spacing: -0.02em; text-wrap: balance; } .ds-verdict__message { margin: 8px 0 0; font-size: 18px; line-height: 1.55; } .ds-verdict__source { margin: 12px 0 0; font-size: 15px; font-weight: 600; } .ds-verdict--danger { background: #FDECEE; color: #8A1F2E; } .ds-verdict--danger .ds-verdict__icon { background: #D7263D; } .ds-verdict--danger .ds-verdict__title { color: #D7263D; } @keyframes ds-rise { from { transform: translateY(12px); opacity: 0; } to { transform: none; opacity: 1; } } @keyframes ds-draw { to { stroke-dashoffset: 0; } } @media (prefers-reduced-motion: reduce) { .ds-verdict, .ds-verdict__icon svg { animation-duration: 0.01ms; } }"
+    },
+    {
+      "name": "Tab Bar",
+      "kind": "nav",
+      "refersTo": "tabbar",
+      "description": "늘 보이는 하단 탭 3개. 선택은 이름 Ink + 아이콘 인디고.",
+      "html": "<nav class=\"ds-tabbar\"><button class=\"ds-tab\" aria-current=\"page\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"11\" cy=\"11\" r=\"8\"/><path d=\"m21 21-4.3-4.3\"/></svg>확인</button><button class=\"ds-tab\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z\"/><path d=\"m8.5 8.5 7 7\"/></svg>내&nbsp;약</button><button class=\"ds-tab\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M12 2v3M12 19v3M2 12h3M19 12h3\"/></svg>설정</button></nav>",
+      "css": ".ds-tabbar { display: flex; height: 64px; background: #FFFFFF; border-top: 1px solid #E5E8EB; font-family: 'Pretendard Variable', Pretendard, system-ui, sans-serif; } .ds-tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border: 0; background: none; color: #5F6B78; font-size: 15px; font-weight: 600; cursor: pointer; transition: color 140ms cubic-bezier(0.2,0,0,1); } .ds-tab svg { width: 26px; height: 26px; } .ds-tab[aria-current='page'] { color: #191F28; } .ds-tab[aria-current='page'] svg { color: #4A4FD0; } .ds-tab:active, .ds-tab:hover { background: #EEF0F3; } .ds-tab:focus-visible { outline: 3px solid #4A4FD0; outline-offset: -3px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Phone's Own App",
+    "overview": "약똑똑은 휴대폰에 원래 있던 앱처럼 보여야 한다. 기준은 토스·카카오뱅크·애플 건강·네이버 앱의 완성도다. 옅은 회색 바탕 위에 흰 묶음 목록이 놓이고, 글꼴은 Pretendard 한 가족, 아이콘은 lucide 선 아이콘 한 벌이다. 장식은 없다. 화면마다 주인공은 하나이고, 결과 화면에서는 큰 결론 한 문장이 주인공이다.\n\n이 시스템은 60대 부모님이 매장 선반 앞에서 한 손으로 쓰는 것을 전제로 한다. 본문 18px 이상, 모든 누르는 자리 56px 이상, WCAG AA 대비, 라이트와 다크 두 벌, 그리고 글자와 터치 높이를 함께 키우는 큰 글씨 모드가 바닥선이다. 밀도는 낮고, 문장은 잘리지 않고 끝까지 보인다.\n\n색은 의미를 위해 아껴 쓴다. 결과 색(빨강·노랑·회색, 그리고 초록)은 뜻이 고정되어 있고, 브랜드 인디고는 사용자가 다음에 누를 곳을 가리킬 때만 진하게 나온다. 웹페이지식 카드 나열, 왼쪽 색띠, 이모지 아이콘, 제목 위 작은 라벨은 이 세계에 없다.",
+    "keyCharacteristics": [
+      "옅은 회색 바탕 + 흰 inset grouped 목록(모서리 20px, 줄 사이 1px 구분선)",
+      "Pretendard Variable 한 가족, 굵기로만 위계를 만든다",
+      "결과는 옅은 색 블록 + 원형 아이콘 + 진한 글자, 뜻은 고정",
+      "브랜드 인디고는 주 버튼과 선택된 탭에만 진하게",
+      "하단 탭 3개(확인·내 약·설정)는 늘 보이고, 덮는 화면도 탭바 위에서 끝난다",
+      "한국어 줄바꿈 규칙(keep-all + 구절 묶기)과 말줄임 금지"
+    ],
+    "rules": [
+      { "name": "The Fixed Meaning Rule", "body": "빨강은 병용금기, 노랑은 병용주의, 회색은 확인된 충돌 없음 또는 데이터 부족이다. 이 색들을 장식이나 다른 뜻으로 쓰지 않고, 색만으로 뜻을 전하지 않는다(상태 점 옆에 늘 글자, 결과 블록에 늘 아이콘과 문장).", "section": "colors" },
+      { "name": "The Green Is Not Safe Rule", "body": "충돌 판정에서 초록 \"안전\" 결과를 만들지 않는다. 충돌이 안 보이면 회색 \"확인된 충돌 없음\"이다. 초록은 성분 대조처럼 사실 확인이 된 경우에만 쓴다.", "section": "colors" },
+      { "name": "The One Indigo Rule", "body": "진한 인디고 바탕은 주 버튼과 선택된 탭(아이콘)에만 쓴다. 옅은 인디고(primary-soft)는 아이콘 타일·보조 버튼·정보 띠에 쓸 수 있지만, 선택된 칩은 인디고가 아니라 Ink 반전이다.", "section": "colors" },
+      { "name": "The 18px Floor Rule", "body": "읽어야 하는 문장은 18px(큰 글씨 모드 21px) 이상이다. 15px 이하는 라벨·부제·꼬리표처럼 훑어보는 글자에만 쓴다.", "section": "typography" },
+      { "name": "The Unbroken Phrase Rule", "body": "전체에 word-break: keep-all, text-wrap: pretty, 제목에 text-wrap: balance를 건다. 떨어지면 뜻이 이상해지는 구절은 줄바꿈 없는 공백(NBSP)으로 묶는다(\"안 돼요\", \"내 약\", \"이 화면을\", \"찾지 못했어요\", \"상담해 주세요\"). \"약사·의사\"는 가운뎃점 양옆에 U+2060(word joiner)을 넣어 한 덩어리로 둔다.", "section": "typography" },
+      { "name": "The No Ellipsis Rule", "body": "제품명·약 이름·결과 문장을 말줄임(…)이나 한 줄 자르기로 숨기지 않는다. 길면 줄을 바꿔 끝까지 보인다.", "section": "typography" },
+      { "name": "The Tab Bar Stays Rule", "body": "탭바(높이 64px)는 어떤 덮는 화면에서도 가려지지 않는다. 결과·상세 화면과 하단 고정 버튼 줄은 탭바 위에서 끝난다. 탭바를 덮는 것은 확인 대화상자와 토스트뿐이다.", "section": "layout" },
+      { "name": "The Tonal First Rule", "body": "묶음 목록은 그림자 없이 흰 면과 회색 바탕의 대비로만 떠 있다. 그림자는 떠 있는 물건(토스트·대화상자)과 입력할 자리에만 쓴다.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do 색·간격·모서리·그림자는 `--pc-*`/`--fs-*` 토큰만 쓰고, 다크 모드와 큰 글씨 모드에서 함께 확인한다.",
+      "Do 누르는 모든 자리를 56px 이상(`--pc-button-min-h`, 큰 글씨 64px)으로 만든다. 아이콘 버튼도 56×56px.",
+      "Do 결과는 옅은 색 블록 + 원형 아이콘 + 진한 글자로 보여 주고, 상태는 늘 점과 글자를 함께 쓴다.",
+      "Do 떨어지면 어색한 구절은 NBSP로, \"약사·의사\"는 가운뎃점 양옆 U+2060으로 묶는다.",
+      "Do 묶음 목록(흰 면, 20px, 줄 구분선)으로 정보를 모으고, 묶음 위에는 짧은 문장형 묶음 제목을 둔다.",
+      "Do 아이콘은 lucide 선 아이콘 한 벌만 쓴다.",
+      "Do 새 덮는 화면은 탭바 위에서 끝나게 하고, 하단 고정 버튼은 탭바 바로 위에 둔다."
+    ],
+    "donts": [
+      "Don't 충돌 판정에서 초록 \"안전\" 결과를 내거나 \"안전하다\"고 단정하지 않는다. 충돌이 안 보이면 회색이다.",
+      "Don't 결과 색을 장식이나 다른 뜻으로 쓰지 않는다.",
+      "Don't 진한 인디고를 주 버튼·선택 탭 외의 강조에 쓰지 않는다.",
+      "Don't 카드나 안내 띠에 왼쪽 색띠(border-left 강조)를 넣지 않는다.",
+      "Don't 제목 위에 작은 라벨(eyebrow)을 얹지 않는다.",
+      "Don't 이모지를 아이콘으로 쓰지 않는다.",
+      "Don't 제품명·결과 문장을 말줄임이나 한 줄 자르기로 자르지 않는다.",
+      "Don't 웹페이지식으로 그림자 진 카드를 줄줄이 늘어놓지 않는다."
+    ]
+  }
+}

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { CircleCheck, CircleHelp, CircleX } from 'lucide-react'
 import {
   INGREDIENTS,
   matchIngredient,
@@ -23,7 +24,7 @@ export function IngredientCheck({ item }: Props) {
 
   return (
     <div className="ingr-check">
-      <div className="ingr-check__chips">
+      <div className="chip-row">
         {INGREDIENTS.map((ing) => (
           <button
             key={ing.key}
@@ -43,18 +44,20 @@ export function IngredientCheck({ item }: Props) {
           check(text)
         }}
       >
-        <input
-          className="input ingr-check__input"
-          type="text"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="직접 입력 (예: 루테인)"
-          aria-label="확인할 성분 이름"
-          autoCapitalize="off"
-          autoCorrect="off"
-          spellCheck={false}
-        />
-        <button type="submit" className="btn ingr-check__submit">
+        <label className="field field--flat">
+          <span className="sr-only">확인할 성분 이름</span>
+          <input
+            className="field__input"
+            type="text"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="직접 입력 (예: 루테인)"
+            autoCapitalize="off"
+            autoCorrect="off"
+            spellCheck={false}
+          />
+        </label>
+        <button type="submit" className="btn btn--secondary btn--small" disabled={!text.trim()}>
           확인
         </button>
       </form>
@@ -67,59 +70,60 @@ export function IngredientCheck({ item }: Props) {
 function IngredientResult({ query, match }: { query: string; match: IngredientMatch }) {
   const asked = match.result === 'unknown' && !match.label ? query : match.label
 
-  let cardClass = 'result-card--unknown'
-  let titleClass = 'result-card__title--unknown'
-  let title = '확인 못 했어요'
-  let body: React.ReactNode
-
   if (match.result === 'yes') {
-    cardClass = 'result-card--safe'
-    titleClass = 'result-card__title--safe'
-    title = '✅ 들어 있어요'
-    body = (
-      <>
-        <p className="result-card__message">
+    return (
+      <div className="ingr-result ingr-result--yes" role="status">
+        <p className="ingr-result__title">
+          <CircleCheck aria-hidden="true" /> 들어 있어요
+        </p>
+        <p className="ingr-result__asked">확인한 성분: {asked}</p>
+        <p className="ingr-result__text">
           원료: <b>{match.matched}</b>
           {match.note && ` (${match.note})`}
         </p>
-        {match.etcOnly && (
-          <p className="result-card__message">기능성 원료가 아닌 기타 원료로 신고됐어요.</p>
-        )}
-      </>
+        {match.etcOnly && <p className="ingr-result__text">기능성 원료가 아닌 기타 원료로 신고됐어요.</p>}
+        <Note />
+      </div>
     )
-  } else if (match.result === 'no') {
-    title = '❌ 이 제품 원료에는 없어요'
-    body = (
-      <p className="result-card__message">
-        {match.mainRaw.length > 0 ? (
-          <>
-            대신 들어 있는 주요 원료: <b>{match.mainRaw.join(', ')}</b>
-          </>
-        ) : (
-          '신고된 원료 목록에서 찾지 못했어요.'
-        )}
-      </p>
-    )
-  } else if (match.reason === 'no-raw') {
-    body = (
-      <p className="result-card__message">
-        이 제품은 원료 정보가 비어 있어요. 약사에게 확인해 보세요.
-      </p>
-    )
-  } else {
-    body = (
-      <p className="result-card__message">
-        아직 이 앱이 확인할 수 있는 성분이 아니에요. 아래 '원료' 칸을 보시거나 약사에게 물어보세요.
-      </p>
+  }
+
+  if (match.result === 'no') {
+    return (
+      <div className="ingr-result ingr-result--no" role="status">
+        <p className="ingr-result__title">
+          <CircleX aria-hidden="true" /> 이 제품 원료에는 없어요
+        </p>
+        <p className="ingr-result__asked">확인한 성분: {asked}</p>
+        <p className="ingr-result__text">
+          {match.mainRaw.length > 0 ? (
+            <>
+              대신 들어 있는 주요 원료: <b>{match.mainRaw.join(', ')}</b>
+            </>
+          ) : (
+            '신고된 원료 목록에서 찾지 못했어요.'
+          )}
+        </p>
+        <Note />
+      </div>
     )
   }
 
   return (
-    <div className={`result-card ${cardClass} ingr-check__result`} role="status">
-      <p className="ingr-check__asked">확인한 성분: {asked}</p>
-      <h4 className={`result-card__title ${titleClass}`}>{title}</h4>
-      {body}
-      <p className="ingr-check__note">식약처 신고 원료 기준이에요. 효과를 보장하지 않아요.</p>
+    <div className="ingr-result ingr-result--unknown" role="status">
+      <p className="ingr-result__title">
+        <CircleHelp aria-hidden="true" /> 확인 못 했어요
+      </p>
+      <p className="ingr-result__asked">확인한 성분: {asked}</p>
+      <p className="ingr-result__text">
+        {match.reason === 'no-raw'
+          ? '이 제품은 원료 정보가 비어 있어요. 약사에게 확인해 보세요.'
+          : "아직 이 앱이 확인할 수 있는 성분이 아니에요. 아래 '원료' 칸을 보시거나 약사에게 물어보세요."}
+      </p>
+      <Note />
     </div>
   )
+}
+
+function Note() {
+  return <p className="ingr-result__note">식약처 신고 원료 기준이에요. 효과를 보장하지 않아요.</p>
 }

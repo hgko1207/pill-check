@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=390">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:390px;height:844px;overflow:hidden}
+body{font-family:'Noto Sans KR',sans-serif;background:#F6F7F9;color:#111827}
+.top{padding:16px 20px;display:flex;justify-content:space-between;align-items:center;background:#fff;border-bottom:1px solid #E5E7EB}
+.top b{font-size:20px;color:#2563EB}
+.card{margin:14px 16px 0;background:#fff;border-radius:16px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.prod small{font-size:14px;color:#6B7280}
+.prod div{font-size:20px;font-weight:700;margin-top:2px}
+.res{border-left:6px solid #DC2626}
+.res .ic{width:44px;height:44px;border-radius:50%;background:#FEE2E2;color:#DC2626;font-size:24px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.res h1{font-size:26px;margin-top:10px;color:#DC2626}
+.res p{font-size:17px;line-height:1.55;margin-top:6px;color:#374151}
+.lbl{margin:18px 20px 6px;font-size:16px;font-weight:700}
+.item{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid #F3F4F6;font-size:17px}
+.item:last-child{border-bottom:0}
+.pill{font-size:14px;font-weight:700;padding:4px 10px;border-radius:999px}
+.bad{background:#FEE2E2;color:#B91C1C}.ok{background:#D1FAE5;color:#047857}.unk{background:#F3F4F6;color:#4B5563}
+.acts{display:flex;gap:10px;margin:14px 16px 0}
+.btn{flex:1;min-height:56px;border-radius:14px;border:0;background:#EFF6FF;color:#2563EB;font:700 18px 'Noto Sans KR'}
+.btn.p{background:#2563EB;color:#fff}
+.disc{margin:12px 20px 0;font-size:13px;line-height:1.5;color:#6B7280}
+.tabs{position:absolute;bottom:0;left:0;right:0;height:72px;background:#fff;border-top:1px solid #E5E7EB;display:flex}
+.tabs div{flex:1;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#9CA3AF}
+.tabs .on{color:#2563EB}
+</style></head><body>
+<div class="top"><b>약똑똑</b><span style="color:#6B7280;font-size:15px">결과</span></div>
+<div class="card prod"><small>확인한 제품 · 의약품</small><div>이트라코나졸캡슐 100mg</div></div>
+<div class="card res"><div class="ic">!</div><h1>함께 드시면 안 돼요</h1><p>심바스타틴정 20mg과 병용금기예요. 약사 선생님께 이 화면을 보여 주세요.</p></div>
+<div class="lbl">내 약 4개와 비교</div>
+<div class="card" style="margin-top:0;padding:4px 16px">
+  <div class="item"><span>심바스타틴정 20mg</span><span class="pill bad">병용금기</span></div>
+  <div class="item"><span>암로디핀정 5mg</span><span class="pill ok">확인 안 됨</span></div>
+  <div class="item"><span>메트포르민정 500mg</span><span class="pill ok">확인 안 됨</span></div>
+  <div class="item"><span>비타민D 1000IU</span><span class="pill unk">정보 부족</span></div>
+</div>
+<div class="acts"><button class="btn">AI 해설 보기</button><button class="btn p">다른 제품 확인</button></div>
+<p class="disc">근거: 식약처 DUR. 공공데이터 기반 참고 자료이며 약사·의사 상담을 대체하지 않아요.</p>
+<nav class="tabs"><div class="on">제품 확인</div><div>내 약</div><div>설정</div></nav>
+</body></html>
