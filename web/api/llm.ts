@@ -71,7 +71,7 @@ export default async function handler(req: Request): Promise<Response> {
     return jsonResponse({ error: 'prompt가 너무 깁니다 (최대 4000자)' }, 400)
   }
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${apiKey}`
 
   let geminiResp: Response
   try {

@@ -23,13 +23,25 @@ export class NedrugRequestError extends Error {
 }
 
 export async function searchDrug(name: string, opts: { rows?: number } = {}): Promise<NedrugItem[]> {
+  return fetchDrugs(`item_name=${encodeURIComponent(name)}`, opts.rows ?? 10)
+}
+
+/**
+ * 상자 바코드(표준코드)로 의약품 찾기. bar_code는 일부만 같아도 걸리므로(2026-11-12 호출 확인:
+ * 12자리로도 13자리 제품이 나옴) 응답의 BAR_CODE 목록에 찍은 번호가 그대로 있는 것만 남긴다.
+ */
+export async function searchDrugByBarcode(code: string): Promise<NedrugItem[]> {
+  const items = await fetchDrugs(`bar_code=${encodeURIComponent(code)}`, 10)
+  return items.filter((item) => (item.BAR_CODE ?? '').split(',').some((c) => c.trim() === code))
+}
+
+async function fetchDrugs(filter: string, rows: number): Promise<NedrugItem[]> {
   if (!NEDRUG_KEY) throw new MissingApiKeyError()
-  const rows = opts.rows ?? 10
   const url =
     `${NEDRUG_BASE}/getDrugPrdtPrmsnDtlInq06` +
     `?serviceKey=${NEDRUG_KEY}` +
     `&type=json` +
-    `&item_name=${encodeURIComponent(name)}` +
+    `&${filter}` +
     `&numOfRows=${rows}` +
     `&pageNo=1`
 

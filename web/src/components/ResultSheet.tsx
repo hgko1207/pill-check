@@ -89,7 +89,7 @@ export function ResultSheet({ result, product, registered, onClose, onCheckAnoth
           </h1>
           <p className="verdict__message">{result.message}</p>
           {details.length > 0 && (
-            <p className="verdict__source">근거: 식약처 DUR {uniqueSources(details)}</p>
+            <p className="verdict__source">근거: 식약처 {uniqueSources(details)} 정보</p>
           )}
         </section>
 
@@ -145,7 +145,7 @@ export function ResultSheet({ result, product, registered, onClose, onCheckAnoth
             <div className="group ai-box">
               <p className="ai-box__text">{aiText}</p>
               <p className="ai-box__foot">
-                AI가 일반 정보로 만든 설명이에요. <b>약사⁠·⁠의사 확인이 꼭 필요해요.</b>
+                AI가 일반 정보로 쓴 설명이에요. <b>꼭 약사나 의사에게 확인해&nbsp;주세요.</b>
                 {aiFromCache && ' 저장해 둔 답변이에요.'} 오늘 남은 횟수 {remaining}/{LLM_DAILY_LIMIT}
               </p>
             </div>
@@ -153,8 +153,8 @@ export function ResultSheet({ result, product, registered, onClose, onCheckAnoth
         )}
 
         <p className="fineprint">
-          식품의약품안전처 공공데이터를 바탕으로 한 참고 자료예요. 의료 행위가 아니며 약사⁠·⁠의사
-          상담을 대체하지 않아요. 실제 복용 결정은 전문가와 상의해&nbsp;주세요.
+          식품의약품안전처 공개 자료로 만든 참고용 정보예요. 진료가 아니며 약사나 의사 상담을
+          대신하지 않아요. 드실지는 꼭 약사나 의사와 상의해서 정해&nbsp;주세요.
         </p>
       </div>
 
@@ -190,5 +190,5 @@ export function ResultSheet({ result, product, registered, onClose, onCheckAnoth
 }
 
 function uniqueSources(details: { source: string }[]): string {
-  return [...new Set(details.map((d) => d.source))].join(' · ')
+  return [...new Set(details.map((d) => d.source))].join(', ')
 }

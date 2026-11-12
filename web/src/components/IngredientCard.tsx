@@ -26,7 +26,7 @@ export function IngredientCard({ term }: Props) {
 
   return (
     <section aria-labelledby="ingr-card-title">
-      <h2 className="group-label">성분 알아보기</h2>
+      <h2 className="group-label">성분 설명</h2>
       <div className="group ingr-card">
         <h3 id="ingr-card-title" className="ingr-card__name">
           {info.label}
@@ -55,12 +55,12 @@ export function IngredientCard({ term }: Props) {
         )}
 
         <p className="ingr-card__count">
-          이 성분이 기능성 원료로 신고된 제품 이름{' '}
+          이 성분을 기능성 원료로 신고한 제품{' '}
           <b className="num">{info.products.toLocaleString('ko-KR')}개</b>
           <span className="ingr-card__date"> ({DATA.generatedAt} 기준)</span>
         </p>
         <p className="ingr-card__note">
-          신고 제품에 가장 많이 적힌 문구예요. 제품마다 함량과 문구가 달라서, 제품을 눌러 상세에서
+          신고한 제품들에 가장 많이 적힌 문구예요. 제품마다 함량과 문구가 다르니, 제품을 눌러
           확인해&nbsp;주세요.
         </p>
       </div>

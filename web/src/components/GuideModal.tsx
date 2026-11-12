@@ -35,7 +35,7 @@ export function GuideModal({ open, onClose }: Props) {
           <h1 id="guide-title" className="detail-head__title">
             약똑똑 사용법
           </h1>
-          <p className="detail-head__sub">드시는 약과 새 영양제·일반약이 함께 먹어도 되는지 미리 알려&nbsp;드려요.</p>
+          <p className="detail-head__sub">드시는 약과 새로 산 영양제나 일반약을 함께 먹어도 되는지 알려&nbsp;드려요.</p>
         </header>
 
         <h2 className="group-label">처음 한 번</h2>
@@ -43,7 +43,7 @@ export function GuideModal({ open, onClose }: Props) {
           <ol className="steps">
             <li>
               <b>확인</b> 탭에서 드시는 약 이름을 검색해요.
-              <span className="steps__eg">예: 와파린, 노바스크(약) · 종합비타민, 오메가3(영양제)</span>
+              <span className="steps__eg">예: 와파린, 노바스크, 종합비타민, 오메가3</span>
             </li>
             <li>
               검색 결과에서 <b>내 약에 등록</b>을 눌러요.
@@ -77,8 +77,8 @@ export function GuideModal({ open, onClose }: Props) {
         </div>
 
         <p className="fineprint">
-          본 정보는 식품의약품안전처 공공데이터를 기반으로 한 참고 자료입니다. 의료 행위가 아니며,
-          약사⁠·⁠의사 상담을 대체하지 않습니다.
+          식품의약품안전처 공개 자료로 만든 참고용 정보예요. 진료가 아니며 약사나 의사 상담을
+          대신하지&nbsp;않아요.
         </p>
       </div>
     </div>

@@ -60,8 +60,8 @@ export function DetailModal({ target, onClose }: Props) {
           <HealthFoodDetail item={target.raw} />
         )}
         <p className="fineprint">
-          식품의약품안전처 공공데이터를 바탕으로 한 참고 자료예요. 의료 행위가 아니며 약사⁠·⁠의사
-          상담을 대체하지 않아요.
+          식품의약품안전처 공개 자료로 만든 참고용 정보예요. 진료가 아니며 약사나 의사 상담을
+          대신하지&nbsp;않아요.
         </p>
       </div>
     </div>
@@ -78,7 +78,7 @@ function DrugDetail({ item }: { item: NedrugItem }) {
   const mainIngr = item.MAIN_ITEM_INGR ? cleanIngrCode(item.MAIN_ITEM_INGR) : null
 
   const meta: [string, string][] = []
-  if (item.CHART) meta.push(['모양·색상', paragraphToReadable(item.CHART)])
+  if (item.CHART) meta.push(['모양과 색', paragraphToReadable(item.CHART)])
   if (item.STORAGE_METHOD) meta.push(['보관', paragraphToReadable(item.STORAGE_METHOD)])
   if (item.VALID_TERM) meta.push(['유효기간', paragraphToReadable(item.VALID_TERM)])
   if (item.PACK_UNIT) meta.push(['포장', paragraphToReadable(item.PACK_UNIT)])
@@ -92,7 +92,13 @@ function DrugDetail({ item }: { item: NedrugItem }) {
           {item.ITEM_NAME ?? '(이름 없음)'}
         </h1>
         <p className="detail-head__sub">
-          {[item.ETC_OTC_CODE ?? '의약품', item.ENTP_NAME && `제조사 ${item.ENTP_NAME}`].filter(Boolean).join(' · ')}
+          {item.ETC_OTC_CODE ?? '의약품'}
+          {item.ENTP_NAME && (
+            <>
+              <br />
+              제조사 {item.ENTP_NAME}
+            </>
+          )}
         </p>
         {cancelled && (
           <p className="detail-head__alert">
@@ -106,7 +112,7 @@ function DrugDetail({ item }: { item: NedrugItem }) {
           <CircleAlert aria-hidden="true" />
           <span>
             식약처에서 <b>{formatDate(item.CANCEL_DATE)}</b>에 {item.CANCEL_NAME ?? '취하'}된 약이에요.
-            등록하기 전에 약사⁠·⁠의사와 상담해&nbsp;주세요.
+            등록하기 전에 약사나 의사와 상담해&nbsp;주세요.
           </span>
         </div>
       )}
@@ -116,14 +122,14 @@ function DrugDetail({ item }: { item: NedrugItem }) {
           <p className="detail-text">{mainIngr}</p>
         </DetailSection>
       )}
-      <DocBlock heading="효능·효과" doc={ee} />
-      <DocBlock heading="용법·용량" doc={ud} />
+      <DocBlock heading="효능과 효과" doc={ee} />
+      <DocBlock heading="용법과 용량" doc={ud} />
       <DocBlock heading="사용 시 주의사항" doc={nb} />
 
       {(meta.length > 0 || item.INGR_NAME) && (
         <DetailSection heading="더 알아보기">
           <details className="disclosure">
-            <summary className="disclosure__summary">모양·보관·전체 성분 보기</summary>
+            <summary className="disclosure__summary">모양, 보관 방법, 전체 성분 보기</summary>
             {meta.length > 0 && <MetaList items={meta} />}
             {item.INGR_NAME && (
               <>
@@ -162,7 +168,13 @@ function HealthFoodDetail({ item }: { item: HealthFoodItem }) {
           {item.PRDLST_NM ?? '(이름 없음)'}
         </h1>
         <p className="detail-head__sub">
-          {['영양제', item.PRDT_SHAP_CD_NM, item.BSSH_NM && `제조 ${item.BSSH_NM}`].filter(Boolean).join(' · ')}
+          {item.PRDT_SHAP_CD_NM ? `영양제 (${item.PRDT_SHAP_CD_NM})` : '영양제'}
+          {item.BSSH_NM && (
+            <>
+              <br />
+              제조 {item.BSSH_NM}
+            </>
+          )}
         </p>
       </header>
 
@@ -239,7 +251,7 @@ function HealthFoodDetail({ item }: { item: HealthFoodItem }) {
       {(meta.length > 0 || item.STDR_STND) && (
         <DetailSection heading="더 알아보기">
           <details className="disclosure">
-            <summary className="disclosure__summary">신고 정보·기준규격 보기</summary>
+            <summary className="disclosure__summary">신고 정보와 기준규격 보기</summary>
             {meta.length > 0 && <MetaList items={meta} />}
             {item.STDR_STND && (
               <>
