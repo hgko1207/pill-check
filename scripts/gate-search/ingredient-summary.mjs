@@ -28,8 +28,15 @@ function toItems(text) {
     .replace(/(있음|줌)\s+(?=[가-힣])/g, '$1\n')
   return s
     .split(/[①-⑳]|\([가-하]\)|\(\d{1,2}\)|(?:^|\s)-\s|\n/)
-    .map((x) => x.replace(/^[\s,.:]+|[\s,]+$/g, '').trim())
-    .filter((x) => x.length > 1)
+    .map((x) =>
+      x
+        .replace(/^\s*\d{1,2}\)\s*/, '') // "1) …" 번호
+        .replace(/영\s*[·･‧]\s*유아/g, '영유아')
+        .replace(/\s*[·･‧]\s*/g, ', ') // 화면에 가운뎃점을 쓰지 않는다: "면역력 증진·피로개선" → "면역력 증진, 피로개선"
+        .replace(/^[\s,.:]+|[\s,]+$/g, '')
+        .trim(),
+    )
+    .filter((x) => x.length > 1 && /[가-힣]/.test(x)) // 영문 번역 문장은 뺀다
 }
 
 function mostCommon(list) {

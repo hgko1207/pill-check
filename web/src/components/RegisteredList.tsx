@@ -36,12 +36,13 @@ export function RegisteredList({ refreshSignal, onChange, onAdd }: Props) {
   }, [refreshSignal])
 
   async function handleRemove(id: number, name: string, kind: 'drug' | 'healthfood') {
-    const kindLabel = kind === 'drug' ? '약' : '영양제'
     const ok = await confirm({
-      title: `${kindLabel}을 지울까요?`,
+      title: kind === 'drug' ? '이 약을 지울까요?' : '이 영양제를 지울까요?',
       message: (
         <>
-          <b>{name}</b>을(를) 내 약 목록에서 지워요. 더 이상 드시지 않는 경우에만 지워&nbsp;주세요.
+          <b>{name}</b>
+          <br />
+          내 약 목록에서 빠져요. 더 이상 드시지 않을 때만 지워&nbsp;주세요.
         </>
       ),
       confirmLabel: '지우기',
@@ -51,7 +52,7 @@ export function RegisteredList({ refreshSignal, onChange, onAdd }: Props) {
     if (!ok) return
     await removeMedication(id)
     setMeds(await listMedications())
-    toast(`"${name}"을(를) 지웠어요.`, 'success')
+    toast(`${name} 지웠어요.`, 'success')
     onChange?.()
   }
 
@@ -101,10 +102,8 @@ export function RegisteredList({ refreshSignal, onChange, onAdd }: Props) {
             <div className="row">
               <div className="row__body">
                 <div className="row__title">{m.itemName}</div>
-                <div className="row__sub">
-                  {m.kind === 'healthfood' ? '영양제' : '의약품'}
-                  {m.manufacturer && ` · ${m.manufacturer}`}
-                </div>
+                <div className="row__sub">{m.kind === 'healthfood' ? '영양제' : '의약품'}</div>
+                {m.manufacturer && <div className="row__sub">{m.manufacturer}</div>}
               </div>
               <button
                 type="button"

@@ -68,7 +68,8 @@ export function IngredientCheck({ item }: Props) {
 }
 
 function IngredientResult({ query, match }: { query: string; match: IngredientMatch }) {
-  const asked = match.result === 'unknown' && !match.label ? query : match.label
+  const asked =
+    match.result === 'text-yes' || match.result === 'text-no' ? match.asked : (match.label ?? query)
 
   if (match.result === 'yes') {
     return (
@@ -108,6 +109,41 @@ function IngredientResult({ query, match }: { query: string; match: IngredientMa
     )
   }
 
+  if (match.result === 'text-yes') {
+    return (
+      <div className="ingr-result ingr-result--yes" role="status">
+        <p className="ingr-result__title">
+          <CircleCheck aria-hidden="true" /> 원료 이름에 있어요
+        </p>
+        <p className="ingr-result__asked">확인한 말: {asked}</p>
+        <p className="ingr-result__text">
+          원료: <b>{match.matched}</b>
+        </p>
+        {match.etcOnly && <p className="ingr-result__text">기능성 원료가 아닌 기타 원료로 신고됐어요.</p>}
+        <p className="ingr-result__text">원료 이름의 글자로만 찾은 결과예요.</p>
+        <Note />
+      </div>
+    )
+  }
+
+  if (match.result === 'text-no') {
+    return (
+      <div className="ingr-result ingr-result--unknown" role="status">
+        <p className="ingr-result__title">
+          <CircleHelp aria-hidden="true" /> 원료 이름에서 못 찾았어요
+        </p>
+        <p className="ingr-result__asked">확인한 말: {asked}</p>
+        <p className="ingr-result__text">다른 이름으로 신고됐을 수도 있어요.</p>
+        {match.mainRaw.length > 0 && (
+          <p className="ingr-result__text">
+            주요 원료: <b>{match.mainRaw.join(', ')}</b>
+          </p>
+        )}
+        <Note />
+      </div>
+    )
+  }
+
   return (
     <div className="ingr-result ingr-result--unknown" role="status">
       <p className="ingr-result__title">
@@ -117,7 +153,7 @@ function IngredientResult({ query, match }: { query: string; match: IngredientMa
       <p className="ingr-result__text">
         {match.reason === 'no-raw'
           ? '이 제품은 원료 정보가 비어 있어요. 약사에게 확인해 보세요.'
-          : "아직 이 앱이 확인할 수 있는 성분이 아니에요. 아래 '원료' 칸을 보시거나 약사에게 물어보세요."}
+          : '성분 이름을 두 글자 이상 입력해 주세요.'}
       </p>
       <Note />
     </div>

@@ -9,7 +9,7 @@ import {
   TriangleAlert,
   X,
 } from 'lucide-react'
-import { searchDrug } from '../lib/nedrug-api'
+import { searchDrug, searchDrugByBarcode } from '../lib/nedrug-api'
 import { searchHealthFood, isFoodSafetyConfigured, groupSameName } from '../lib/healthfood-api'
 import { addMedication, listMedications } from '../lib/db'
 import { checkInteraction } from '../lib/dur'
@@ -80,6 +80,20 @@ function adaptHealthFood(item: HealthFoodItem, sameNameCount: number): HealthFoo
 
 const isOldName = (item: HealthFoodItem) => /^\s*\(구\)/.test(item.PRDLST_NM ?? '')
 
+/** value가 ms 넘게 유지될 때만 그 값을, 아니면 null을 돌려준다 */
+function useDelayed<T>(value: T | null, ms: number): T | null {
+  const [shown, setShown] = useState<T | null>(null)
+  useEffect(() => {
+    if (value === null) {
+      setShown(null)
+      return
+    }
+    const t = setTimeout(() => setShown(value), ms)
+    return () => clearTimeout(t)
+  }, [value, ms])
+  return shown
+}
+
 export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail, onShowMeds, rootSignal }: Props) {
   const [query, setQuery] = useState('')
   /** 마지막으로 검색한 말 (입력 중인 query와 구분) */
@@ -88,6 +102,7 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
   const [results, setResults] = useState<SearchResultWithRaw[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [warn, setWarn] = useState<string | null>(null)
+  const [info, setInfo] = useState<string | null>(null)
   const [scannerOpen, setScannerOpen] = useState(false)
   const [tvOpen, setTvOpen] = useState(false)
   const [interactionContext, setInteractionContext] = useState<{
@@ -96,6 +111,8 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
     registered: RegisteredMedication[]
   } | null>(null)
   const [actionPending, setActionPending] = useState<string | null>(null)
+  // 금방 끝나는 작업(저장된 DUR 결과 등)에서 스피너가 번쩍이지 않게, 0.3초가 넘을 때만 보여 준다
+  const showPending = useDelayed(actionPending, 300)
   const [registered, setRegistered] = useState<RegisteredMedication[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
   const { toast } = useDialog()
@@ -125,9 +142,9 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
         return
       }
       setLoading(true)
-      setSearchedTerm(q)
       setError(null)
       setWarn(null)
+      setInfo(null)
 
       const promises: Promise<unknown>[] = [searchDrug(q)]
       if (isFoodSafetyConfigured()) {
@@ -164,6 +181,8 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
         }
       }
 
+      // 검색어는 결과와 함께 바꾼다: 찾는 동안에는 이전 결과와 성분 카드를 그대로 둔다 (사라졌다 나타나는 깜빡임 방지)
+      setSearchedTerm(q)
       setResults(merged)
       // 의약품 검색이 실패하면 오류, 영양제만 실패하면 경고 (의약품 결과는 살아 있음)
       if (drugError) setError(drugError)
@@ -173,14 +192,34 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
     [query],
   )
 
-  const handleScan = useCallback(
-    (text: string) => {
-      setScannerOpen(false)
-      setQuery(text)
-      void handleSearch(text)
-    },
-    [handleSearch],
-  )
+  // 상자 바코드는 의약품만 찾을 수 있다. 영양제 바코드는 식품안전나라 바코드 서비스 활용신청 승인 뒤에 연결한다
+  const handleScan = useCallback(async (text: string) => {
+    setScannerOpen(false)
+    setError(null)
+    setWarn(null)
+    setInfo(null)
+    const code = text.trim()
+    const notFound = '이 바코드로는 제품을 못 찾았어요. 영양제는 아직 바코드로 찾을 수 없으니, 제품 이름으로 찾아 주세요.'
+    if (!/^\d{8,14}$/.test(code)) {
+      setInfo(notFound)
+      return
+    }
+    setLoading(true)
+    try {
+      const drugs = (await searchDrugByBarcode(code)).map(adaptDrug).filter((d): d is DrugWithRaw => d !== null)
+      if (drugs.length === 0) {
+        setInfo(notFound)
+      } else {
+        setQuery(drugs[0].name)
+        setSearchedTerm(drugs[0].name)
+        setResults(drugs)
+      }
+    } catch (e) {
+      setError(friendlyError(e))
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   function searchIngredient(label: string) {
     setTvOpen(false)
@@ -194,10 +233,12 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
     setSearchedTerm('')
     setError(null)
     setWarn(null)
+    setInfo(null)
     inputRef.current?.focus()
   }
 
   async function handleRegister(item: SearchResultWithRaw) {
+    if (actionPending) return
     setActionPending(item.id)
     setError(null)
     try {
@@ -209,7 +250,7 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
         mainIngredient: item.ingredient,
       })
       setRegistered(await listMedications())
-      toast(`"${item.name}"을(를) 내 약에 등록했어요.`, 'success')
+      toast(`${item.name} 내\u00A0약에 등록했어요.`, 'success')
       onMedicationsChanged?.()
     } catch (e) {
       setError(friendlyError(e))
@@ -219,6 +260,7 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
   }
 
   async function handleCheck(item: SearchResultWithRaw) {
+    if (actionPending) return
     setActionPending(item.id)
     setError(null)
     try {
@@ -246,7 +288,7 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
       >
         <label className="field">
           <Search aria-hidden="true" />
-          <span className="sr-only">약·영양제 이름</span>
+          <span className="sr-only">약이나 영양제 이름</span>
           <input
             ref={inputRef}
             className="field__input"
@@ -254,7 +296,7 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
             enterKeyHint="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="약·영양제 이름 입력"
+            placeholder="약이나 영양제 이름"
             autoCapitalize="off"
             autoCorrect="off"
             spellCheck={false}
@@ -282,6 +324,12 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
         <div className="notice notice--error" role="alert">
           <CircleAlert aria-hidden="true" />
           <span>{error}</span>
+        </div>
+      )}
+      {info && !error && (
+        <div className="notice notice--info" role="status">
+          <Info aria-hidden="true" />
+          <span>{info}</span>
         </div>
       )}
       {warn && !error && (
@@ -326,7 +374,7 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
 
           {scannerOpen && (
             <div className="group scanner-box">
-              <BarcodeScanner onScan={handleScan} onError={(msg) => setError(`카메라를 쓸 수 없어요. ${msg}`)} />
+              <BarcodeScanner onScan={(text) => void handleScan(text)} onError={() => setError('카메라를 켜지 못했어요. 카메라 사용을 허용한 뒤 다시 눌러 주세요.')} />
               <p className="scanner-box__hint">제품 바코드를 화면 가운데에 비춰 주세요.</p>
             </div>
           )}
@@ -351,7 +399,7 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
                 <div className="row">
                   <div className="row__body">
                     <div className="row__title">아직 등록한 약이 없어요</div>
-                    <div className="row__sub">드시는 약을 검색해서 "등록"을 누르면 추가돼요.</div>
+                    <div className="row__sub">드시는 약을 검색해서 "내 약에 등록"을 누르면 돼요.</div>
                   </div>
                 </div>
               </li>
@@ -390,7 +438,7 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
 
       {results !== null && (
         <>
-          {!loading && searchedTerm && <IngredientCard term={searchedTerm} />}
+          {searchedTerm && <IngredientCard term={searchedTerm} />}
 
           <h2 className="group-label">
             검색 결과 {results.length}개
@@ -399,12 +447,12 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
           {results.length === 0 ? (
             <div className="notice notice--info">
               <Info aria-hidden="true" />
-              <span>"{searchedTerm}"(으)로 찾은 제품이 없어요. 다른 이름이나 띄어쓰기를 바꿔 다시 찾아&nbsp;보세요.</span>
+              <span>"{searchedTerm}" 검색 결과가 없어요. 이름이나 띄어쓰기를 바꿔서 다시 찾아&nbsp;보세요.</span>
             </div>
           ) : (
             <ul className="group">
               {results.map((item) => {
-                const isPending = actionPending === item.id
+                const isPending = showPending === item.id
                 const isRegistered = registeredIds.has(item.id)
                 const detailTarget: DetailTarget =
                   item.kind === 'drug' ? { kind: 'drug', raw: item.raw } : { kind: 'healthfood', raw: item.raw }
@@ -414,15 +462,17 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
                       <span className="row__body">
                         <span className="row__title result-item__name">{item.name}</span>
                         <span className="row__sub">
-                          {[
-                            item.kind === 'drug' ? '의약품' : '영양제',
-                            isRegistered && '내\u00A0약에 등록됨',
-                            item.manufacturer && `${item.kind === 'drug' ? '제조사' : '제조'} ${item.manufacturer}`,
-                            item.kind === 'healthfood' && item.sameNameCount > 1 && `같은 이름 신고 ${item.sameNameCount}건`,
-                          ]
-                            .filter(Boolean)
-                            .join(' · ')}
+                          {item.kind === 'drug' ? '의약품' : '영양제'}
+                          {isRegistered && ' (내\u00A0약에 등록됨)'}
                         </span>
+                        {item.manufacturer && (
+                          <span className="row__sub">
+                            {item.kind === 'drug' ? '제조사' : '제조'} {item.manufacturer}
+                          </span>
+                        )}
+                        {item.kind === 'healthfood' && item.sameNameCount > 1 && (
+                          <span className="row__sub">같은 이름 신고 {item.sameNameCount}건</span>
+                        )}
                       </span>
                       <ChevronRight className="row__chev" aria-hidden="true" />
                     </button>

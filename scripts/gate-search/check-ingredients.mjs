@@ -20,7 +20,10 @@ function expect(label, actual, want) {
 // 1) 입력 말 → 성분
 const queries = [
   ['B-3', 'b3'], ['비피더스 B3', 'b3'], ['비쓰리', 'b3'], ['비타민B3', undefined], ['비피더스', undefined],
-  ['루테인', 'lutein'], ['비타민D3', 'vitamin-d'], ['밀크시슬', 'milk-thistle'], ['오메가-3', 'omega3'], ['홍삼', undefined],
+  ['루테인', 'lutein'], ['비타민D3', 'vitamin-d'], ['밀크시슬', 'milk-thistle'], ['오메가-3', 'omega3'],
+  // 2026-11-12 별칭표 확장: 홍삼은 이제 표에 있다. 표에 없는 말의 예는 노니로 바꿨다
+  ['홍삼', 'red-ginseng'], ['노니', undefined], ['프로바이오틱스', 'probiotics'], ['비타민C', 'vitamin-c'],
+  ['코큐텐', 'coq10'], ['엠에스엠', 'msm'], ['소팔메토', 'saw-palmetto'],
 ]
 for (const [q, want] of queries) expect(`입력 "${q}"`, findIngredient(q)?.key, want)
 
@@ -31,7 +34,15 @@ const cases = [
   ['다이어트 유산균 비에날씬', 'B-3', 'no'],
   ['아이원 30 루테인지아잔틴 아스타잔틴 3012', '루테인', 'yes'],
   ['한국호간원', '밀크씨슬', 'yes'],
-  ['다이어트 유산균 비에날씬', '홍삼', 'unknown'],
+  // 2026-11-12: 홍삼이 표에 들어가 'unknown'이 아니라 'no'다. 표에 없는 말(노니)은 원료 이름 글자 찾기('text-no')
+  ['다이어트 유산균 비에날씬', '홍삼', 'no'],
+  ['다이어트 유산균 비에날씬', '노니', 'text-no'],
+  ['다이어트 유산균 비에날씬', '유산균', 'yes'],
+  ['(SS)에스에스혈행솔루션', '은행잎', 'text-yes'],
+  // 이름이 비슷한 다른 원료를 잡지 않는지: 판토텐산칼슘(비타민 B5), 메틸테트라히드로엽산글루코사민(엽산), 스테아린산마그네슘(첨가물)
+  ['(SS)에스에스혈행솔루션', '칼슘', 'no'],
+  ['MTHF-D (엠티에이치에프-디)', '글루코사민', 'no'],
+  ['마이핏V멀티비타이뮨128', '마그네슘', 'no'],
 ]
 for (const [name, q, want] of cases) {
   const found = rows.filter((r) => r.PRDLST_NM === name)
@@ -42,7 +53,12 @@ for (const [name, q, want] of cases) {
   }
   for (const r of found) {
     const m = matchIngredient(r, q)
-    const detail = m.result === 'yes' ? m.matched : m.result === 'no' ? m.mainRaw.join(', ') : m.reason
+    const detail =
+      m.result === 'yes' || m.result === 'text-yes'
+        ? m.matched
+        : m.result === 'no' || m.result === 'text-no'
+          ? m.mainRaw.join(', ')
+          : m.reason
     expect(`${name} (${r.PRDLST_REPORT_NO}) × ${q}`, m.result, want)
     console.log(`       → ${detail}`)
   }

@@ -129,7 +129,7 @@ export async function checkInteraction(
     return {
       level: 'unknown',
       title: '등록된 약이 없어요',
-      message: '먼저 드시는 약을 등록해 주세요. 검색 결과에서 "등록"을 누르면 추가돼요.',
+      message: '먼저 드시는 약을 등록해 주세요. 검색 결과에서 "내 약에 등록"을 누르면 돼요.',
     }
   }
 
@@ -151,7 +151,7 @@ export async function checkInteraction(
     return {
       level: 'unknown',
       title: '지금은 확인할 수 없어요',
-      message: '식약처 DUR 자료를 가져오지 못했어요. 인터넷 연결을 확인하시고, 약사 선생님께 직접 물어보세요.',
+      message: '식약처 자료를 받아 오지 못했어요. 인터넷 연결을 확인한 뒤 다시 눌러 보시고, 급하면 약사에게 직접 물어보세요.',
     }
   }
 
@@ -197,7 +197,7 @@ export async function checkInteraction(
 
         conflicts.push({
           registeredMedName: med.itemName,
-          conflictWith: dur.MIX_INGR ?? '(미상)',
+          conflictWith: dur.MIX_INGR ?? '(성분 이름 없음)',
           severity: isStrict ? 'danger' : 'warn',
           source: dur.TYPE_NAME ?? 'DUR',
           prohbtContent: dur.PROHBT_CONTENT,
@@ -213,7 +213,7 @@ export async function checkInteraction(
       title: '확인된 충돌은 없어요',
       message:
         '식약처 자료에서는 충돌을 찾지\u00A0못했어요. ' +
-        '자료에 없는 제품도 있으니 약사⁠·⁠의사와 상담해 주세요.',
+        '자료에 없는 제품도 있으니 약사나 의사와 상담해 주세요.',
     }
   }
 
@@ -223,8 +223,8 @@ export async function checkInteraction(
     checked: true,
     title: hasDanger ? '함께 드시면 안 돼요' : '함께 드실 때 주의가 필요해요',
     message: hasDanger
-      ? '혼자 판단하지 마시고, 약사 선생님께 이\u00A0화면을 보여 드린 뒤 결정하세요.'
-      : '약사 선생님과 상담해 보세요.',
+      ? '드시기 전에 약사에게 이\u00A0화면을 보여 주세요.'
+      : '함께 드셔도 되는지 약사에게 물어보세요.',
     details: conflicts,
   }
 }

@@ -8,9 +8,9 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: '약똑똑 — 약·영양제 상호작용 체크',
+        name: '약똑똑',
         short_name: '약똑똑',
-        description: '약과 영양제, 함께 먹어도 괜찮을까요? 부모님 처방약과 새 영양제·일반약의 충돌을 미리 확인하세요.',
+        description: '드시는 약과 새로 산 영양제나 일반약을 함께 먹어도 되는지 식약처 자료로 알려 드려요.',
         theme_color: '#F2F4F6',
         background_color: '#F2F4F6',
         display: 'standalone',

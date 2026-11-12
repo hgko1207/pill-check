@@ -156,9 +156,8 @@ export function SettingsPage({ onShowGuide, onMedicationsChanged }: SettingsProp
       <h2 className="group-label">알아 두세요</h2>
       <div className="group detail-box">
         <p className="detail-text settings-disclaimer">
-          본 정보는 식품의약품안전처 공공데이터를 기반으로 한 <b>참고용 자료</b>입니다. 의료 행위가
-          아니며, 약사⁠·⁠의사 상담을 대체하지 않습니다. 실제 복용 결정은 반드시 전문가와
-          상의하세요.
+          식품의약품안전처 공개 자료로 만든 <b>참고용 정보</b>예요. 진료가 아니며 약사나 의사
+          상담을 대신하지 않아요. 드실지는 꼭 약사나 의사와 상의해서 정해&nbsp;주세요.
         </p>
       </div>
     </>
