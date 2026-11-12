@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Plus } from 'lucide-react'
 import {
   listMedications,
   removeMedication,
@@ -10,9 +11,11 @@ import { useDialog } from '../lib/dialog'
 interface Props {
   refreshSignal?: number
   onChange?: () => void
+  /** "확인" 탭으로 이동해 약을 검색 */
+  onAdd?: () => void
 }
 
-export function RegisteredList({ refreshSignal, onChange }: Props) {
+export function RegisteredList({ refreshSignal, onChange, onAdd }: Props) {
   const [meds, setMeds] = useState<RegisteredMedication[]>([])
   const [loading, setLoading] = useState(true)
   const { confirm, toast } = useDialog()
@@ -35,113 +38,97 @@ export function RegisteredList({ refreshSignal, onChange }: Props) {
   async function handleRemove(id: number, name: string, kind: 'drug' | 'healthfood') {
     const kindLabel = kind === 'drug' ? '약' : '영양제'
     const ok = await confirm({
-      title: `${kindLabel} 삭제`,
+      title: `${kindLabel}을 지울까요?`,
       message: (
         <>
-          <b>{name}</b>
-          <br />이 {kindLabel}을(를) 삭제하시겠습니까?
+          <b>{name}</b>을(를) 내 약 목록에서 지워요. 더 이상 드시지 않는 경우에만 지워&nbsp;주세요.
         </>
       ),
-      confirmLabel: '삭제',
+      confirmLabel: '지우기',
       cancelLabel: '취소',
       variant: 'danger',
     })
     if (!ok) return
     await removeMedication(id)
-    const next = await listMedications()
-    setMeds(next)
-    toast(`"${name}" 을(를) 삭제했어요.`, 'success')
+    setMeds(await listMedications())
+    toast(`"${name}"을(를) 지웠어요.`, 'success')
     onChange?.()
   }
 
   if (loading) {
     return (
-      <section className="card">
-        <p className="card__meta">불러오는 중…</p>
-      </section>
+      <p className="loading-line">
+        <span className="spinner" aria-hidden="true" /> 불러오는 중
+      </p>
     )
   }
 
-  // 빈 상태 — 시작하기 히어로
   if (meds.length === 0) {
     return (
-      <section className="hero">
-        <h2 className="hero__title">👋 약똑똑 시작하기</h2>
-        <p className="hero__lead">
-          부모님이 드시는 약과 새 영양제·일반약의
-          <br />
-          충돌을 미리 확인해드립니다.
-        </p>
-
-        <ol className="hero__steps">
-          <li>
-            <b>STEP 1.</b> 부모님 약·영양제 등록
-            <div className="hero__hint">
-              <b>🔍 검색</b> 탭에서 이름 입력 후 <b>"+ 등록"</b>
-              <br />
-              <span className="hero__example">예: 와파린, 종합비타민, 오메가3</span>
-            </div>
-          </li>
-          <li>
-            <b>STEP 2.</b> 새 영양제·약 충돌 검사
-            <div className="hero__hint">
-              검색 후 <b>"⚠️ 충돌 검사"</b> 버튼
-              <br />
-              <span className="hero__example">예: 비타민D, 칼슘제</span>
-            </div>
-          </li>
-          <li>
-            <b>STEP 3.</b> 결과 확인
-            <div className="hero__hint">
-              🔴 위험 · 🟡 주의 · ⚪ 정보 부족 · 🟢 확인됨
-            </div>
-          </li>
-        </ol>
-
-        <p className="hero__cta">아래 검색창에서 시작해보세요 👇</p>
-      </section>
+      <>
+        <div className="group empty-box">
+          <p className="empty-box__title">아직 등록한 약이 없어요</p>
+          <ol className="steps">
+            <li>
+              <b>확인</b> 탭에서 드시는 약 이름을 검색해요.
+              <span className="steps__eg">예: 와파린, 종합비타민, 오메가3</span>
+            </li>
+            <li>
+              검색 결과에서 <b>내 약에 등록</b>을 눌러요.
+            </li>
+            <li>
+              새 제품을 살 때 <b>내 약과 확인</b>을 누르면 함께 먹어도 되는지 알려&nbsp;드려요.
+            </li>
+          </ol>
+        </div>
+        <div className="block-actions">
+          <button type="button" className="btn btn--primary" onClick={onAdd}>
+            <Plus aria-hidden="true" /> 약 검색해서 등록하기
+          </button>
+        </div>
+      </>
     )
   }
 
   return (
-    <section className="card">
-      <h2 className="card__title">
-        부모님 복용 약·영양제 ({meds.length}/{MAX_MEDICATIONS})
+    <>
+      <h2 className="group-label">
+        등록한 약 <span className="num">{meds.length}</span>/{MAX_MEDICATIONS}
       </h2>
-      <ul className="med-list">
+      <ul className="group">
         {meds.map((m) => (
-          <li key={m.id} className={`med-list__item med-list__item--${m.kind}`}>
-            <div className="med-list__content">
-              <div className="med-list__name-row">
-                <span
-                  className={`badge ${
-                    m.kind === 'healthfood' ? 'badge--healthfood' : 'badge--drug'
-                  }`}
-                >
-                  {m.kind === 'healthfood' ? '🌿 영양제' : '💊 의약품'}
-                </span>
-                <span className="med-list__name">{m.itemName}</span>
-              </div>
-              {m.mainIngredient && (
-                <div className="med-list__ingr">
-                  {m.mainIngredient.length > 80
-                    ? m.mainIngredient.slice(0, 80) + '…'
-                    : m.mainIngredient}
+          <li key={m.id}>
+            <div className="row">
+              <div className="row__body">
+                <div className="row__title">{m.itemName}</div>
+                <div className="row__sub">
+                  {m.kind === 'healthfood' ? '영양제' : '의약품'}
+                  {m.manufacturer && ` · ${m.manufacturer}`}
                 </div>
-              )}
+              </div>
+              <button
+                type="button"
+                className="text-btn text-btn--danger"
+                onClick={() => m.id != null && handleRemove(m.id, m.itemName, m.kind)}
+                aria-label={`${m.itemName} 지우기`}
+              >
+                지우기
+              </button>
             </div>
-            <button
-              className="btn-small btn-small--danger"
-              onClick={() =>
-                m.id != null && handleRemove(m.id, m.itemName, m.kind)
-              }
-              aria-label={`${m.itemName} 삭제`}
-            >
-              삭제
-            </button>
           </li>
         ))}
       </ul>
-    </section>
+      {meds.length < MAX_MEDICATIONS ? (
+        <div className="block-actions">
+          <button type="button" className="btn btn--secondary" onClick={onAdd}>
+            <Plus aria-hidden="true" /> 약 추가하기
+          </button>
+        </div>
+      ) : (
+        <p className="group-note">
+          최대 {MAX_MEDICATIONS}개까지 등록할 수 있어요. 더 드시지 않는 약을 지우면 새로 추가할 수&nbsp;있어요.
+        </p>
+      )}
+    </>
   )
 }

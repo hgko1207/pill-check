@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=390">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:390px;height:844px;overflow:hidden}
+body{font-family:'Noto Sans KR',sans-serif;background:#F2F4F7;color:#111827}
+.top{padding:16px 20px 10px;display:flex;justify-content:space-between;font-size:16px;font-weight:700}
+.top span{font-weight:500;color:#4B5563}
+.board{margin:0 20px;background:#111827;color:#fff;border-radius:10px;padding:14px 16px;display:flex;align-items:center;gap:12px}
+.board .dot{width:14px;height:14px;border-radius:50%;background:#F04438;box-shadow:0 0 0 5px rgba(240,68,56,.3)}
+.board b{font-size:26px;font-weight:900;letter-spacing:-.5px}
+.ticket{margin:14px 20px 0;background:#fff;border-radius:14px;box-shadow:0 1px 2px rgba(17,24,39,.08)}
+.seg{padding:12px 16px 14px;border-bottom:2px dashed #D0D5DD}
+.seg:last-child{border-bottom:0}
+.k{font-size:13px;font-weight:700;color:#667085;letter-spacing:.5px}
+.v{font-size:20px;font-weight:700;margin-top:2px}
+.two{display:flex}
+.two>div{flex:1}
+.two>div+div{border-left:1px solid #EAECF0;padding-left:14px}
+.res{background:#FEF3F2}
+.res .v{color:#B42318;font-size:24px;font-weight:900}
+.res p{font-size:17px;line-height:1.5;margin-top:4px}
+.mine{display:grid;grid-template-columns:1fr auto;row-gap:8px;margin-top:8px;font-size:17px}
+.mine .bad{color:#B42318;font-weight:700}
+.mine .ok{color:#067647}
+.mine .unk{color:#B54708}
+.mono{font-family:'Roboto Mono',monospace;font-size:15px}
+.acts{display:flex;gap:10px;margin:14px 20px 0}
+.btn{flex:1;min-height:56px;border-radius:10px;border:2px solid #111827;background:#fff;font:700 18px 'Noto Sans KR'}
+.btn.p{background:#111827;color:#fff}
+.disc{margin:10px 20px 0;font-size:13px;line-height:1.5;color:#667085}
+.tabs{position:absolute;bottom:0;left:0;right:0;height:72px;background:#fff;border-top:1px solid #D0D5DD;display:flex}
+.tabs div{flex:1;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;color:#667085}
+.tabs .on{color:#111827;box-shadow:inset 0 4px 0 #111827}
+</style></head><body>
+<div class="top">약똑똑<span>확인 #0412</span></div>
+<div class="board"><span class="dot"></span><b>함께 드시면 안 돼요</b></div>
+<div class="ticket">
+  <div class="seg"><div class="k">확인한 제품</div><div class="v">이트라코나졸캡슐 100mg</div></div>
+  <div class="seg res"><div class="k">결과 · 빨강 병용금기</div><div class="v">심바스타틴정과 같이 X</div><p>약사 선생님께 이 표를 보여 주세요.</p></div>
+  <div class="seg"><div class="k">내 약 4개</div>
+    <div class="mine">
+      <span>심바스타틴정 20mg</span><span class="bad">안 됨</span>
+      <span>암로디핀정 5mg</span><span class="ok">확인 안 됨</span>
+      <span>메트포르민정 500mg</span><span class="ok">확인 안 됨</span>
+      <span>비타민D 1000IU</span><span class="unk">정보 부족</span>
+    </div>
+  </div>
+  <div class="seg two"><div><div class="k">근거</div><div class="v" style="font-size:17px">식약처 DUR</div></div><div><div class="k">조회</div><div class="v mono">2026-11-12</div></div></div>
+</div>
+<div class="acts"><button class="btn">AI 해설 보기</button><button class="btn p">다른 제품 확인</button></div>
+<p class="disc">공공데이터 기반 참고 자료예요. 약사·의사 상담을 대체하지 않아요.</p>
+<nav class="tabs"><div class="on">제품 확인</div><div>내 약</div><div>설정</div></nav>
+</body></html>

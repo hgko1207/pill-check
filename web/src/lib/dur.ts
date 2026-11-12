@@ -128,8 +128,8 @@ export async function checkInteraction(
   if (registered.length === 0) {
     return {
       level: 'unknown',
-      title: '등록된 약이 없습니다',
-      message: '먼저 부모님이 드시는 약을 등록해주세요. 위쪽 "약 등록" 버튼으로 추가할 수 있습니다.',
+      title: '등록된 약이 없어요',
+      message: '먼저 드시는 약을 등록해 주세요. 검색 결과에서 "등록"을 누르면 추가돼요.',
     }
   }
 
@@ -150,8 +150,8 @@ export async function checkInteraction(
   if (successCount === 0 && itemSeqsToQuery.size > 0) {
     return {
       level: 'unknown',
-      title: '확인 불가',
-      message: 'DUR 데이터를 가져오지 못했습니다. 네트워크를 확인하시고 약사 선생님께 직접 문의하세요.',
+      title: '지금은 확인할 수 없어요',
+      message: '식약처 DUR 자료를 가져오지 못했어요. 인터넷 연결을 확인하시고, 약사 선생님께 직접 물어보세요.',
     }
   }
 
@@ -209,20 +209,22 @@ export async function checkInteraction(
   if (conflicts.length === 0) {
     return {
       level: 'unknown',
-      title: '확인된 충돌은 없습니다 (데이터 한계 있음)',
+      checked: true,
+      title: '확인된 충돌은 없어요',
       message:
-        '현재 등록하신 약과 이 제품 사이에서 알려진 충돌이 데이터에서 확인되지 않았습니다. ' +
-        '단, 영양제 성분이나 일반의약품 일부는 DUR에 등록되지 않아 누락 가능성이 있으니 약사·의사 상담을 권합니다.',
+        '식약처 자료에서는 충돌을 찾지\u00A0못했어요. ' +
+        '자료에 없는 제품도 있으니 약사⁠·⁠의사와 상담해 주세요.',
     }
   }
 
   const hasDanger = conflicts.some((c) => c.severity === 'danger')
   return {
     level: hasDanger ? 'danger' : 'warn',
-    title: hasDanger ? '위험 — 함께 드시면 안 됩니다' : '주의가 필요합니다',
+    checked: true,
+    title: hasDanger ? '함께 드시면 안 돼요' : '함께 드실 때 주의가 필요해요',
     message: hasDanger
-      ? '약사 선생님께 반드시 보여주신 후 결정하세요. 자가 판단 금물.'
-      : '약사 선생님 상담을 권합니다.',
+      ? '혼자 판단하지 마시고, 약사 선생님께 이\u00A0화면을 보여 드린 뒤 결정하세요.'
+      : '약사 선생님과 상담해 보세요.',
     details: conflicts,
   }
 }

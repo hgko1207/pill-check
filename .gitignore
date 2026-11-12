@@ -51,3 +51,6 @@ CLAUDE.local.md
 
 # 2단계 가능성 시험 내려받은 데이터
 scripts/gate-search/data/
+
+# impeccable 마감 검토용 스크린샷 (매번 다시 찍음)
+.impeccable/review/

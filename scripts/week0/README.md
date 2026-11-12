@@ -1,6 +1,6 @@
 # Week 0 HARD GATE 실행 가이드
 
-DESIGN.md의 Week 0 GATE를 실제로 돌리는 절차. 코드 빌드 시작 전 필수.
+docs/product-design.md의 Week 0 GATE를 실제로 돌리는 절차. 코드 빌드 시작 전 필수.
 
 ## 0. 사전 작업 (사용자 직접)
 
@@ -56,7 +56,7 @@ python validate_dur.py
 ## 4. 다음
 
 - PASS → 부모님 OS 알려주시면 Week 1 모바일 스캐폴드 진행
-- FAIL_DATA → DESIGN.md의 Approach C 섹션 다시 검토하고 office-hours 또는 plan-eng-review 한 번 더
+- FAIL_DATA → docs/product-design.md의 Approach C 섹션 다시 검토하고 office-hours 또는 plan-eng-review 한 번 더
 
 ## 주의
 

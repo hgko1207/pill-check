@@ -1,10 +1,12 @@
 import { useEffect } from 'react'
+import { ChevronLeft } from 'lucide-react'
 
 interface Props {
   open: boolean
   onClose: () => void
 }
 
+/** 사용법: 화면 전체를 덮는 화면 */
 export function GuideModal({ open, onClose }: Props) {
   useEffect(() => {
     if (!open) return
@@ -22,61 +24,62 @@ export function GuideModal({ open, onClose }: Props) {
   if (!open) return null
 
   return (
-    <div className="modal-backdrop" onClick={onClose} role="dialog" aria-modal="true">
-      <div className="modal-panel" onClick={(e) => e.stopPropagation()}>
-        <button className="modal-close" onClick={onClose} aria-label="닫기">
-          ✕
-        </button>
-        <article className="modal-content">
-          <section className="hero" style={{ boxShadow: 'none' }}>
-            <h2 className="hero__title">📖 약똑똑 사용법</h2>
-            <p className="hero__lead">
-              부모님이 드시는 약과 새 영양제·일반약의
-              <br />
-              충돌을 미리 확인해드립니다.
-            </p>
-            <ol className="hero__steps">
-              <li>
-                <b>STEP 1.</b> 부모님 <b>약·영양제 등록</b>
-                <div className="hero__hint">
-                  <b>🔍 검색</b> 탭에서 이름 입력 후 <b>"+ 등록"</b>
-                  <br />
-                  <span className="hero__example">
-                    예: 와파린·노바스크(약), 종합비타민·오메가3(영양제)
-                  </span>
-                </div>
-              </li>
-              <li>
-                <b>STEP 2.</b> 새 영양제·일반약 <b>충돌 검사</b>
-                <div className="hero__hint">
-                  검색 후 <b>"⚠️ 충돌 검사"</b> 버튼
-                  <br />
-                  <span className="hero__example">예: 비타민D, 칼슘제</span>
-                </div>
-              </li>
-              <li>
-                <b>STEP 3.</b> 결과 확인 (색상별)
-                <div className="hero__hint">
-                  🔴 위험 · 🟡 주의 · ⚪ 정보 부족 · 🟢 확인됨
-                </div>
-              </li>
-              <li>
-                <b>중단한 약·영양제 삭제</b>
-                <div className="hero__hint">
-                  <b>🏠 홈</b> 탭 목록 → 각 항목 우측 <b>"삭제"</b>
-                  <br />
-                  <span className="hero__example">
-                    중단하신 것만 골라 빼시면 됩니다.
-                  </span>
-                </div>
-              </li>
-            </ol>
-          </section>
-          <p className="modal-disclaimer">
-            본 정보는 식품의약품안전처 공공데이터를 기반으로 한 참고 자료입니다.
-            의료 행위가 아니며, 약사·의사 상담을 대체하지 않습니다.
+    <div className="sheet" role="dialog" aria-modal="true" aria-labelledby="guide-title">
+      <div className="sheet__body">
+        <div className="topbar">
+          <button type="button" className="topbar__back" onClick={onClose} aria-label="뒤로">
+            <ChevronLeft aria-hidden="true" />
+          </button>
+        </div>
+        <header className="detail-head">
+          <h1 id="guide-title" className="detail-head__title">
+            약똑똑 사용법
+          </h1>
+          <p className="detail-head__sub">드시는 약과 새 영양제·일반약이 함께 먹어도 되는지 미리 알려&nbsp;드려요.</p>
+        </header>
+
+        <h2 className="group-label">처음 한 번</h2>
+        <div className="group detail-box">
+          <ol className="steps">
+            <li>
+              <b>확인</b> 탭에서 드시는 약 이름을 검색해요.
+              <span className="steps__eg">예: 와파린, 노바스크(약) · 종합비타민, 오메가3(영양제)</span>
+            </li>
+            <li>
+              검색 결과에서 <b>내 약에 등록</b>을 눌러요.
+            </li>
+          </ol>
+        </div>
+
+        <h2 className="group-label">새 제품을 살 때</h2>
+        <div className="group detail-box">
+          <ol className="steps">
+            <li>
+              제품 이름을 검색하거나 <b>바코드로 찾기</b>를 눌러요.
+              <span className="steps__eg">예: 비타민D, 칼슘제</span>
+            </li>
+            <li>
+              <b>내 약과 확인</b>을 누르면 결과가 색으로 나와요.
+            </li>
+          </ol>
+          <ul className="legend">
+            <li><span className="status status--danger">빨강</span> 함께 드시면 안 돼요</li>
+            <li><span className="status status--warn">노랑</span> 함께 드실 때 주의가 필요해요</li>
+            <li><span className="status status--unknown">회색</span> 확인된 충돌이 없거나 정보가 부족해요</li>
+          </ul>
+        </div>
+
+        <h2 className="group-label">더 드시지 않는 약</h2>
+        <div className="group detail-box">
+          <p className="detail-text">
+            <b>내 약</b> 탭에서 그 약 오른쪽의 <b>지우기</b>를 눌러요.
           </p>
-        </article>
+        </div>
+
+        <p className="fineprint">
+          본 정보는 식품의약품안전처 공공데이터를 기반으로 한 참고 자료입니다. 의료 행위가 아니며,
+          약사⁠·⁠의사 상담을 대체하지 않습니다.
+        </p>
       </div>
     </div>
   )

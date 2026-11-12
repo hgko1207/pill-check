@@ -31,7 +31,8 @@ export function ConfirmDialog({
     window.addEventListener('keydown', onKey)
     document.body.style.overflow = 'hidden'
     // 안전한 기본 포커스 = 취소 버튼
-    cancelBtnRef.current?.focus()
+    // 포커스는 옮기되 키보드 포커스 테두리는 띄우지 않는다 (키보드로 움직이면 다시 보인다)
+    cancelBtnRef.current?.focus({ focusVisible: false } as FocusOptions)
     return () => {
       window.removeEventListener('keydown', onKey)
       document.body.style.overflow = ''
@@ -39,33 +40,28 @@ export function ConfirmDialog({
   }, [onCancel])
 
   return (
-    <div
-      className="confirm-backdrop"
-      onClick={onCancel}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="confirm-title"
-    >
+    <div className="dialog-scrim" onClick={onCancel}>
       <div
-        className="confirm-panel"
+        className="dialog"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="confirm-title"
+        aria-describedby="confirm-message"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 id="confirm-title" className="confirm-title">
+        <h2 id="confirm-title" className="dialog__title">
           {title}
-        </h3>
-        <div className="confirm-message">{message}</div>
-        <div className="confirm-actions">
-          <button
-            type="button"
-            ref={cancelBtnRef}
-            className="btn btn--secondary confirm-btn"
-            onClick={onCancel}
-          >
+        </h2>
+        <div id="confirm-message" className="dialog__message">
+          {message}
+        </div>
+        <div className="dialog__actions">
+          <button type="button" ref={cancelBtnRef} className="btn btn--plain" onClick={onCancel}>
             {cancelLabel}
           </button>
           <button
             type="button"
-            className={`btn confirm-btn ${variant === 'danger' ? 'btn--danger' : ''}`}
+            className={`btn ${variant === 'danger' ? 'btn--danger' : 'btn--primary'}`}
             onClick={onConfirm}
           >
             {confirmLabel}

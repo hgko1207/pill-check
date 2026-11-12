@@ -2,7 +2,7 @@
 PillCheck Week 0 HARD GATE 검증 스크립트
 
 목적: 식약처 OpenAPI가 PillCheck V1을 빌드할 만큼 의미있는 데이터를 주는지 확인.
-DESIGN.md의 Week 0 GATE 섹션 참조.
+docs/product-design.md의 Week 0 GATE 섹션 참조.
 
 GATE 통과 조건:
   - 처방약 ↔ 영양제(또는 일반약) DUR 매칭이 ≥ 1건 발견되면 PASS (proof of concept)

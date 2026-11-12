@@ -6,7 +6,7 @@ Repo: hgko1207/pill-check
 Status: APPROVED (2026-11-11)
 Spec review: 실행 못 함 (gstack 리뷰 도구가 Bun panic으로 실패, 독립 리뷰 없이 승인)
 Mode: Builder
-Related: `DESIGN.md`(5월 MVP 설계), `docs/next-supplement-search.md`(원래 계획), `scripts/gate-search/SALES-CHECK.md`(시험 결과)
+Related: `docs/product-design.md`(5월 MVP 설계), `docs/next-supplement-search.md`(원래 계획), `scripts/gate-search/SALES-CHECK.md`(시험 결과)
 
 ## Problem Statement
 

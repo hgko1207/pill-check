@@ -11,8 +11,8 @@ export default defineConfig({
         name: '약똑똑 — 약·영양제 상호작용 체크',
         short_name: '약똑똑',
         description: '약과 영양제, 함께 먹어도 괜찮을까요? 부모님 처방약과 새 영양제·일반약의 충돌을 미리 확인하세요.',
-        theme_color: '#1B5E20',
-        background_color: '#FAFAFA',
+        theme_color: '#F2F4F6',
+        background_color: '#F2F4F6',
         display: 'standalone',
         start_url: '/',
         lang: 'ko-KR',
@@ -23,6 +23,17 @@ export default defineConfig({
       workbox: {
         navigateFallback: '/index.html',
         globPatterns: ['**/*.{js,css,html,svg,png,webmanifest}'],
+        // 글꼴은 미리 받지 않고(전체 3MB), 처음 쓴 글자 묶음만 보관해 다음부터 오프라인에서도 보인다
+        runtimeCaching: [
+          {
+            urlPattern: ({ request }) => request.destination === 'font',
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'pillcheck-fonts',
+              expiration: { maxEntries: 120, maxAgeSeconds: 60 * 60 * 24 * 365 },
+            },
+          },
+        ],
       },
     }),
   ],

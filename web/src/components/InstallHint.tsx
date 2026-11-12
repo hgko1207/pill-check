@@ -1,3 +1,4 @@
+import { Smartphone, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 const STORAGE_KEY = 'pillcheck.installHintDismissed'
@@ -37,28 +38,29 @@ export function InstallHint() {
   }
 
   return (
-    <section className="install-hint" role="note">
-      <button
-        className="install-hint__close"
-        onClick={handleDismiss}
-        aria-label="닫기"
-      >
-        ✕
+    <section className="group install-hint" role="note" aria-labelledby="install-title">
+      <span className="row__icon" aria-hidden="true">
+        <Smartphone />
+      </span>
+      <div className="install-hint__body">
+        <h2 id="install-title" className="install-hint__title">
+          홈 화면에 추가하면 앱처럼 쓸 수 있어요
+        </h2>
+        <p className="install-hint__text">
+          {platform === 'ios' ? (
+            <>
+              Safari 아래쪽 <b>공유 버튼</b> → <b>홈 화면에 추가</b> → 오른쪽 위 <b>추가</b>를 눌러&nbsp;주세요.
+            </>
+          ) : (
+            <>
+              크롬 오른쪽 위 <b>점 세 개 메뉴</b> → <b>앱 설치</b> 또는 <b>홈 화면에 추가</b>를 눌러&nbsp;주세요.
+            </>
+          )}
+        </p>
+      </div>
+      <button type="button" className="install-hint__close" onClick={handleDismiss} aria-label="안내 닫기">
+        <X aria-hidden="true" />
       </button>
-      <h3 className="install-hint__title">📱 홈 화면에 추가하면 더 편해요</h3>
-      <p className="install-hint__body">
-        {platform === 'ios' ? (
-          <>
-            Safari 하단의 <b>공유 버튼(↑)</b> → <b>"홈 화면에 추가"</b> →
-            오른쪽 위 <b>"추가"</b>. 그러면 일반 앱처럼 아이콘으로 바로 열 수 있습니다.
-          </>
-        ) : (
-          <>
-            크롬 우측 상단 <b>⋮ 메뉴</b> → <b>"앱 설치"</b> 또는{' '}
-            <b>"홈 화면에 추가"</b>. 일반 앱처럼 바로 열 수 있습니다.
-          </>
-        )}
-      </p>
     </section>
   )
 }

@@ -11,7 +11,8 @@
 - `web/src/App.css` — 디자인 토큰(`--pc-*`, 다크 모드 `html[data-theme='dark']`) + 컴포넌트 스타일
 - `web/api/` — Vercel Edge Function (서버 측 키 사용)
 - `scripts/week0/` — Week 0 GATE 1 데이터 검증용 Python 스크립트 (앱 빌드와 무관)
-- `DESIGN.md` — 설계 문서(소스 오브 트루스), `docs/api-key-guide.md` — 식약처 API 키 발급
+- `docs/product-design.md` — 제품 설계 문서(소스 오브 트루스), `docs/api-key-guide.md` — 식약처 API 키 발급
+- `PRODUCT.md`·`DESIGN.md` — `/impeccable` 디자인 스킬용 제품 정의와 디자인 시스템(색·글꼴·컴포넌트). 화면 디자인 결정은 `DESIGN.md`를 따른다
 - 새 화면은 `web/src/components/`에 `SettingsPage.tsx`처럼, 새 외부 API 클라이언트는 `web/src/lib/`에 `healthfood-api.ts`처럼(전용 Error 클래스 + `friendlyError` 연결) 만든다.
 
 ## 명령
@@ -79,7 +80,7 @@
 ## 참고 문서
 
 - `docs/ai-workflow.md` — 팀 AI 사용 가이드
-- `DESIGN.md` — 제품·UX 설계 (60대 UX 기준, 색상 매핑)
+- `docs/product-design.md` — 제품·UX 설계 (60대 UX 기준, 색상 매핑)
 - `web/README.md` — 웹앱 셋업, 알려진 제약
 
 <!-- 기준: team-ai-kit v0.2. 100줄 안쪽 유지. 규칙 하나가 5줄을 넘으면 docs/로 빼고 링크만 남긴다. -->

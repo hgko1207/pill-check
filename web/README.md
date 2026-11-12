@@ -1,6 +1,6 @@
 # PillCheck Web (PWA)
 
-DESIGN.md의 Approach A — PWA-first 구현.
+docs/product-design.md의 Approach A — PWA-first 구현.
 
 ## 처음 열기
 
@@ -71,7 +71,7 @@ web/
 │   ├── components/
 │   │   ├── SearchScreen.tsx  # 검색 + 바코드 통합 화면
 │   │   ├── BarcodeScanner.tsx
-│   │   └── Disclaimer.tsx    # 면책 문구 (DESIGN.md 정의)
+│   │   └── Disclaimer.tsx    # 면책 문구 (docs/product-design.md 정의)
 │   └── lib/
 │       ├── nedrug-api.ts     # 식약처 API 클라이언트
 │       └── types.ts
