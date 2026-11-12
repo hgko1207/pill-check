@@ -6,7 +6,7 @@ Repo: d:/project/2026/pill-check
 Status: APPROVED
 Mode: Builder (with possible launch path)
 
-> **2026-11-11 추가 — 다음 단계 설계**: 영양제 "TV 말 확인"(제품명 → 식약처 원료·기능성·함량·회수 + 성분 대조 + 가격 보기 버튼). 설계는 [`docs/designs/tv-claim-check.md`](docs/designs/tv-claim-check.md), 근거 시험은 `scripts/gate-search/SALES-CHECK.md`. "성분 → 판매 제품 순위"는 시험 실패로 아래 Premise 2대로 V2 '비교'에 남긴다.
+> **2026-11-11 추가 — 다음 단계 설계**: 영양제 "TV 말 확인"(제품명 → 식약처 원료·기능성·함량·회수 + 성분 대조 + 가격 보기 버튼). 설계는 [`docs/designs/tv-claim-check.md`](designs/tv-claim-check.md), 근거 시험은 `scripts/gate-search/SALES-CHECK.md`. "성분 → 판매 제품 순위"는 시험 실패로 아래 Premise 2대로 V2 '비교'에 남긴다.
 
 ---
 
@@ -183,7 +183,7 @@ CI/CD는 V1에서 Vercel/Cloudflare 자동 배포(Git push 시). 별도 작업 0
 **이 단계 통과 전에는 어떤 빌드 작업도 시작하지 않는다.**
 
 - [x] ~~부모님 폰 OS~~ — 확정 (부모님 Android, 자녀 iOS, PWA로 통합)
-- [ ] **공공데이터포털(data.go.kr) 활용신청 4건 → 인증키 1개** (자세한 절차: [docs/api-key-guide.md](docs/api-key-guide.md))
+- [ ] **공공데이터포털(data.go.kr) 활용신청 4건 → 인증키 1개** (자세한 절차: [docs/api-key-guide.md](api-key-guide.md))
   - 식품의약품안전처_의약품 제품 허가정보 (15095677) — 검색·등록
   - 식품의약품안전처_**의약품안전사용서비스(DUR)성분정보** (15056780) — 핵심 매칭
   - 식품의약품안전처_의약품안전사용서비스(DUR)품목정보 (15059486) — 보조

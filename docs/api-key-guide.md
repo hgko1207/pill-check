@@ -173,7 +173,7 @@ VITE_FOODSAFETY_API_KEY=
    npm run dev
    ```
 
-3. **DESIGN.md 다시 정독** — 결정 사항이 정말 본인 상황에 맞는지 재확인
+3. **docs/product-design.md 다시 정독** — 결정 사항이 정말 본인 상황에 맞는지 재확인
 
 ---
 

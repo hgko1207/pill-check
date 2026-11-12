@@ -11,7 +11,7 @@
 
 🚧 **Week 0 — HARD GATE 검증 단계.** 빌드 시작 전. PWA 스캐폴드 ready.
 
-설계 문서: **[DESIGN.md](DESIGN.md)** (Status: APPROVED, /office-hours 9/10 리뷰 통과)
+설계 문서: **[docs/product-design.md](docs/product-design.md)** (Status: APPROVED, /office-hours 9/10 리뷰 통과)
 
 ---
 
@@ -61,8 +61,10 @@ npm run dev
 
 ```
 pill-check/
-├── DESIGN.md                 # 설계 문서 (소스 오브 트루스)
+├── PRODUCT.md                # 제품 정의 (사용자·목적·원칙, /impeccable)
+├── DESIGN.md                 # 디자인 시스템 (색·글꼴·컴포넌트, /impeccable)
 ├── docs/
+│   ├── product-design.md     # 제품 설계 문서 (소스 오브 트루스)
 │   └── api-key-guide.md      # 식약처 OpenAPI 발급 가이드
 ├── scripts/week0/            # GATE 1 — Python 데이터 검증
 └── web/                      # PWA (Vite + React + TypeScript)
