@@ -3,6 +3,7 @@ import {
   ChevronRight,
   CircleAlert,
   Info,
+  Pill,
   ScanBarcode,
   Search,
   Sparkles,
@@ -280,6 +281,19 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
 
   return (
     <>
+      {/* 홈 첫 줄: 등록해 둔 내 약 요약. 누르면 내 약 탭 */}
+      {showHome && registered.length > 0 && (
+        <button type="button" className="hello-card" onClick={() => onShowMeds?.()}>
+          <span className="hello-card__icon" aria-hidden="true">
+            <Pill />
+          </span>
+          <span className="hello-card__body">
+            <span className="hello-card__title">내 약 {registered.length}개를 등록해 두셨어요</span>
+            <span className="hello-card__sub">새 제품을 찾아 약 궁합을 보세요.</span>
+          </span>
+          <ChevronRight className="row__chev" aria-hidden="true" />
+        </button>
+      )}
       <form
         className="search-form"
         role="search"
@@ -370,7 +384,7 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
               <span className="quick__icon" aria-hidden="true">
                 <Sparkles />
               </span>
-              <span className="quick__label">TV에서 들은 성분&nbsp;확인</span>
+              <span className="quick__label">TV에서 들은 성분&nbsp;찾기</span>
             </button>
           </div>
 
@@ -492,7 +506,7 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
                         onClick={() => void handleCheck(item)}
                         disabled={isPending}
                       >
-                        {isPending ? <span className="spinner" aria-hidden="true" /> : '내 약과 확인'}
+                        {isPending ? <span className="spinner" aria-hidden="true" /> : '약 궁합 보기'}
                       </button>
                       {!isRegistered && (
                         <button

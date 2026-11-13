@@ -79,10 +79,10 @@ function IngredientResult({ query, match }: { query: string; match: IngredientMa
         </p>
         <p className="ingr-result__asked">확인한 성분: {asked}</p>
         <p className="ingr-result__text">
-          원료: <b>{match.matched}</b>
+          재료: <b>{match.matched}</b>
           {match.note && ` (${match.note})`}
         </p>
-        {match.etcOnly && <p className="ingr-result__text">기능성 원료가 아닌 기타 원료로 신고됐어요.</p>}
+        {match.etcOnly && <p className="ingr-result__text">주된 재료가 아니라 그 밖의 재료로 신고됐어요.</p>}
         <Note />
       </div>
     )
@@ -92,16 +92,16 @@ function IngredientResult({ query, match }: { query: string; match: IngredientMa
     return (
       <div className="ingr-result ingr-result--no" role="status">
         <p className="ingr-result__title">
-          <CircleX aria-hidden="true" /> 이 제품 원료에는 없어요
+          <CircleX aria-hidden="true" /> 이 제품 재료에는 없어요
         </p>
         <p className="ingr-result__asked">확인한 성분: {asked}</p>
         <p className="ingr-result__text">
           {match.mainRaw.length > 0 ? (
             <>
-              대신 들어 있는 주요 원료: <b>{match.mainRaw.join(', ')}</b>
+              대신 들어 있는 주요 재료: <b>{match.mainRaw.join(', ')}</b>
             </>
           ) : (
-            '신고된 원료 목록에서 찾지 못했어요.'
+            '신고한 재료 목록에서 못 찾았어요.'
           )}
         </p>
         <Note />
@@ -113,14 +113,14 @@ function IngredientResult({ query, match }: { query: string; match: IngredientMa
     return (
       <div className="ingr-result ingr-result--yes" role="status">
         <p className="ingr-result__title">
-          <CircleCheck aria-hidden="true" /> 원료 이름에 있어요
+          <CircleCheck aria-hidden="true" /> 재료 이름에 있어요
         </p>
         <p className="ingr-result__asked">확인한 말: {asked}</p>
         <p className="ingr-result__text">
-          원료: <b>{match.matched}</b>
+          재료: <b>{match.matched}</b>
         </p>
-        {match.etcOnly && <p className="ingr-result__text">기능성 원료가 아닌 기타 원료로 신고됐어요.</p>}
-        <p className="ingr-result__text">원료 이름의 글자로만 찾은 결과예요.</p>
+        {match.etcOnly && <p className="ingr-result__text">주된 재료가 아니라 그 밖의 재료로 신고됐어요.</p>}
+        <p className="ingr-result__text">재료 이름에 그 글자가 있는지만 본 결과예요.</p>
         <Note />
       </div>
     )
@@ -130,13 +130,13 @@ function IngredientResult({ query, match }: { query: string; match: IngredientMa
     return (
       <div className="ingr-result ingr-result--unknown" role="status">
         <p className="ingr-result__title">
-          <CircleHelp aria-hidden="true" /> 원료 이름에서 못 찾았어요
+          <CircleHelp aria-hidden="true" /> 재료 이름에서 못 찾았어요
         </p>
         <p className="ingr-result__asked">확인한 말: {asked}</p>
         <p className="ingr-result__text">다른 이름으로 신고됐을 수도 있어요.</p>
         {match.mainRaw.length > 0 && (
           <p className="ingr-result__text">
-            주요 원료: <b>{match.mainRaw.join(', ')}</b>
+            주요 재료: <b>{match.mainRaw.join(', ')}</b>
           </p>
         )}
         <Note />
@@ -152,7 +152,7 @@ function IngredientResult({ query, match }: { query: string; match: IngredientMa
       <p className="ingr-result__asked">확인한 성분: {asked}</p>
       <p className="ingr-result__text">
         {match.reason === 'no-raw'
-          ? '이 제품은 원료 정보가 비어 있어요. 약사에게 확인해 보세요.'
+          ? '이 제품은 재료 정보가 비어 있어요. 약사에게 확인해 보세요.'
           : '성분 이름을 두 글자 이상 입력해 주세요.'}
       </p>
       <Note />
@@ -161,5 +161,5 @@ function IngredientResult({ query, match }: { query: string; match: IngredientMa
 }
 
 function Note() {
-  return <p className="ingr-result__note">식약처 신고 원료 기준이에요. 효과를 보장하지 않아요.</p>
+  return <p className="ingr-result__note">식약처에 신고한 재료 기준이에요. 효과를 보장하지 않아요.</p>
 }

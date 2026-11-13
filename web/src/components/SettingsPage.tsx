@@ -102,7 +102,7 @@ export function SettingsPage({ onShowGuide, onMedicationsChanged }: SettingsProp
         </div>
         <div className="setting">
           <div className="setting__text">
-            <div className="row__title" id="theme-label">화면 밝기</div>
+            <div className="row__title" id="theme-label">화면 색</div>
             <div className="row__sub row__sub--guide">자동은 휴대폰 설정을 따라가요.</div>
           </div>
           <div className="segmented" role="radiogroup" aria-labelledby="theme-label">

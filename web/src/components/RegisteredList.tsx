@@ -78,7 +78,7 @@ export function RegisteredList({ refreshSignal, onChange, onAdd }: Props) {
               검색 결과에서 <b>내 약에 등록</b>을 눌러요.
             </li>
             <li>
-              새 제품을 살 때 <b>내 약과 확인</b>을 누르면 함께 먹어도 되는지 알려&nbsp;드려요.
+              새 제품을 살 때 <b>약 궁합 보기</b>을 누르면 함께 먹어도 되는지 알려&nbsp;드려요.
             </li>
           </ol>
         </div>

@@ -45,7 +45,7 @@ export function IngredientCard({ term }: Props) {
 
         {info.cautions.length > 0 && (
           <details className="disclosure">
-            <summary className="disclosure__summary">섭취 시 주의사항 보기</summary>
+            <summary className="disclosure__summary">주의할 점 보기</summary>
             <ul className="ingr-card__list">
               {info.cautions.map((c, i) => (
                 <li key={i}>{c}</li>
@@ -55,7 +55,7 @@ export function IngredientCard({ term }: Props) {
         )}
 
         <p className="ingr-card__count">
-          이 성분을 기능성 원료로 신고한 제품{' '}
+          이 성분을 주된 재료로 신고한 제품{' '}
           <b className="num">{info.products.toLocaleString('ko-KR')}개</b>
           <span className="ingr-card__date"> ({DATA.generatedAt} 기준)</span>
         </p>

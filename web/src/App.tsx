@@ -47,9 +47,9 @@ function AppContent() {
         {view === 'check' && (
           <>
             <header className="screen-head">
-              <h1 className="screen-head__title">어떤 제품을 확인할까요?</h1>
+              <h1 className="screen-head__title">안녕하세요, 오늘도 건강하세요</h1>
               <p className="screen-head__desc">
-                내 약과 함께 먹어도 되는지 식약처 자료로 알려&nbsp;드려요.
+                새로 산 약이나 영양제를 드시는 약이랑 같이 먹어도 되는지 알려&nbsp;드려요.
               </p>
             </header>
             <SearchScreen

@@ -9,7 +9,7 @@
   --pc-radius-xs: 8px;
   --pc-radius-s: 12px;
   --pc-radius-m: 16px;
-  --pc-radius-l: 20px;
+  --pc-radius-l: 22px;
   --pc-radius-xl: 24px;
   --pc-radius-pill: 999px;
 
@@ -37,23 +37,31 @@
   --pc-duration-standard: 240ms;
   --pc-duration-slow: 420ms;
 
-  /* 색 — 라이트 */
-  --pc-bg: #F2F4F6;
+  /* 색 — 라이트. 2026-11-13 따뜻한 미색 계열로 (차가운 회색이 "은행 앱 같다"는 의견) */
+  --pc-bg: #F8F4EE; /* 위 "시판 중단" 빨강 글자 4.53:1 */
   --pc-surface: #FFFFFF;
-  --pc-surface-2: #F7F8FA;
-  --pc-pressed: #EEF0F3;
-  --pc-text: #191F28;
-  --pc-text-muted: #4E5968;
-  --pc-text-subtle: #5F6B78;
-  --pc-placeholder: #6B7684;
-  --pc-border: #E5E8EB;
-  --pc-divider: #EEF0F2;
-  --pc-chevron: #B0B8C1;
+  --pc-surface-2: #F7F2EA;
+  --pc-pressed: #F0E9DE;
+  --pc-text: #28221D;
+  --pc-text-muted: #5A5047;
+  --pc-text-subtle: #66594E;
+  --pc-placeholder: #75685C; /* 흰 바탕 5.40:1, surface-2 4.84:1 */
+  --pc-border: #EAE2D5;
+  --pc-divider: #F1EBE2;
+  --pc-chevron: #BCB1A3;
+  --pc-mark-bg: #FFE68A; /* 형광펜. 글자 대비 13:1 */
 
   --pc-primary: #4A4FD0;
   --pc-primary-deep: #3A3EB0;
-  --pc-primary-soft: #ECEDFB;
+  --pc-primary-soft: #EEECFB;
   --pc-primary-on: #FFFFFF;
+
+  /* 홈의 두 번째 아이콘 동그라미 (TV 성분) */
+  --pc-peach: #B4531A;
+  --pc-peach-bg: #FFEBDD;
+
+  /* 흰 상자가 바탕에서 살짝 떠 보이게 */
+  --pc-card-shadow: 0 1px 2px rgba(70, 48, 24, 0.05), 0 6px 18px rgba(70, 48, 24, 0.06);
 
   /* 결과 4색 (의미 고정) */
   --pc-danger: #D7263D;
@@ -66,7 +74,7 @@
   --pc-safe-bg: #E6F6EF;
   --pc-safe-ink: #0B5A40;
   --pc-unknown: #5B6573;
-  --pc-unknown-bg: #E9ECF0;
+  --pc-unknown-bg: #EFEBE5;
   --pc-unknown-ink: #343B45;
 
   --pc-elev-1: 0 1px 2px rgba(25, 31, 40, 0.05);
@@ -79,17 +87,21 @@
 }
 
 html[data-theme='dark'] {
-  --pc-bg: #17171C;
-  --pc-surface: #212128;
-  --pc-surface-2: #2A2A32;
-  --pc-pressed: #2E2E37;
-  --pc-text: #F2F3F5;
-  --pc-text-muted: #C2C8D0;
-  --pc-text-subtle: #9AA3AE;
-  --pc-placeholder: #868F9A; /* #212128 위 4.88:1 */
-  --pc-border: #34343D;
-  --pc-divider: #2C2C34;
-  --pc-chevron: #5E6570;
+  --pc-bg: #1A1815;
+  --pc-surface: #25221F;
+  --pc-surface-2: #2E2A26;
+  --pc-pressed: #332F2A;
+  --pc-text: #F4F1EC;
+  --pc-text-muted: #CFC6BC;
+  --pc-text-subtle: #ACA196;
+  --pc-placeholder: #A0958A; /* surface 5.40:1, surface-2 4.85:1 */
+  --pc-border: #3A3530;
+  --pc-divider: #312D28;
+  --pc-chevron: #6B635A;
+  --pc-mark-bg: #5A4914; /* 형광펜. 글자 대비 7.8:1 */
+  --pc-peach: #FFB98A;
+  --pc-peach-bg: #3E2A1C;
+  --pc-card-shadow: 0 0 0 0 transparent; /* 어두운 바탕에서는 그림자가 안 보인다. none은 다른 그림자와 함께 쓸 수 없다 */
 
   --pc-primary: #5B60E6;
   --pc-primary-deep: #B6B9F8;
@@ -106,8 +118,8 @@ html[data-theme='dark'] {
   --pc-safe-bg: #15302A;
   --pc-safe-ink: #C2F0DA;
   --pc-unknown: #A7B0BC;
-  --pc-unknown-bg: #2A2C33;
-  --pc-unknown-ink: #E1E5EA;
+  --pc-unknown-bg: #2E2B27;
+  --pc-unknown-ink: #E8E2DA;
 
   --pc-elev-1: 0 1px 2px rgba(0, 0, 0, 0.3);
   --pc-elev-2: 0 2px 8px rgba(0, 0, 0, 0.35);
@@ -374,7 +386,7 @@ html[data-theme='dark'] .btn--danger { color: #2A0A10; }
   border-radius: var(--pc-radius-m);
   background: var(--pc-surface);
   border: 2px solid transparent;
-  box-shadow: var(--pc-elev-1);
+  box-shadow: var(--pc-card-shadow);
   transition: border-color var(--pc-duration-quick) var(--pc-ease-standard);
 }
 .field:focus-within { border-color: var(--pc-primary); }
@@ -419,6 +431,7 @@ html[data-theme='dark'] .btn--danger { color: #2A0A10; }
   background: var(--pc-surface);
   border-radius: var(--pc-radius-l);
   overflow: hidden;
+  box-shadow: var(--pc-card-shadow);
 }
 .row {
   display: flex;
@@ -558,6 +571,42 @@ button.row:active, a.row:active { background: var(--pc-pressed); }
 
 /* ────────── 확인 탭 ────────── */
 
+/* 홈 첫 줄: 내 약 요약 (누르면 내 약 탭) */
+.hello-card {
+  width: calc(100% - 2 * var(--pc-gutter));
+  margin: 8px var(--pc-gutter) 0;
+  padding: 16px 14px 16px 16px;
+  min-height: var(--pc-row-min-h);
+  border: 0;
+  border-radius: var(--pc-radius-l);
+  background: var(--pc-surface);
+  box-shadow: var(--pc-card-shadow);
+  color: var(--pc-text);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.hello-card:active { background: var(--pc-pressed); }
+.hello-card__icon {
+  flex: none;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--pc-primary-soft);
+  color: var(--pc-primary);
+}
+html[data-theme='dark'] .hello-card__icon { color: var(--pc-primary-deep); }
+.hello-card__icon svg { width: 26px; height: 26px; }
+.hello-card__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.hello-card__title { font-size: var(--fs-body); font-weight: 700; line-height: 1.4; }
+.hello-card__sub { font-size: var(--fs-sub); line-height: 1.45; color: var(--pc-text-muted); }
+
 .search-form {
   margin: 16px var(--pc-gutter) 0;
   display: flex;
@@ -586,23 +635,25 @@ button.row:active, a.row:active { background: var(--pc-pressed); }
   gap: 12px;
   text-align: left;
   /* 선택 테두리(안쪽 선)를 0에서 2px로 바꿔, 선택·해제가 부드럽게 이어지게 한다 */
-  box-shadow: var(--pc-elev-1), inset 0 0 0 0 var(--pc-primary);
+  box-shadow: var(--pc-card-shadow), inset 0 0 0 0 var(--pc-primary);
   transition: background var(--pc-duration-quick) var(--pc-ease-standard),
     box-shadow var(--pc-duration-quick) var(--pc-ease-standard);
 }
 .quick__tile:active { background: var(--pc-pressed); }
-.quick__tile[aria-expanded='true'] { box-shadow: var(--pc-elev-1), inset 0 0 0 2px var(--pc-primary); }
+.quick__tile[aria-expanded='true'] { box-shadow: var(--pc-card-shadow), inset 0 0 0 2px var(--pc-primary); }
 .quick__icon {
-  width: 44px;
-  height: 44px;
-  border-radius: var(--pc-radius-s);
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--pc-primary-soft);
   color: var(--pc-primary);
 }
-.quick__icon svg { width: 24px; height: 24px; }
+html[data-theme='dark'] .quick__icon { color: var(--pc-primary-deep); }
+.quick__tile + .quick__tile .quick__icon { background: var(--pc-peach-bg); color: var(--pc-peach); }
+.quick__icon svg { width: 26px; height: 26px; }
 .quick__label { font-size: var(--fs-body); font-weight: 700; line-height: 1.35; }
 
 .scanner-box, .tv-box { margin-top: 10px; padding: 16px; }
@@ -676,15 +727,59 @@ html[data-theme='dark'] .row__title--link { color: var(--pc-primary-deep); }
 
 /* 상세: 한눈에 보기 (식약처 원문 앞부분) */
 .glance__row + .glance__row {
-  margin-top: 16px;
-  padding-top: 16px;
+  margin-top: 18px;
+  padding-top: 18px;
   border-top: 1px solid var(--pc-divider);
 }
-.glance__label {
-  margin: 0 0 4px;
-  font-size: var(--fs-small);
+/* 묻는 말 제목: 아이콘 + 22px 굵게. 훑어보는 눈이 여기서 멈춘다 */
+.glance__head {
+  margin: 0 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--fs-title);
+  line-height: 1.35;
   font-weight: 700;
-  color: var(--pc-text-muted);
+  letter-spacing: -0.01em;
+  color: var(--pc-text);
+}
+.glance__icon {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--pc-primary-soft);
+  color: var(--pc-primary-deep);
+}
+.glance__icon svg { width: 20px; height: 20px; stroke-width: 2.2; }
+.glance__icon--caution { background: var(--pc-warn-bg); color: var(--pc-warn); }
+.glance__line {
+  margin: 0;
+  font-size: var(--fs-body);
+  line-height: 1.65;
+  white-space: pre-line;
+}
+.glance__line + .glance__line { margin-top: 6px; }
+/* 원문 안의 소제목 줄("1. 주효능·효과", "만 12세 이상 소아 및 성인:") */
+.glance__sub {
+  margin: 12px 0 2px;
+  font-size: var(--fs-body);
+  line-height: 1.5;
+  font-weight: 700;
+}
+.glance__head + .glance__sub { margin-top: 0; }
+/* 형광펜: 먹는 법의 횟수, 개수, 양 */
+.glance__mark {
+  padding: 1px 5px;
+  border-radius: 6px;
+  background: var(--pc-mark-bg);
+  color: inherit;
+  font-weight: 700;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
 }
 .glance__note {
   margin: 16px 0 0;
@@ -729,6 +824,7 @@ html[data-theme='dark'] .row__title--link { color: var(--pc-primary-deep); }
   background: var(--pc-surface);
   border-radius: var(--pc-radius-l);
   overflow: hidden;
+  box-shadow: var(--pc-card-shadow);
 }
 .folds:empty { display: none; }
 .fold + .fold { border-top: 1px solid var(--pc-divider); }
