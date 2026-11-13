@@ -33,6 +33,34 @@
 
 > 24~27은 사용자 확인(2026-11-13)에서 나온 것이다: "신고 정보와 기준규격 보기 위에 여백이 많다", "한눈에 보기가 딱딱해서 어르신이 안 읽을 것 같다", "'내 약과 확인'이 음식 '약과'처럼 읽힌다, 전체를 쉬운 말로", "영양제끼리 '비교할 수 없어요'면 어떻게 하나". 대부분 50대 이상이 쓸 것으로 본다. 결정은 아래 각 항목에 적는다.
 
+> 29~31은 배포를 Vercel에서 Cloudflare Pages로 옮기고 `pill.hgko.dev`를 붙이는 작업이다(2026-11-13 사용자 결정). 이유: 광고 계획이 있는데 Vercel Hobby는 비상업용만 허용(https://vercel.com/docs/limits/fair-use-guidelines), 아직 쓰는 사람이 없어 주소가 바뀌어도 등록약 데이터 이전이 필요 없음, 부모님께는 옮기고 도메인까지 붙인 뒤 드린다. `hgko.dev` DNS는 이미 Cloudflare에 있다. 방법 비교: (A) Cloudflare Pages + GitHub 연결 — 지금처럼 push하면 자동 배포, 브랜치 미리보기 있음 **(추천)** / (B) Pages 직접 올리기(wrangler) — 배포를 손으로 해야 하고 wrangler 설치 필요 / (C) Vercel Pro 유지 — 코드 그대로지만 유료. 29 → 30 → 31 순서로, 각각 따로 검증한다.
+
+### [ ] 30. Cloudflare Pages 프로젝트 만들고 pill.hgko.dev 연결
+- 목표: `https://pill.hgko.dev`가 200과 제목 "약똑똑"을 돌려주고, `/api/llm`에 짧은 질문을 보내면 200과 답이 오고, 없는 경로(`/abc`)도 앱 첫 화면으로 열린다.
+- 맥락: 대시보드 작업이라 사용자가 하고, 확인은 Claude가 한다. `hgko.dev`가 Cloudflare zone이라 도메인을 붙이면 DNS 기록이 자동으로 생긴다(Cloudflare 문서 Custom domains).
+- 사용자가 할 일 (Cloudflare 대시보드):
+  1. Workers & Pages → Create → Pages → Connect to Git → `hgko1207/pill-check`.
+  2. 빌드 설정: Production branch `main`, Framework preset `Vite`, Build command `npm run build`, Build output `dist`, Root directory `web`.
+  3. Settings → Variables and Secrets: `VITE_NEDRUG_API_KEY`, `VITE_FOODSAFETY_API_KEY`(빌드 때 번들에 들어가는 값, 지금 Vercel 값과 같게), `GEMINI_API_KEY`(**Encrypt**). 키는 채팅에 붙여 넣지 않는다.
+  4. 29번 브랜치 미리보기 주소에서 확인이 끝나고 main에 합친 뒤, Custom domains → Set up a domain → `pill.hgko.dev`.
+- Claude가 할 일: 연결 전에 Vercel에 넣어 둔 `pill.hgko.dev`를 뺀다(`vercel domains rm pill.hgko.dev`, 이 대화에서 추가한 것). 연결 뒤 위 목표 3가지를 curl로 확인한다.
+- 검증: `curl -s https://pill.hgko.dev`(200, `<title>약똑똑</title>`), `/api/llm` POST 200, `/abc` 200, `/sw.js`와 `/manifest.webmanifest` 200. 휴대폰에서 열어 검색·AI 해설을 사용자가 확인한다(집 LG U+ 와이파이에서는 2026-11-13 현재 정부 사이트가 안 열리므로 LTE로 확인).
+- 안 하는 것: 루트 `hgko.dev` 설정, 광고, `ads.txt`.
+- 멈춤 조건: Cloudflare 빌드 실패(Node 버전 문제면 `NODE_VERSION` 변수를 제안하고 묻는다 — Vercel은 24.x였고 Cloudflare 기본값은 확인 안 함), 도메인에서 522가 나면 멈추고 알린다.
+
+### [ ] 31. Vercel 정리와 문서 고치기
+- 목표: 저장소에 Vercel 전용 코드와 설명이 남지 않고, GitHub 저장소 홈페이지 주소가 `https://pill.hgko.dev`다.
+- 맥락: 30번이 확인된 뒤에 한다.
+- 변경할 파일:
+  - `web/api/llm.ts` — 삭제(29번 함수로 대체됨).
+  - `CLAUDE.md`(4, 12줄), `.claude/rules/typescript-react.md`(14줄), `PRODUCT.md`(37줄) — "Vercel Edge Function `web/api/llm.ts`"를 "Cloudflare Pages Function `web/functions/api/llm.ts`"로.
+  - `web/README.md` — "빌드 & 배포"에 Cloudflare Pages 설정(루트 `web`, 출력 `dist`, 변수 3개)을 적는다.
+  - GitHub 저장소 홈페이지(`gh repo edit --homepage`) — 지금 404인 `pill-check-ten.vercel.app`을 바꾼다.
+- 참조: 없음.
+- 검증: `npm --prefix web run typecheck`, `npm --prefix web run build`, `grep -rn "Vercel" CLAUDE.md .claude PRODUCT.md web/README.md web/src`로 남은 곳 확인.
+- 안 하는 것: `docs/product-design.md`의 과거 기록 고치기(결정 당시 기록이라 둔다), 광고.
+- 멈춤 조건: Vercel 프로젝트(`pill-check`)를 지우거나 GitHub 연결을 끊는 것은 되돌릴 수 없으므로, 그때 사용자에게 묻는다. 추천은 아직 쓰는 사람이 없으니 지워서 옛 주소를 닫는 것이다.
+
 #### 전체 점검에서 남은 것 (이번 범위 밖, 다음 계획 후보)
 - P1 검색: 종류별 10건에서 말없이 잘림(`nedrug-api.ts:26`, `healthfood-api.ts:157`), 실패와 "검색 결과가 없어요"가 함께 뜸(`SearchScreen.tsx:186-190`), 요청 시간 제한 없음, 검색 중 X나 새 검색어가 이전 검색을 취소하지 않음.
 - P1 등록과 판정: 등록할 때 내 약끼리 금기를 알리지 않음. 약 0개일 때 진한 버튼이 "내 약과 확인". 새 동작이라 설계부터.
@@ -55,6 +83,13 @@
 - 1~4번 중 발견한 4건은 위 5·6번 작업으로 옮겼다.
 
 ## 완료
+
+### [x] 29. AI 해설 서버 함수를 Cloudflare Pages Functions로 옮기기
+- 목표: `web/functions/api/llm.ts`가 지금 `/api/llm`과 같은 약속(POST `{prompt}` → `{text}` 또는 `{error}`와 같은 상태 코드)으로 동작하고, 타입체크와 빌드가 통과한다.
+- 맥락: Cloudflare Pages는 프로젝트 루트(여기서는 `web/`)의 `functions/` 폴더를 서버 함수로 쓴다. `functions/api/llm.ts`가 `/api/llm` 주소가 된다. 키는 `process.env`가 아니라 `context.env`로 읽는다(Cloudflare 문서 Pages Functions › Bindings).
+- 변경한 파일: `web/functions/api/llm.ts`(새로 만듦, 검사·Gemini 호출·응답 처리는 `web/api/llm.ts`를 그대로 옮김, 타입은 파일 안에 최소로 적어 새 패키지 없음), `web/src/lib/llm.ts`(안내 문구 "Vercel 배포본" → "배포본").
+- 계획과 다른 점: `onRequestPost` 대신 `onRequest` 하나로 받고 POST가 아니면 405를 돌려준다. `onRequestPost`만 두면 GET 등에 405가 아닌 다른 응답이 나갈 수 있어서 지금 동작을 그대로 지키려고 바꿨다.
+- 결과 (2026-11-13): `npm --prefix web run typecheck` 통과, `npm --prefix web run build` 통과. `web/functions/`는 기본 타입체크 밖이라 임시 tsconfig(strict, noUnused*, lib ES2022+DOM)로 그 파일만 `tsc` 검사해 통과. 실제 호출 확인은 30번 미리보기 주소에서 한다.
 
 ### [x] 27. 영양제끼리 같은 성분이 겹치는지 알려 주기
 - 목표: 영양제를 확인할 때, 내 약의 영양제와 같은 성분(예: 비타민D, 칼슘, 오메가3)이 겹치면 결과에 "같은 성분이 겹쳐요: 비타민D (내 약: OO)"가 나온다. 겹침이 없으면 "같은 성분은 못 찾았어요"로 말하고, 괜찮다고 단정하지 않는다.

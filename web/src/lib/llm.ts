@@ -129,7 +129,7 @@ export class QuotaExceededError extends Error {
 export class DevLLMUnavailableError extends Error {
   constructor() {
     super(
-      'AI 해설은 Vercel 배포본에서만 동작합니다. (로컬 dev에서 테스트하려면 .env에 VITE_GEMINI_API_KEY 추가)',
+      'AI 해설은 배포본에서만 동작합니다. (로컬 dev에서 테스트하려면 .env에 VITE_GEMINI_API_KEY 추가)',
     )
     this.name = 'DevLLMUnavailableError'
   }
