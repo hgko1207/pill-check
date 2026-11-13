@@ -243,3 +243,20 @@ export function matchIngredient(item: RawFields, query: string): IngredientMatch
 
   return { result: 'no', label: ing.label, mainRaw }
 }
+
+/** 신고한 주된 재료 글(RAWMTRL_NM)에 든 별칭표 성분. 그 밖의 재료(ETC)는 보지 않는다 */
+export function knownIngredients(raw: string | undefined): IngredientAlias[] {
+  const pieces = splitRaw(raw)
+  return INGREDIENTS.filter((ing) => findIn(pieces, ing) !== null)
+}
+
+/**
+ * 두 영양제의 주된 재료에 같이 든 성분 이름. 별칭표 19개 성분만 본다.
+ * 빈 배열은 "별칭표 성분 중 겹치는 것을 못 찾음"이지 "겹치지 않음"이 아니다.
+ */
+export function sharedIngredients(a: string | undefined, b: string | undefined): string[] {
+  const inB = new Set(knownIngredients(b).map((ing) => ing.key))
+  return knownIngredients(a)
+    .filter((ing) => inB.has(ing.key))
+    .map((ing) => ing.label)
+}

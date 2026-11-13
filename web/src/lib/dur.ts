@@ -1,5 +1,6 @@
 import type { InteractionResult, InteractionDetail, UnifiedSearchResult } from './types'
 import { db, type RegisteredMedication } from './db'
+import { knownIngredients, sharedIngredients } from './ingredient-alias'
 import {
   findDurConflicts,
   isSameProduct,
@@ -195,6 +196,18 @@ export async function checkInteraction(
   const comparedCount = states.filter((s) => s === 'compared').length
   const uncheckedCount = states.filter((s) => s === 'unchecked').length
 
+  // 영양제끼리 같은 성분 겹침 (식약처 신고 재료 이름 대조). 제품에 별칭표 성분이 없으면 찾지 않는다
+  const overlap: Record<string, string[]> = {}
+  if (product.kind === 'healthfood' && knownIngredients(product.ingredient).length > 0) {
+    for (const med of others) {
+      if (med.kind === 'healthfood' && med.mainIngredient?.trim()) {
+        overlap[medKey(toSide(med))] = sharedIngredients(product.ingredient, med.mainIngredient)
+      }
+    }
+  }
+  const hasOverlap = Object.values(overlap).some((labels) => labels.length > 0)
+  const overlapChecked = Object.keys(overlap).length > 0
+
   // 3) 모든 결과 dedup 합산
   const allRows = new Map<string, DurRow>()
   for (const r of fetchResults) {
@@ -214,11 +227,25 @@ export async function checkInteraction(
       checked: true,
       alreadyRegistered,
       coverage,
+      overlap,
       title: hasDanger ? '함께 드시면 안 돼요' : '함께 드실 때 주의가 필요해요',
       message: hasDanger
         ? '드시기 전에 약사에게 이\u00A0화면을 보여 주세요.'
         : '함께\u00A0드셔도 되는지 약사에게 물어보세요.',
       details: conflicts,
+    }
+  }
+
+  // 같은 성분이 겹친다: 식약처 충돌은 아니지만 많이 먹게 될 수 있어 노랑으로 알린다
+  if (hasOverlap) {
+    return {
+      level: 'warn',
+      checked: true,
+      alreadyRegistered,
+      coverage,
+      overlap,
+      title: '같은 성분이 겹쳐요',
+      message: '같은 성분을 여러 제품으로 드시면 너무 많이 드시게 될 수 있어요. 함께\u00A0드셔도 되는지 약사에게 물어보세요.',
     }
   }
 
@@ -241,8 +268,21 @@ export async function checkInteraction(
       checked: true,
       alreadyRegistered,
       coverage,
+      overlap,
       title: '일부 내 약은 확인하지\u00A0못했어요',
       message: '식약처 자료를 다 받지 못했어요. 아래에서 확인\u00A0못\u00A0한 약을 보시고 "다시 확인"을 눌러\u00A0주세요.',
+    }
+  }
+  if (comparedCount === 0 && overlapChecked) {
+    // 영양제끼리: 병용금기 자료는 없지만 재료 이름으로 같은 성분은 찾아봤다. 괜찮다고 하지 않는다
+    return {
+      level: 'unknown',
+      checked: true,
+      alreadyRegistered,
+      coverage,
+      overlap,
+      title: '같은 성분은 못\u00A0찾았어요',
+      message: '신고한 재료 이름에서 같은 성분이 겹치는지만 찾아봤어요. 함께 드셔도\u00A0된다는 뜻은\u00A0아니에요.',
     }
   }
   if (comparedCount === 0) {
@@ -262,6 +302,7 @@ export async function checkInteraction(
     checked: true,
     alreadyRegistered,
     coverage,
+    overlap,
     // 판정처럼 읽히지 않게 "없어요"가 아니라 "자료에서 못 찾았어요". 약사 안내는 ResultSheet가 상자 안에 붙인다
     title: '식약처 자료에서는 문제를 못\u00A0찾았어요',
     message: '자료에 없는 조합도 있어요. 함께 드셔도\u00A0된다는 뜻은\u00A0아니에요.',

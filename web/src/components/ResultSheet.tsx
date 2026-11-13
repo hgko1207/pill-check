@@ -76,20 +76,28 @@ export function ResultSheet({ result, product, registered, onClose, onCheckAnoth
 
   // 내 약별 상태. 충돌이 있으면 그 단계, 없으면 대조 상태(coverage)를 따른다:
   // unchecked = 식약처 자료를 못 받음, na = 영양제끼리라 비교할 자료가 없음, self = 확인한 제품 자신
-  type RowState = 'danger' | 'warn' | 'unchecked' | 'none' | 'na' | 'self'
+  // same = 같은 성분이 겹침, nosame = 재료 이름으로 찾아봤지만 겹침을 못 찾음 (영양제끼리)
+  type RowState = 'danger' | 'warn' | 'same' | 'unchecked' | 'none' | 'nosame' | 'na' | 'self'
+  const sharedOf = (med: RegisteredMedication) => result.overlap?.[medKey({ kind: med.kind, id: med.itemSeq })]
   const stateOf = (med: RegisteredMedication): RowState => {
     if (med.kind === product.kind && med.itemSeq === product.id) return 'self'
     const hits = details.filter((d) => d.registeredMedName === med.itemName)
     if (hits.some((d) => d.severity === 'danger')) return 'danger'
     if (hits.length > 0) return 'warn'
+    const shared = sharedOf(med)
+    if (shared && shared.length > 0) return 'same'
     const cov = result.coverage?.[medKey({ kind: med.kind, id: med.itemSeq })]
-    return cov === 'unchecked' ? 'unchecked' : cov === 'na' ? 'na' : 'none'
+    if (cov === 'unchecked') return 'unchecked'
+    if (shared) return 'nosame'
+    return cov === 'na' ? 'na' : 'none'
   }
-  const RANK: Record<RowState, number> = { danger: 0, warn: 1, unchecked: 2, none: 3, na: 4, self: 5 }
+  const RANK: Record<RowState, number> = { danger: 0, warn: 1, same: 2, unchecked: 3, none: 4, nosame: 5, na: 6, self: 7 }
   const rows = registered
     .map((med) => ({ med, state: stateOf(med) }))
     .sort((a, b) => RANK[a.state] - RANK[b.state])
-  const compared = rows.filter((r) => r.state === 'danger' || r.state === 'warn' || r.state === 'none').length
+  const COMPARED: RowState[] = ['danger', 'warn', 'same', 'none', 'nosame']
+  const compared = rows.filter((r) => COMPARED.includes(r.state)).length
+  const hasSame = rows.some((r) => r.state === 'same')
   const uncheckedCount = rows.filter((r) => r.state === 'unchecked').length
   // 자료를 못 받은 약이 있으면 "다시 확인"이 주 버튼이다 (AI 해설은 대조가 끝난 결과에만)
   const canRetry = uncheckedCount > 0 && !!onRetry
@@ -104,8 +112,14 @@ export function ResultSheet({ result, product, registered, onClose, onCheckAnoth
     }
   }
   // 결론 바로 아래에 어떤 내 약과 부딪히는지 (조사가 필요 없는 "라벨: 이름" 형태)
+  // 노랑이 같은 성분 겹침만으로 나왔으면 라벨도 그 말로 바꾼다
   const whoLevel = result.level === 'danger' ? 'danger' : result.level === 'warn' ? 'warn' : null
-  const whoNames = whoLevel ? rows.filter((r) => r.state === whoLevel).map((r) => r.med.itemName) : []
+  const sameOnly = whoLevel === 'warn' && details.length === 0
+  const whoNames = whoLevel
+    ? rows.filter((r) => r.state === (sameOnly ? 'same' : whoLevel)).map((r) => r.med.itemName)
+    : []
+  const whoLabel =
+    whoLevel === 'danger' ? '함께 드시면 안 되는 내 약' : sameOnly ? '같은 성분이 든 내 약' : '주의가 필요한 내 약'
 
   return (
     <div className="sheet" role="dialog" aria-modal="true" aria-labelledby="result-title">
@@ -126,7 +140,7 @@ export function ResultSheet({ result, product, registered, onClose, onCheckAnoth
           </h1>
           {whoNames.length > 0 && (
             <p className="verdict__who">
-              {whoLevel === 'danger' ? '함께 드시면 안 되는 내 약' : '주의가 필요한 내 약'}:{' '}
+              {whoLabel}:{' '}
               <b>{whoNames.join(', ')}</b>
             </p>
           )}
@@ -137,6 +151,7 @@ export function ResultSheet({ result, product, registered, onClose, onCheckAnoth
           {details.length > 0 && (
             <p className="verdict__source">근거: 식약처 {uniqueSources(details)} 자료</p>
           )}
+          {hasSame && <p className="verdict__source">같은 성분 근거: 식약처에 신고한 재료&nbsp;이름</p>}
         </section>
 
         {result.checked && (
@@ -165,6 +180,14 @@ export function ResultSheet({ result, product, registered, onClose, onCheckAnoth
                         {state === 'na' && (
                           <p className="compare-row__why">영양제끼리는 식약처 자료로 비교할 수&nbsp;없어요.</p>
                         )}
+                        {state === 'same' && (
+                          <p className="compare-row__why">
+                            <b>{sharedOf(med)?.join(', ')}</b> 성분이 겹쳐요
+                          </p>
+                        )}
+                        {state === 'nosame' && (
+                          <p className="compare-row__why">재료 이름에서 같은 성분을 못&nbsp;찾았어요.</p>
+                        )}
                         {hits.map((d, i) => (
                           <p key={i} className="compare-row__why">
                             <b>{d.conflictWith}</b> 성분이 문제가&nbsp;돼요
@@ -179,6 +202,8 @@ export function ResultSheet({ result, product, registered, onClose, onCheckAnoth
                       </div>
                       {state === 'danger' && <span className="status status--danger">함께 안&nbsp;돼요</span>}
                       {state === 'warn' && <span className="status status--warn">주의 필요</span>}
+                      {state === 'same' && <span className="status status--warn">성분 겹침</span>}
+                      {state === 'nosame' && <span className="status status--unknown">겹침 못&nbsp;찾음</span>}
                       {state === 'none' && <span className="status status--unknown">문제 못&nbsp;찾음</span>}
                       {state === 'unchecked' && <span className="status status--unknown">확인 못&nbsp;함</span>}
                     </div>
