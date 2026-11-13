@@ -34,7 +34,7 @@ PWA 하나로 Android·iOS를 함께 지원한다. 앱 마켓 출시는 이 웹�
 
 ## Capabilities and Constraints
 
-- 스택: Vite 6 + React 19 + TypeScript strict, Dexie, vite-plugin-pwa, html5-qrcode. AI 해설은 Vercel Edge Function `web/api/llm.ts` → Gemini.
+- 스택: Vite 6 + React 19 + TypeScript strict, Dexie, vite-plugin-pwa, html5-qrcode. AI 해설은 Cloudflare Pages Function `web/functions/api/llm.ts` → Gemini.
 - 결과 문구에서 "안전하다"고 단정하지 않는다. 초록도 "충돌이 확인되지 않음(참고용)". 면책 문구(`Disclaimer.tsx`, 상세 창 하단)는 빼지 않는다.
 - "사세요", "추천", "효과 좋은" 같은 권유·단정 문구를 쓰지 않는다. 가격은 쇼핑몰 검색 버튼으로만.
 - 사용자에게 보이는 오류는 영문 기술 용어 없이, 다음 행동을 함께 안내한다(`web/src/lib/errors.ts`).

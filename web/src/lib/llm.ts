@@ -1,7 +1,7 @@
 /**
  * LLM 클라이언트 helper.
  *
- * Production: /api/llm (Vercel Edge Function, 키 서버측만)
+ * Production: /api/llm (Cloudflare Pages Function, 키 서버측만)
  * Local dev: VITE_GEMINI_API_KEY 있으면 직접 호출, 없으면 친화 에러
  *
  * 일일 quota: 5회 (사용자별 localStorage)
