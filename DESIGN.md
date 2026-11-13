@@ -4,7 +4,7 @@ description: 60대 부모님이 직접 쓰는 약·영양제 충돌 확인 앱. 
 colors:
   primary: "#4A4FD0"
   primary-deep: "#3A3EB0"
-  primary-soft: "#ECEDFB"
+  primary-soft: "#EEECFB"
   primary-on: "#FFFFFF"
   danger: "#D7263D"
   danger-bg: "#FDECEE"
@@ -13,22 +13,25 @@ colors:
   warn-bg: "#FFF4E0"
   warn-ink: "#6E3B00"
   unknown: "#5B6573"
-  unknown-bg: "#E9ECF0"
+  unknown-bg: "#EFEBE5"
   unknown-ink: "#343B45"
   safe: "#12805C"
   safe-bg: "#E6F6EF"
   safe-ink: "#0B5A40"
-  bg: "#F2F4F6"
+  bg: "#F8F4EE"
   surface: "#FFFFFF"
-  surface-2: "#F7F8FA"
-  pressed: "#EEF0F3"
-  text: "#191F28"
-  text-muted: "#4E5968"
-  text-subtle: "#5F6B78"
-  placeholder: "#6B7684"
-  border: "#E5E8EB"
-  divider: "#EEF0F2"
-  chevron: "#B0B8C1"
+  surface-2: "#F7F2EA"
+  pressed: "#F0E9DE"
+  text: "#28221D"
+  text-muted: "#5A5047"
+  text-subtle: "#66594E"
+  placeholder: "#75685C"
+  border: "#EAE2D5"
+  divider: "#F1EBE2"
+  chevron: "#BCB1A3"
+  mark-bg: "#FFE68A"
+  peach: "#B4531A"
+  peach-bg: "#FFEBDD"
 typography:
   verdict:
     fontFamily: "Pretendard Variable, Pretendard, -apple-system, BlinkMacSystemFont, Apple SD Gothic Neo, Malgun Gothic, system-ui, sans-serif"
@@ -70,7 +73,7 @@ rounded:
   xs: "8px"
   s: "12px"
   m: "16px"
-  l: "20px"
+  l: "22px"
   xl: "24px"
   pill: "999px"
 spacing:
@@ -197,7 +200,7 @@ components:
 
 ## Colors
 
-차분한 토스 계열 회색 위에 의미가 고정된 결과 색 세 가지와 절제된 인디고 하나가 얹힌다. 모든 색은 `App.css`의 `--pc-*` 토큰이고, 다크 모드는 `html[data-theme='dark']`에서 같은 이름으로 다시 정의된다(값은 sidecar `colorMeta`의 `dark`).
+따뜻한 미색 바탕(2026-11-13, "차가운 은행 앱 같다"는 의견으로 회색에서 바꿈) 위에 의미가 고정된 결과 색 세 가지와 절제된 인디고 하나가 얹힌다. 모든 색은 `App.css`의 `--pc-*` 토큰이고, 다크 모드는 `html[data-theme='dark']`에서 같은 이름으로 다시 정의된다(값은 sidecar `colorMeta`의 `dark`).
 
 ### Primary
 - **Calm Indigo** (primary): 주 버튼 바탕, 선택된 탭의 아이콘, 포커스 링(3px), 입력 커서, 입력칸 포커스 테두리, 펼친 빠른 메뉴 타일의 안쪽 테두리. 화면에서 다음에 누를 한 곳을 가리킨다.
@@ -212,7 +215,7 @@ components:
 - **Found Green** (safe / safe-bg / safe-ink): 토큰과 결과 블록 변형은 있지만, 충돌 판정 로직(`lib/dur.ts`)은 이 단계를 내지 않는다. 실제로는 "TV에서 들은 성분이 들어 있음" 결과, 성공 안내 띠, 성공 토스트 아이콘에만 나온다.
 
 ### Neutral
-- **Toss Fog** (bg): 앱 바탕, 상단 바, 덮는 화면, 하단 고정 버튼 줄의 바탕.
+- **Warm Linen** (bg): 앱 바탕, 상단 바, 덮는 화면, 하단 고정 버튼 줄의 바탕.
 - **Paper White** (surface): 묶음 목록, 입력칸, 빠른 메뉴 타일, 탭바, 대화상자.
 - **Soft Panel** (surface-2): 꼬리표 바탕, 평평한 입력칸, 세그먼트 컨트롤 트랙, 표 머리.
 - **Pressed Gray** (pressed): 누르는 동안의 바탕(`:active`). 다크 모드에서는 세그먼트 선택 바탕.
@@ -268,16 +271,17 @@ components:
 
 ## Elevation & Depth
 
-거의 평평하다. 깊이는 회색 바탕과 흰 면의 명도 차이로 만들고, 그림자는 아주 옅게만 쓴다. 다크 모드에서는 같은 단계의 그림자를 더 진하게 정의한다.
+거의 평평하다. 깊이는 미색 바탕과 흰 면의 명도 차이에, 따뜻한 갈색 기운의 아주 옅은 그림자(Card)를 더해 만든다. 다크 모드에서는 같은 단계의 그림자를 더 진하게 정의한다.
 
 ### Shadow Vocabulary
-- **Rest** (elev-1, `0 1px 2px rgba(25,31,40,0.05)`): 입력칸, 빠른 메뉴 타일. 바탕에서 살짝 뜬 정도.
+- **Card** (card-shadow, `0 1px 2px rgba(70,48,24,0.05), 0 6px 18px rgba(70,48,24,0.06)`): 묶음 목록, 접는 원문 묶음, 빠른 메뉴 타일, 입력칸, 홈의 내 약 요약. 다크 모드에서는 투명(그림자가 안 보인다).
+- **Rest** (elev-1, `0 1px 2px rgba(25,31,40,0.05)`): 그 밖에 바탕에서 살짝 뜬 정도가 필요한 곳.
 - **Raised** (elev-2, `0 2px 8px rgba(25,31,40,0.08)`): 세그먼트 컨트롤의 선택된 칸.
 - **Floating** (elev-3, `0 8px 24px rgba(25,31,40,0.12)`): 토스트.
 - **Modal** (elev-4, `0 16px 40px rgba(25,31,40,0.18)`): 확인 대화상자. 뒤는 scrim(`rgba(17,20,26,0.48)`).
 
 ### Named Rules
-**The Tonal First Rule.** 묶음 목록은 그림자 없이 흰 면과 회색 바탕의 대비로만 떠 있다. 그림자는 떠 있는 물건(토스트·대화상자)과 입력할 자리에만 쓴다.
+**The Soft Card Rule.** 흰 상자는 미색 바탕 위에 Card 그림자 하나로 살짝 뜬다. 결과 상자(빨강, 노랑, 회색)와 빨간 "하지 말 것" 상자는 색으로 구분되므로 그림자를 주지 않는다. 진한 그림자는 떠 있는 물건(토스트·대화상자)에만 쓴다.
 
 ## Shapes
 
@@ -301,8 +305,8 @@ components:
 - **State:** 선택(`aria-pressed`)은 Ink 바탕 + 바탕색 글자로 반전. 인디고를 쓰지 않는다.
 
 ### Cards / Containers (묶음 목록)
-- **Corner Style:** 20px.
-- **Background:** 흰 면 위 회색 바탕. 그림자 없음.
+- **Corner Style:** 22px.
+- **Background:** 미색 바탕 위 흰 면, Card 그림자.
 - **Border:** 없음. 줄 사이 1px 구분선.
 - **Row:** 높이 64px 이상(큰 글씨 72px), 안쪽 12px 18px. 왼쪽에 선택적 40px 아이콘 타일(Indigo Mist, 12px), 가운데 제목(18px/600)과 부제(15px), 오른쪽에 상태 표시나 화살표. 누르면 Pressed Gray.
 - **상태 표시:** 8px 원형 점 + 글자(15px/700), 결과 색. 줄을 바꾸지 않는다.

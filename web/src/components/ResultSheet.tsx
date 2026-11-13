@@ -135,7 +135,7 @@ export function ResultSheet({ result, product, registered, onClose, onCheckAnoth
             <p className="verdict__ask">드시기 전에 약사에게 이&nbsp;화면을 보여 주세요.</p>
           )}
           {details.length > 0 && (
-            <p className="verdict__source">근거: 식약처 {uniqueSources(details)} 정보</p>
+            <p className="verdict__source">근거: 식약처 {uniqueSources(details)} 자료</p>
           )}
         </section>
 
@@ -179,7 +179,7 @@ export function ResultSheet({ result, product, registered, onClose, onCheckAnoth
                       </div>
                       {state === 'danger' && <span className="status status--danger">함께 안&nbsp;돼요</span>}
                       {state === 'warn' && <span className="status status--warn">주의 필요</span>}
-                      {state === 'none' && <span className="status status--unknown">충돌 못&nbsp;찾음</span>}
+                      {state === 'none' && <span className="status status--unknown">문제 못&nbsp;찾음</span>}
                       {state === 'unchecked' && <span className="status status--unknown">확인 못&nbsp;함</span>}
                     </div>
                   </li>
@@ -266,6 +266,12 @@ export function ResultSheet({ result, product, registered, onClose, onCheckAnoth
   )
 }
 
+// 식약처 자료 이름(TYPE_NAME)을 쉬운 말로. 모르는 이름은 그대로 보인다
+const SOURCE_LABEL: Record<string, string> = {
+  병용금기: '"함께 먹으면 안 되는 약"',
+  병용주의: '"함께 먹을 때 주의할 약"',
+}
+
 function uniqueSources(details: { source: string }[]): string {
-  return [...new Set(details.map((d) => d.source))].join(', ')
+  return [...new Set(details.map((d) => SOURCE_LABEL[d.source] ?? d.source))].join(', ')
 }

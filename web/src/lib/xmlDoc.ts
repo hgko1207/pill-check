@@ -117,6 +117,51 @@ export function leadLines(lines: string[], maxChars = 160): { lines: string[]; m
   return { lines: out, more: out.length < lines.length }
 }
 
+/** 강조할 조각. 이어 붙이면 원문 줄과 글자가 같다 */
+export interface MarkedPiece {
+  text: string
+  mark: boolean
+}
+
+// 숫자 + 단위 하나 (범위 포함): "1~2정", "3-4회", "4그램", "2～5 mg", "12세"
+const DOSE_TOKEN =
+  '\\d+(?:[.,]\\d+)?(?:\\s?[~～\\-–]\\s?\\d+(?:[.,]\\d+)?)?\\s?(?:mg|㎎|mL|ml|㎖|그램|캡슐|방울|스푼|시간|개월|정|포|알|회|번|g|분|세|일)'
+// "최대 4그램", "만 12세"처럼 숫자 앞에 붙는 말
+const DOSE_PREFIX = '(?:최대|최고|하루|만)\\s'
+const DOSE_RE = new RegExp(`(?:${DOSE_PREFIX})?${DOSE_TOKEN}(?:\\s(?:${DOSE_PREFIX})?${DOSE_TOKEN})*`, 'g')
+
+/**
+ * 먹는 법 줄에서 횟수, 개수, 양, 나이 같은 숫자 묶음을 찾아 강조 조각으로 나눈다.
+ * 글자는 바꾸지 않는다: 조각을 이어 붙이면 원래 줄과 같다 (scripts/gate-search/check-glance.mjs).
+ * 예: "1회 1~2정씩 1일 3-4회" → [1회 1~2정]씩 [1일 3-4회]
+ */
+export function markDose(line: string): MarkedPiece[] {
+  const out: MarkedPiece[] = []
+  let last = 0
+  for (const m of line.matchAll(DOSE_RE)) {
+    const at = m.index ?? 0
+    if (at > last) out.push({ text: line.slice(last, at), mark: false })
+    out.push({ text: m[0], mark: true })
+    last = at + m[0].length
+  }
+  if (last < line.length) out.push({ text: line.slice(last), mark: false })
+  return out
+}
+
+/**
+ * 원문 안의 짧은 소제목 줄인가. 글자는 그대로 두고 굵게만 보이려고 쓴다.
+ * 예: "1. 주효능·효과", "만 12세 이상 소아 및 성인:", "<성인>"
+ * "2. 다음 질환에도 사용할 수 있다."처럼 문장으로 끝나는 줄은 소제목이 아니다.
+ */
+export function isSubheadLine(line: string): boolean {
+  const t = line.trim()
+  if (t.length === 0 || t.length > 30) return false
+  if (/[:：]$/.test(t)) return true
+  if (/^[<\[(（].{1,20}[>\])）]$/.test(t)) return true
+  // "1. 주효능·효과"처럼 마침표 번호만. "1) …", "① …"는 목록 항목이라 소제목이 아니다
+  return /^\d+\.\s*\S/.test(t) && t.length <= 22 && !/[.다요]$/.test(t)
+}
+
 /**
  * 사용상의 주의사항에서 "…하지 말 것" 항목을 찾는다(예: "2. 다음과 같은 사람은 이 약을 복용하지 말 것").
  * 2026-11-13 의약품 79개 중 74개에서 찾았다. 못 찾은 5개는 그런 항목이 없거나 항목 제목이 비어 있었다.

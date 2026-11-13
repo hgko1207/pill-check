@@ -35,7 +35,7 @@ export function GuideModal({ open, onClose }: Props) {
           <h1 id="guide-title" className="detail-head__title">
             약똑똑 사용법
           </h1>
-          <p className="detail-head__sub">드시는 약과 새로 산 영양제나 일반약을 함께 먹어도 되는지 알려&nbsp;드려요.</p>
+          <p className="detail-head__sub">새로 산 영양제나 일반약을 드시는 약이랑 함께 먹어도 되는지 알려&nbsp;드려요.</p>
         </header>
 
         <h2 className="group-label">처음 한 번</h2>
@@ -59,14 +59,14 @@ export function GuideModal({ open, onClose }: Props) {
               <span className="steps__eg">예: 비타민D, 칼슘제</span>
             </li>
             <li>
-              <b>내 약과 확인</b>을 누르면 결과가 색으로 나와요.
+              <b>약 궁합 보기</b>을 누르면 결과가 색으로 나와요.
             </li>
           </ol>
           <ul className="legend">
             <li><span className="status status--danger">빨강</span> 함께 드시면 안 돼요</li>
             <li><span className="status status--warn">노랑</span> 함께 드실 때 주의가 필요해요</li>
             <li>
-              <span className="status status--unknown">회색</span> 식약처 자료에서 충돌을 못 찾았어요. 함께 드셔도
+              <span className="status status--unknown">회색</span> 식약처 자료에서 문제를 못 찾았어요. 함께 드셔도
               된다는 뜻은 아니니 약사에게 물어보세요
             </li>
             <li><span className="status status--unknown">회색</span> 자료가 없거나 지금 받아 오지 못했어요</li>

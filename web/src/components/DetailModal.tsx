@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ChevronLeft, CircleAlert, ExternalLink, TriangleAlert } from 'lucide-react'
+import { ChevronLeft, CircleAlert, Clock, ExternalLink, HeartPulse, TriangleAlert } from 'lucide-react'
 import type { NedrugItem } from '../lib/types'
 import { IngredientCheck } from './IngredientCheck'
 import {
@@ -18,6 +18,8 @@ import {
   plainLines,
   leadLines,
   findDontArticle,
+  isSubheadLine,
+  markDose,
   type ParsedDoc,
   type DocNode,
 } from '../lib/xmlDoc'
@@ -100,7 +102,7 @@ export function DetailModal({ target, onClose }: Props) {
                 actions.onCheck()
               }}
             >
-              내 약과 확인
+              약 궁합 보기
             </button>
           </div>
         </div>
@@ -160,8 +162,8 @@ function DrugDetail({ item }: { item: NedrugItem }) {
 
       <Glance
         rows={[
-          { label: '효능', ...leadLines(docLines(ee)) },
-          { label: '먹는 법', ...leadLines(docLines(ud)) },
+          { kind: 'use', ...leadLines(docLines(ee)) },
+          { kind: 'how', ...leadLines(docLines(ud)) },
         ]}
         dont={findDontArticle(nb)}
       />
@@ -174,24 +176,26 @@ function DrugDetail({ item }: { item: NedrugItem }) {
 
       {(ee || ud || nb) && <h2 className="group-label">식약처 원문 전체</h2>}
       <div className="folds">
-        <DocBlock heading="효능과 효과" doc={ee} />
-        <DocBlock heading="용법과 용량" doc={ud} />
-        <DocBlock heading="사용 시 주의사항" doc={nb} />
+        <DocBlock heading="어디에 먹나요" doc={ee} />
+        <DocBlock heading="어떻게 먹나요" doc={ud} />
+        <DocBlock heading="주의할 점" doc={nb} />
       </div>
 
       {(meta.length > 0 || item.INGR_NAME) && (
-        <DetailSection heading="더 알아보기">
-          <details className="disclosure">
-            <summary className="disclosure__summary">모양, 보관 방법, 전체 성분 보기</summary>
-            {meta.length > 0 && <MetaList items={meta} />}
-            {item.INGR_NAME && (
-              <>
-                <h3 className="detail-subhead">전체 성분 (첨가제 포함)</h3>
-                <p className="detail-text">{cleanIngrCode(paragraphToReadable(item.INGR_NAME))}</p>
-              </>
-            )}
-          </details>
-        </DetailSection>
+        <>
+          <h2 className="group-label">더 알아보기</h2>
+          <div className="folds">
+            <FoldSection heading="모양, 보관 방법, 전체 성분">
+              {meta.length > 0 && <MetaList items={meta} />}
+              {item.INGR_NAME && (
+                <>
+                  <h3 className="detail-subhead">전체 성분 (첨가제 포함)</h3>
+                  <p className="detail-text">{cleanIngrCode(paragraphToReadable(item.INGR_NAME))}</p>
+                </>
+              )}
+            </FoldSection>
+          </div>
+        </>
       )}
     </article>
   )
@@ -211,8 +215,8 @@ function HealthFoodDetail({ item }: { item: HealthFoodItem }) {
   const meta: [string, string][] = []
   if (item.POG_DAYCNT) meta.push(['소비기한', item.POG_DAYCNT])
   if (item.PRMS_DT) meta.push(['허가일자', formatDate(item.PRMS_DT)])
-  if (item.PRDLST_REPORT_NO) meta.push(['품목제조번호', item.PRDLST_REPORT_NO])
-  if (item.LCNS_NO) meta.push(['인허가번호', item.LCNS_NO])
+  if (item.PRDLST_REPORT_NO) meta.push(['제품 신고 번호', item.PRDLST_REPORT_NO])
+  if (item.LCNS_NO) meta.push(['영업 허가 번호', item.LCNS_NO])
 
   return (
     <article>
@@ -235,9 +239,9 @@ function HealthFoodDetail({ item }: { item: HealthFoodItem }) {
 
       <Glance
         rows={[
-          { label: '기능성', ...leadLines(plainLines(item.PRIMARY_FNCLTY)) },
-          { label: '먹는 법', ...leadLines(plainLines(item.NTK_MTHD)) },
-          { label: '주의', ...leadLines(plainLines(item.IFTKN_ATNT_MATR_CN), 0) },
+          { kind: 'helps', ...leadLines(plainLines(item.PRIMARY_FNCLTY)) },
+          { kind: 'how', ...leadLines(plainLines(item.NTK_MTHD)) },
+          { kind: 'caution', ...leadLines(plainLines(item.IFTKN_ATNT_MATR_CN), 0) },
         ]}
       />
 
@@ -261,7 +265,7 @@ function HealthFoodDetail({ item }: { item: HealthFoodItem }) {
               )
             })}
           </ul>
-          <p className="group-note">식약처에 신고한 표시량이에요.</p>
+          <p className="group-note">식약처에 신고한 양이에요.</p>
         </section>
       )}
 
@@ -270,22 +274,22 @@ function HealthFoodDetail({ item }: { item: HealthFoodItem }) {
       )}
       <div className="folds">
         {item.PRIMARY_FNCLTY && (
-          <FoldSection heading="주된 기능성">
+          <FoldSection heading="어디에 도움이 되나요">
             <Lines lines={plainLines(item.PRIMARY_FNCLTY)} />
           </FoldSection>
         )}
         {item.NTK_MTHD && (
-          <FoldSection heading="섭취 방법">
+          <FoldSection heading="먹는 방법">
             <Lines lines={plainLines(item.NTK_MTHD)} />
           </FoldSection>
         )}
         {item.IFTKN_ATNT_MATR_CN && (
-          <FoldSection heading="섭취 시 주의사항">
+          <FoldSection heading="주의할 점">
             <Lines lines={plainLines(item.IFTKN_ATNT_MATR_CN)} />
           </FoldSection>
         )}
         {rawmtrl && (
-          <FoldSection heading="원료">
+          <FoldSection heading="들어간 재료">
             <p className="detail-text">{rawmtrl}</p>
           </FoldSection>
         )}
@@ -318,18 +322,20 @@ function HealthFoodDetail({ item }: { item: HealthFoodItem }) {
       )}
 
       {(meta.length > 0 || item.STDR_STND) && (
-        <DetailSection heading="더 알아보기">
-          <details className="disclosure">
-            <summary className="disclosure__summary">신고 정보와 기준규격 보기</summary>
-            {meta.length > 0 && <MetaList items={meta} />}
-            {item.STDR_STND && (
-              <>
-                <h3 className="detail-subhead">기준규격</h3>
-                <p className="detail-text">{paragraphToReadable(item.STDR_STND)}</p>
-              </>
-            )}
-          </details>
-        </DetailSection>
+        <>
+          <h2 className="group-label">더 알아보기</h2>
+          <div className="folds">
+            <FoldSection heading="신고 번호와 품질 기준">
+              {meta.length > 0 && <MetaList items={meta} />}
+              {item.STDR_STND && (
+                <>
+                  <h3 className="detail-subhead">품질 기준</h3>
+                  <p className="detail-text">{paragraphToReadable(item.STDR_STND)}</p>
+                </>
+              )}
+            </FoldSection>
+          </div>
+        </>
       )}
     </article>
   )
@@ -407,6 +413,34 @@ function Lines({ lines }: { lines: string[] }) {
 
 const DONT_HEAD = 5 // 빨간 상자에 바로 보이는 줄 수. 나머지는 "더 보기"로
 
+/** 한눈에 보기 칸: 묻는 말 제목과 아이콘. 제목은 우리 말이고, 아래 글은 식약처 원문 그대로다 */
+const GLANCE_ROW = {
+  use: { title: '어디에 먹나요?', Icon: HeartPulse, tone: '' },
+  helps: { title: '어디에 도움이 되나요?', Icon: HeartPulse, tone: '' },
+  how: { title: '어떻게 먹나요?', Icon: Clock, tone: '' },
+  caution: { title: '주의할 점이 있나요?', Icon: CircleAlert, tone: ' glance__icon--caution' },
+} as const
+type GlanceKind = keyof typeof GLANCE_ROW
+
+/** 원문 한 줄. 소제목 줄은 굵게, 먹는 법은 횟수와 양에 형광펜. 글자는 바꾸지 않는다 */
+function GlanceLine({ line, mark }: { line: string; mark: boolean }) {
+  if (isSubheadLine(line)) return <p className="glance__sub">{line}</p>
+  if (!mark) return <p className="glance__line">{line}</p>
+  return (
+    <p className="glance__line">
+      {markDose(line).map((piece, i) =>
+        piece.mark ? (
+          <mark key={i} className="glance__mark">
+            {piece.text}
+          </mark>
+        ) : (
+          piece.text
+        ),
+      )}
+    </p>
+  )
+}
+
 /**
  * 한눈에 보기: 식약처 원문 앞부분을 줄 단위로 그대로 옮긴다(지어내지 않는다).
  * "…하지 말 것" 항목은 빨간 상자로 따로 보인다.
@@ -415,7 +449,7 @@ function Glance({
   rows,
   dont,
 }: {
-  rows: { label: string; lines: string[]; more: boolean }[]
+  rows: { kind: GlanceKind; lines: string[]; more: boolean }[]
   dont?: { title: string; items: string[] } | null
 }) {
   const shown = rows.filter((r) => r.lines.length > 0)
@@ -427,12 +461,22 @@ function Glance({
       <h2 className="group-label">한눈에 보기</h2>
       {shown.length > 0 && (
         <div className="group detail-box glance">
-          {shown.map((r) => (
-            <div key={r.label} className="glance__row">
-              <h3 className="glance__label">{r.label}</h3>
-              <Lines lines={r.lines} />
-            </div>
-          ))}
+          {shown.map((r) => {
+            const { title, Icon, tone } = GLANCE_ROW[r.kind]
+            return (
+              <div key={r.kind} className="glance__row">
+                <h3 className="glance__head">
+                  <span className={`glance__icon${tone}`} aria-hidden="true">
+                    <Icon />
+                  </span>
+                  {title}
+                </h3>
+                {r.lines.map((line, i) => (
+                  <GlanceLine key={i} line={line} mark={r.kind === 'how'} />
+                ))}
+              </div>
+            )
+          })}
           <p className="glance__note">
             식약처 원문{shown.some((r) => r.more) ? '의 앞부분' : ''}을 그대로 옮겼어요. 전체는 아래 원문에서 볼
             수&nbsp;있어요.

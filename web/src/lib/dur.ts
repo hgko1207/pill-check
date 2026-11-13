@@ -263,7 +263,7 @@ export async function checkInteraction(
     alreadyRegistered,
     coverage,
     // 판정처럼 읽히지 않게 "없어요"가 아니라 "자료에서 못 찾았어요". 약사 안내는 ResultSheet가 상자 안에 붙인다
-    title: '식약처 자료에서는 충돌을 못\u00A0찾았어요',
+    title: '식약처 자료에서는 문제를 못\u00A0찾았어요',
     message: '자료에 없는 조합도 있어요. 함께 드셔도\u00A0된다는 뜻은\u00A0아니에요.',
   }
 }
