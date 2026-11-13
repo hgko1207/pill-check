@@ -14,13 +14,24 @@ import {
   parseDoc,
   paragraphToReadable,
   paragraphToNodes,
+  docLines,
+  plainLines,
+  leadLines,
+  findDontArticle,
   type ParsedDoc,
   type DocNode,
 } from '../lib/xmlDoc'
 
+/** 검색 결과에서 연 상세의 아래 버튼. 누르면 상세를 닫고 검색 화면의 같은 동작을 한다 */
+export interface DetailActions {
+  onCheck: () => void
+  /** 이미 등록한 제품이면 없음 */
+  onRegister?: () => void
+}
+
 export type DetailTarget =
-  | { kind: 'drug'; raw: NedrugItem }
-  | { kind: 'healthfood'; raw: HealthFoodItem }
+  | { kind: 'drug'; raw: NedrugItem; actions?: DetailActions }
+  | { kind: 'healthfood'; raw: HealthFoodItem; actions?: DetailActions }
   | null
 
 interface Props {
@@ -44,10 +55,11 @@ export function DetailModal({ target, onClose }: Props) {
   }, [target, onClose])
 
   if (!target) return null
+  const actions = target.actions
 
   return (
     <div className="sheet" role="dialog" aria-modal="true" aria-labelledby="detail-title">
-      <div className="sheet__body">
+      <div className={actions ? 'sheet__body sheet__body--with-actions' : 'sheet__body'}>
         <div className="topbar">
           <button type="button" className="topbar__back" onClick={onClose} aria-label="뒤로">
             <ChevronLeft aria-hidden="true" />
@@ -64,6 +76,35 @@ export function DetailModal({ target, onClose }: Props) {
           대신하지&nbsp;않아요.
         </p>
       </div>
+
+      {actions && (
+        <div className="action-bar">
+          <div className="action-bar__inner">
+            {actions.onRegister && (
+              <button
+                type="button"
+                className="btn btn--secondary"
+                onClick={() => {
+                  onClose()
+                  actions.onRegister?.()
+                }}
+              >
+                내 약에 등록
+              </button>
+            )}
+            <button
+              type="button"
+              className="btn btn--primary"
+              onClick={() => {
+                onClose()
+                actions.onCheck()
+              }}
+            >
+              내 약과 확인
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -117,14 +158,26 @@ function DrugDetail({ item }: { item: NedrugItem }) {
         </div>
       )}
 
+      <Glance
+        rows={[
+          { label: '효능', ...leadLines(docLines(ee)) },
+          { label: '먹는 법', ...leadLines(docLines(ud)) },
+        ]}
+        dont={findDontArticle(nb)}
+      />
+
       {mainIngr && (
         <DetailSection heading="주성분">
           <p className="detail-text">{mainIngr}</p>
         </DetailSection>
       )}
-      <DocBlock heading="효능과 효과" doc={ee} />
-      <DocBlock heading="용법과 용량" doc={ud} />
-      <DocBlock heading="사용 시 주의사항" doc={nb} />
+
+      {(ee || ud || nb) && <h2 className="group-label">식약처 원문 전체</h2>}
+      <div className="folds">
+        <DocBlock heading="효능과 효과" doc={ee} />
+        <DocBlock heading="용법과 용량" doc={ud} />
+        <DocBlock heading="사용 시 주의사항" doc={nb} />
+      </div>
 
       {(meta.length > 0 || item.INGR_NAME) && (
         <DetailSection heading="더 알아보기">
@@ -180,9 +233,13 @@ function HealthFoodDetail({ item }: { item: HealthFoodItem }) {
 
       <RecallNotice item={item} />
 
-      <DetailSection heading="TV에서 들은 성분 확인">
-        <IngredientCheck item={item} />
-      </DetailSection>
+      <Glance
+        rows={[
+          { label: '기능성', ...leadLines(plainLines(item.PRIMARY_FNCLTY)) },
+          { label: '먹는 법', ...leadLines(plainLines(item.NTK_MTHD)) },
+          { label: '주의', ...leadLines(plainLines(item.IFTKN_ATNT_MATR_CN), 0) },
+        ]}
+      />
 
       {doses.length > 0 && (
         <section>
@@ -208,26 +265,38 @@ function HealthFoodDetail({ item }: { item: HealthFoodItem }) {
         </section>
       )}
 
-      {item.PRIMARY_FNCLTY && (
-        <DetailSection heading="주된 기능성">
-          <p className="detail-text">{paragraphToReadable(item.PRIMARY_FNCLTY)}</p>
-        </DetailSection>
+      {(item.PRIMARY_FNCLTY || item.NTK_MTHD || item.IFTKN_ATNT_MATR_CN || rawmtrl) && (
+        <h2 className="group-label">식약처 원문 전체</h2>
       )}
-      {item.NTK_MTHD && (
-        <DetailSection heading="섭취 방법">
-          <p className="detail-text">{paragraphToReadable(item.NTK_MTHD)}</p>
-        </DetailSection>
-      )}
-      {item.IFTKN_ATNT_MATR_CN && (
-        <DetailSection heading="섭취 시 주의사항">
-          <p className="detail-text">{paragraphToReadable(item.IFTKN_ATNT_MATR_CN)}</p>
-        </DetailSection>
-      )}
-      {rawmtrl && (
-        <DetailSection heading="원료">
-          <p className="detail-text">{rawmtrl}</p>
-        </DetailSection>
-      )}
+      <div className="folds">
+        {item.PRIMARY_FNCLTY && (
+          <FoldSection heading="주된 기능성">
+            <Lines lines={plainLines(item.PRIMARY_FNCLTY)} />
+          </FoldSection>
+        )}
+        {item.NTK_MTHD && (
+          <FoldSection heading="섭취 방법">
+            <Lines lines={plainLines(item.NTK_MTHD)} />
+          </FoldSection>
+        )}
+        {item.IFTKN_ATNT_MATR_CN && (
+          <FoldSection heading="섭취 시 주의사항">
+            <Lines lines={plainLines(item.IFTKN_ATNT_MATR_CN)} />
+          </FoldSection>
+        )}
+        {rawmtrl && (
+          <FoldSection heading="원료">
+            <p className="detail-text">{rawmtrl}</p>
+          </FoldSection>
+        )}
+      </div>
+
+      <h2 className="group-label">TV에서 들은 성분</h2>
+      <div className="folds">
+        <FoldSection heading="이 성분 들어 있나요?">
+          <IngredientCheck item={item} />
+        </FoldSection>
+      </div>
 
       {shop && (
         <section>
@@ -314,6 +383,91 @@ function DetailSection({ heading, children }: { heading: string; children: React
   )
 }
 
+/** 제목 줄을 누르면 펼쳐지는 원문 묶음. 처음에는 접혀 있다 */
+function FoldSection({ heading, children }: { heading: string; children: React.ReactNode }) {
+  return (
+    <details className="fold">
+      <summary className="fold__head">{heading}</summary>
+      <div className="fold__body">{children}</div>
+    </details>
+  )
+}
+
+function Lines({ lines }: { lines: string[] }) {
+  return (
+    <>
+      {lines.map((line, i) => (
+        <p key={i} className="detail-text">
+          {line}
+        </p>
+      ))}
+    </>
+  )
+}
+
+const DONT_HEAD = 5 // 빨간 상자에 바로 보이는 줄 수. 나머지는 "더 보기"로
+
+/**
+ * 한눈에 보기: 식약처 원문 앞부분을 줄 단위로 그대로 옮긴다(지어내지 않는다).
+ * "…하지 말 것" 항목은 빨간 상자로 따로 보인다.
+ */
+function Glance({
+  rows,
+  dont,
+}: {
+  rows: { label: string; lines: string[]; more: boolean }[]
+  dont?: { title: string; items: string[] } | null
+}) {
+  const shown = rows.filter((r) => r.lines.length > 0)
+  if (shown.length === 0 && !dont) return null
+  const head = dont?.items.slice(0, DONT_HEAD) ?? []
+  const rest = dont?.items.slice(DONT_HEAD) ?? []
+  return (
+    <section>
+      <h2 className="group-label">한눈에 보기</h2>
+      {shown.length > 0 && (
+        <div className="group detail-box glance">
+          {shown.map((r) => (
+            <div key={r.label} className="glance__row">
+              <h3 className="glance__label">{r.label}</h3>
+              <Lines lines={r.lines} />
+            </div>
+          ))}
+          <p className="glance__note">
+            식약처 원문{shown.some((r) => r.more) ? '의 앞부분' : ''}을 그대로 옮겼어요. 전체는 아래 원문에서 볼
+            수&nbsp;있어요.
+          </p>
+        </div>
+      )}
+      {dont && (
+        <div className="dont-box">
+          <p className="dont-box__title">
+            <CircleAlert aria-hidden="true" />
+            <span>{dont.title}</span>
+          </p>
+          {head.length > 0 && (
+            <ul className="dont-box__list">
+              {head.map((line, i) => (
+                <li key={i}>{line}</li>
+              ))}
+            </ul>
+          )}
+          {rest.length > 0 && (
+            <details className="disclosure dont-box__more">
+              <summary className="disclosure__summary">나머지 {rest.length}줄 더 보기</summary>
+              <ul className="dont-box__list">
+                {rest.map((line, i) => (
+                  <li key={i}>{line}</li>
+                ))}
+              </ul>
+            </details>
+          )}
+        </div>
+      )}
+    </section>
+  )
+}
+
 function MetaList({ items }: { items: [string, string][] }) {
   return (
     <dl className="meta-list">
@@ -331,19 +485,20 @@ function DocBlock({ heading, doc }: { heading: string; doc: ParsedDoc | null }) 
   if (!doc) return null
   if (doc.rawFallback) {
     return (
-      <DetailSection heading={heading}>
+      <FoldSection heading={heading}>
         <DocNodes nodes={paragraphToNodes(doc.rawFallback)} />
-      </DetailSection>
+      </FoldSection>
     )
   }
   if (doc.sections.length === 0) return null
   const allEmpty = doc.sections.every(
-    (s) => s.articles.length === 0 || s.articles.every((a) => a.paragraphs.length === 0),
+    // 항목 제목만 있는 원문도 있다(와파린 효능: "1. 정맥혈전증의 예방 및 치료" 등 제목뿐)
+    (s) => s.articles.length === 0 || s.articles.every((a) => a.paragraphs.length === 0 && !a.title.trim()),
   )
   if (allEmpty) return null
 
   return (
-    <DetailSection heading={heading}>
+    <FoldSection heading={heading}>
       {doc.sections.map((section, si) => (
         <div key={si} className="doc-section">
           {section.title && <h3 className="detail-subhead">{section.title}</h3>}
@@ -357,7 +512,7 @@ function DocBlock({ heading, doc }: { heading: string; doc: ParsedDoc | null }) 
           ))}
         </div>
       ))}
-    </DetailSection>
+    </FoldSection>
   )
 }
 

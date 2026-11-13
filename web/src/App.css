@@ -86,7 +86,7 @@ html[data-theme='dark'] {
   --pc-text: #F2F3F5;
   --pc-text-muted: #C2C8D0;
   --pc-text-subtle: #9AA3AE;
-  --pc-placeholder: #7F8893;
+  --pc-placeholder: #868F9A; /* #212128 위 4.88:1 */
   --pc-border: #34343D;
   --pc-divider: #2C2C34;
   --pc-chevron: #5E6570;
@@ -438,6 +438,7 @@ button.row:active, a.row:active { background: var(--pc-pressed); }
 .row__body { flex: 1; min-width: 0; }
 .row__title { display: block; font-size: var(--fs-body); font-weight: 600; line-height: 1.4; }
 .row__sub { display: block; font-size: var(--fs-small); color: var(--pc-text-subtle); margin-top: 2px; line-height: 1.45; }
+.row__sub--guide { font-size: var(--fs-body); line-height: 1.5; } /* 읽어야 하는 안내 문장. 제조사처럼 훑는 줄은 15px 유지 */
 .row__chev { width: 22px; height: 22px; color: var(--pc-chevron); flex: none; }
 .row__icon {
   width: 40px;
@@ -482,7 +483,7 @@ button.row:active, a.row:active { background: var(--pc-pressed); }
   display: flex;
   gap: 10px;
   align-items: flex-start;
-  font-size: var(--fs-sub);
+  font-size: var(--fs-body);
   line-height: 1.5;
 }
 .notice > svg { width: 22px; height: 22px; flex: none; margin-top: 1px; }
@@ -673,6 +674,91 @@ html[data-theme='dark'] .row__title--link { color: var(--pc-primary-deep); }
 }
 .disclosure[open] > .disclosure__summary::after { transform: rotate(225deg) translateY(-1px); }
 
+/* 상세: 한눈에 보기 (식약처 원문 앞부분) */
+.glance__row + .glance__row {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--pc-divider);
+}
+.glance__label {
+  margin: 0 0 4px;
+  font-size: var(--fs-small);
+  font-weight: 700;
+  color: var(--pc-text-muted);
+}
+.glance__note {
+  margin: 16px 0 0;
+  font-size: var(--fs-small);
+  line-height: 1.55;
+  color: var(--pc-text-subtle);
+}
+
+/* 상세: "…하지 말 것" 빨간 상자 */
+.dont-box {
+  margin: 12px var(--pc-gutter) 0;
+  padding: 18px;
+  border-radius: var(--pc-radius-l);
+  background: var(--pc-danger-bg);
+  color: var(--pc-danger-ink);
+}
+.dont-box__title {
+  margin: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: var(--fs-body);
+  line-height: 1.45;
+  font-weight: 800;
+  color: var(--pc-danger);
+}
+.dont-box__title svg { flex: none; width: 24px; height: 24px; margin-top: 1px; }
+.dont-box__list {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--fs-body);
+  line-height: 1.6;
+}
+.dont-box__list li + li { margin-top: 6px; }
+.dont-box__more { margin-top: 4px; }
+.dont-box__more .disclosure__summary::after { border-color: currentColor; }
+
+/* 상세: 제목 줄을 누르면 펼쳐지는 원문 */
+.folds {
+  margin: 0 var(--pc-gutter);
+  background: var(--pc-surface);
+  border-radius: var(--pc-radius-l);
+  overflow: hidden;
+}
+.folds:empty { display: none; }
+.fold + .fold { border-top: 1px solid var(--pc-divider); }
+.fold__head {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: var(--pc-row-min-h);
+  padding: 12px 18px;
+  font-size: var(--fs-body);
+  font-weight: 700;
+  cursor: pointer;
+}
+.fold__head::-webkit-details-marker { display: none; }
+.fold__head::after {
+  content: '';
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-right: 2px solid var(--pc-chevron);
+  border-bottom: 2px solid var(--pc-chevron);
+  transform: rotate(45deg) translateY(-3px);
+  transition: transform var(--pc-duration-quick) var(--pc-ease-standard);
+}
+.fold[open] > .fold__head::after { transform: rotate(225deg) translateY(-1px); }
+.fold__head:active { background: var(--pc-pressed); }
+.fold__body { padding: 0 18px 18px; }
+
 /* ────────── 충돌 결과 ────────── */
 
 .verdict {
@@ -706,6 +792,16 @@ html[data-theme='dark'] .row__title--link { color: var(--pc-primary-deep); }
   letter-spacing: -0.02em;
 }
 .verdict__message { margin: 8px 0 0; font-size: var(--fs-body); line-height: 1.55; }
+.verdict__who { margin: 10px 0 0; font-size: var(--fs-body); line-height: 1.5; }
+.verdict__who b { font-weight: 800; }
+.verdict__ask {
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--pc-border);
+  font-size: var(--fs-body);
+  line-height: 1.5;
+  font-weight: 800;
+}
 .verdict__source { margin: 12px 0 0; font-size: var(--fs-small); font-weight: 600; }
 
 .verdict--danger { background: var(--pc-danger-bg); color: var(--pc-danger-ink); }
@@ -726,7 +822,7 @@ html[data-theme='dark'] .verdict__icon { color: var(--pc-bg); }
 .compare-row .status { margin-top: 3px; }
 .compare-row__why {
   margin: 6px 0 0;
-  font-size: var(--fs-sub);
+  font-size: var(--fs-body);
   line-height: 1.55;
   color: var(--pc-text-muted);
 }
@@ -1014,8 +1110,8 @@ html[data-theme='dark'] .toast--success .toast__icon { color: var(--pc-safe-ink)
 html[data-theme='dark'] .toast--error .toast__icon { color: var(--pc-danger); }
 .toast__message { flex: 1; min-width: 0; font-size: var(--fs-sub); font-weight: 600; line-height: 1.45; }
 .toast__close {
-  width: 48px;
-  height: 48px;
+  width: 56px;
+  height: 56px;
   flex: none;
   border: 0;
   border-radius: var(--pc-radius-pill);

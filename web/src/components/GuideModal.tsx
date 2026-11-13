@@ -65,7 +65,11 @@ export function GuideModal({ open, onClose }: Props) {
           <ul className="legend">
             <li><span className="status status--danger">빨강</span> 함께 드시면 안 돼요</li>
             <li><span className="status status--warn">노랑</span> 함께 드실 때 주의가 필요해요</li>
-            <li><span className="status status--unknown">회색</span> 확인된 충돌이 없거나 정보가 부족해요</li>
+            <li>
+              <span className="status status--unknown">회색</span> 식약처 자료에서 충돌을 못 찾았어요. 함께 드셔도
+              된다는 뜻은 아니니 약사에게 물어보세요
+            </li>
+            <li><span className="status status--unknown">회색</span> 자료가 없거나 지금 받아 오지 못했어요</li>
           </ul>
         </div>
 

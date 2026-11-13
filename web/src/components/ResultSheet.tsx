@@ -70,6 +70,22 @@ export function ResultSheet({ result, product, registered, onClose, onCheckAnoth
   const Icon = VERDICT_ICON[result.level]
   const details = result.details ?? []
 
+  // 내 약별 가장 높은 단계. 확인한 제품 자신은 비교하지 않았으므로 'self'
+  const isSelf = (med: RegisteredMedication) => med.kind === product.kind && med.itemSeq === product.id
+  const worstOf = (med: RegisteredMedication): 'danger' | 'warn' | null => {
+    const hits = details.filter((d) => d.registeredMedName === med.itemName)
+    if (hits.some((d) => d.severity === 'danger')) return 'danger'
+    return hits.length > 0 ? 'warn' : null
+  }
+  const RANK = { danger: 0, warn: 1, none: 2, self: 3 } as const
+  const rows = registered
+    .map((med) => ({ med, state: isSelf(med) ? ('self' as const) : (worstOf(med) ?? ('none' as const)) }))
+    .sort((a, b) => RANK[a.state] - RANK[b.state])
+  const compared = rows.filter((r) => r.state !== 'self').length
+  // 결론 바로 아래에 어떤 내 약과 부딪히는지 (조사가 필요 없는 "라벨: 이름" 형태)
+  const whoLevel = result.level === 'danger' ? 'danger' : result.level === 'warn' ? 'warn' : null
+  const whoNames = whoLevel ? rows.filter((r) => r.state === whoLevel).map((r) => r.med.itemName) : []
+
   return (
     <div className="sheet" role="dialog" aria-modal="true" aria-labelledby="result-title">
       <div className="sheet__body sheet__body--with-actions">
@@ -87,7 +103,16 @@ export function ResultSheet({ result, product, registered, onClose, onCheckAnoth
           <h1 id="result-title" className="verdict__title">
             {result.title}
           </h1>
+          {whoNames.length > 0 && (
+            <p className="verdict__who">
+              {whoLevel === 'danger' ? '함께 드시면 안 되는 내 약' : '주의가 필요한 내 약'}:{' '}
+              <b>{whoNames.join(', ')}</b>
+            </p>
+          )}
           <p className="verdict__message">{result.message}</p>
+          {result.level === 'unknown' && result.checked && (
+            <p className="verdict__ask">드시기 전에 약사에게 이&nbsp;화면을 보여 주세요.</p>
+          )}
           {details.length > 0 && (
             <p className="verdict__source">근거: 식약처 {uniqueSources(details)} 정보</p>
           )}
@@ -95,20 +120,18 @@ export function ResultSheet({ result, product, registered, onClose, onCheckAnoth
 
         {result.checked && (
           <>
-            <h2 className="group-label">내 약 {registered.length}개와 비교했어요</h2>
+            <h2 className="group-label">내 약 {compared}개와 비교했어요</h2>
             <ul className="group">
-              {registered.map((med) => {
-                const hits = details.filter((d) => d.registeredMedName === med.itemName)
-                const worst = hits.some((d) => d.severity === 'danger')
-                  ? 'danger'
-                  : hits.length > 0
-                    ? 'warn'
-                    : null
+              {rows.map(({ med, state }) => {
+                const hits = state === 'self' ? [] : details.filter((d) => d.registeredMedName === med.itemName)
                 return (
                   <li key={med.id ?? med.itemSeq}>
                     <div className="row compare-row">
                       <div className="row__body">
                         <div className="row__title">{med.itemName}</div>
+                        {state === 'self' && (
+                          <p className="compare-row__why">이미 내 약에 있는 제품이에요. 이 약과는 비교하지&nbsp;않아요.</p>
+                        )}
                         {hits.map((d, i) => (
                           <p key={i} className="compare-row__why">
                             <b>{d.conflictWith}</b> 성분이 문제가&nbsp;돼요
@@ -121,9 +144,9 @@ export function ResultSheet({ result, product, registered, onClose, onCheckAnoth
                           </p>
                         ))}
                       </div>
-                      {worst === 'danger' && <span className="status status--danger">함께 안&nbsp;돼요</span>}
-                      {worst === 'warn' && <span className="status status--warn">주의 필요</span>}
-                      {worst === null && <span className="status status--unknown">확인된 충돌 없음</span>}
+                      {state === 'danger' && <span className="status status--danger">함께 안&nbsp;돼요</span>}
+                      {state === 'warn' && <span className="status status--warn">주의 필요</span>}
+                      {state === 'none' && <span className="status status--unknown">충돌 못&nbsp;찾음</span>}
                     </div>
                   </li>
                 )

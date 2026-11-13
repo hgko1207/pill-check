@@ -58,7 +58,8 @@ function adaptDrug(item: NedrugItem): DrugWithRaw | null {
     id: item.ITEM_SEQ,
     name: item.ITEM_NAME,
     manufacturer: item.ENTP_NAME,
-    ingredient: item.MAIN_INGR,
+    // 이 API 응답에는 MAIN_INGR이 없고 MAIN_ITEM_INGR("[M코드]한글")만 온다 (2026-11-12 확인)
+    ingredient: item.MAIN_ITEM_INGR ?? item.MAIN_INGR,
     raw: item,
   }
 }
@@ -399,7 +400,7 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
                 <div className="row">
                   <div className="row__body">
                     <div className="row__title">아직 등록한 약이 없어요</div>
-                    <div className="row__sub">드시는 약을 검색해서 "내 약에 등록"을 누르면 돼요.</div>
+                    <div className="row__sub row__sub--guide">드시는 약을 검색해서 "내 약에 등록"을 누르면 돼요.</div>
                   </div>
                 </div>
               </li>
@@ -454,8 +455,15 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
               {results.map((item) => {
                 const isPending = showPending === item.id
                 const isRegistered = registeredIds.has(item.id)
+                // 상세 아래 버튼: 상세를 닫고 이 줄의 버튼과 같은 동작
+                const actions = {
+                  onCheck: () => void handleCheck(item),
+                  onRegister: isRegistered ? undefined : () => void handleRegister(item),
+                }
                 const detailTarget: DetailTarget =
-                  item.kind === 'drug' ? { kind: 'drug', raw: item.raw } : { kind: 'healthfood', raw: item.raw }
+                  item.kind === 'drug'
+                    ? { kind: 'drug', raw: item.raw, actions }
+                    : { kind: 'healthfood', raw: item.raw, actions }
                 return (
                   <li key={`${item.kind}-${item.id}`} className="result-item">
                     <button type="button" className="row result-item__main" onClick={() => onOpenDetail?.(detailTarget)}>

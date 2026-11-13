@@ -75,6 +75,66 @@ export function parseDoc(xml: string | null | undefined): ParsedDoc | null {
   }
 }
 
+/** 문서 글을 위에서부터 줄로 편다(항목 제목, 문단 줄). 빈 줄은 뺀다. 상세 "한눈에 보기"용 */
+export function docLines(doc: ParsedDoc | null): string[] {
+  if (!doc) return []
+  if (doc.rawFallback) return splitLines(doc.rawFallback)
+  const out: string[] = []
+  for (const section of doc.sections) {
+    for (const article of section.articles) {
+      if (article.title.trim()) out.push(article.title.trim())
+      for (const p of article.paragraphs) out.push(...splitLines(p))
+    }
+  }
+  return out
+}
+
+/** 줄바꿈이 있는 원문(영양제 신고 글 등)을 줄로 나눈다. 줄 안의 공백만 정리하고 글자는 바꾸지 않는다 */
+export function plainLines(raw: string | null | undefined): string[] {
+  if (!raw) return []
+  return raw.split(/\r?\n/).flatMap((line) => splitLines(paragraphToReadable(line)))
+}
+
+function splitLines(s: string): string[] {
+  return s
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0)
+}
+
+/**
+ * 앞에서부터 줄 단위로 담다가 글자 수가 maxChars를 넘으면 멈춘다.
+ * 첫 줄은 길어도 담는다. 줄 중간에서 자르지 않는다(말줄임 없음).
+ */
+export function leadLines(lines: string[], maxChars = 160): { lines: string[]; more: boolean } {
+  const out: string[] = []
+  let total = 0
+  for (const line of lines) {
+    if (out.length > 0 && total + line.length > maxChars) break
+    out.push(line)
+    total += line.length
+  }
+  return { lines: out, more: out.length < lines.length }
+}
+
+/**
+ * 사용상의 주의사항에서 "…하지 말 것" 항목을 찾는다(예: "2. 다음과 같은 사람은 이 약을 복용하지 말 것").
+ * 2026-11-13 의약품 79개 중 74개에서 찾았다. 못 찾은 5개는 그런 항목이 없거나 항목 제목이 비어 있었다.
+ */
+export function findDontArticle(doc: ParsedDoc | null): { title: string; items: string[] } | null {
+  if (!doc || doc.rawFallback) return null
+  for (const section of doc.sections) {
+    for (const article of section.articles) {
+      if (!/하지\s*말/.test(article.title)) continue
+      return {
+        title: article.title.replace(/^\s*\(?\d+\)?[.)]\s*/, '').trim(),
+        items: article.paragraphs.flatMap(splitLines),
+      }
+    }
+  }
+  return null
+}
+
 /**
  * 표 데이터를 분리한 결과 노드.
  * - text: 일반 텍스트 (줄바꿈 보존)
