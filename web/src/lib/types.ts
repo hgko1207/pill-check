@@ -64,4 +64,9 @@ export interface InteractionResult {
    * unchecked(자료를 못 받음)인 약에는 "충돌 못 찾음"을 붙이지 않는다.
    */
   coverage?: Record<string, 'compared' | 'unchecked' | 'na' | 'self'>
+  /**
+   * 영양제끼리 같은 성분 겹침. 키는 medKey, 값은 겹친 성분 이름.
+   * 키가 있으면 재료 이름으로 찾아본 약이고, 빈 배열은 "겹침을 못 찾음"이다 (별칭표 성분만 본다).
+   */
+  overlap?: Record<string, string[]>
 }
