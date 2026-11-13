@@ -51,7 +51,7 @@
 - 안 하는 것: 루트 `hgko.dev` 설정, 광고, `ads.txt`.
 - 멈춤 조건: Cloudflare 빌드 실패(Node 버전 문제면 `NODE_VERSION` 변수를 제안하고 묻는다 — Vercel은 24.x였고 Cloudflare 기본값은 확인 안 함), 도메인에서 522가 나면 멈추고 알린다.
 
-### [ ] 31. Vercel 정리와 문서 고치기
+### [x] 31. Vercel 정리와 문서 고치기
 - 목표: 저장소에 Vercel 전용 코드와 설명이 남지 않고, GitHub 저장소 홈페이지 주소가 `https://pill.hgko.dev`다.
 - 맥락: 30번이 확인된 뒤에 한다.
 - 변경할 파일:
@@ -63,7 +63,7 @@
 - 검증: `npm --prefix web run typecheck`, `npm --prefix web run build`, `grep -rn "Vercel" CLAUDE.md .claude PRODUCT.md web/README.md web/src`로 남은 곳 확인.
 - 안 하는 것: `docs/product-design.md`의 과거 기록 고치기(결정 당시 기록이라 둔다), 광고.
 - 멈춤 조건: Vercel 프로젝트(`pill-check`)를 지우거나 GitHub 연결을 끊는 것은 되돌릴 수 없으므로, 그때 사용자에게 묻는다. 추천은 아직 쓰는 사람이 없으니 지워서 옛 주소를 닫는 것이다.
-- 진행 (2026-11-14): `web/api/llm.ts` 삭제, `CLAUDE.md`(스택·구조·검증·배포 명령 추가), `.claude/rules/typescript-react.md`, `PRODUCT.md`, `web/src/lib/llm.ts` 주석, `web/README.md` 배포 절(직접 올리기, 키 위치, DNS only 이유) 고침. `web/README.md:41`의 "Vercel preview"는 Week 0 실측용 임시 호스팅 예시라 둔다. 남은 것: GitHub 홈페이지 주소, Vercel 프로젝트 삭제(사용자 확인).
+- 진행 (2026-11-14): `web/api/llm.ts` 삭제, `CLAUDE.md`(스택·구조·검증·배포 명령 추가), `.claude/rules/typescript-react.md`, `PRODUCT.md`, `web/src/lib/llm.ts` 주석, `web/README.md` 배포 절(직접 올리기, 키 위치, DNS only 이유) 고침. `web/README.md:41`의 "Vercel preview"는 Week 0 실측용 임시 호스팅 예시라 둔다. GitHub 홈페이지를 `https://pill.hgko.dev`로 바꿈. Vercel `pill-check` 프로젝트 삭제(사용자 확인, 옛 주소 404 확인). `navi-bible`·`data-weave`·`hgko.dev` 도메인 등록은 사용자가 남기기로 함. PR #8.
 
 #### 전체 점검에서 남은 것 (이번 범위 밖, 다음 계획 후보)
 - P1 검색: 종류별 10건에서 말없이 잘림(`nedrug-api.ts:26`, `healthfood-api.ts:157`), 실패와 "검색 결과가 없어요"가 함께 뜸(`SearchScreen.tsx:186-190`), 요청 시간 제한 없음, 검색 중 X나 새 검색어가 이전 검색을 취소하지 않음.
