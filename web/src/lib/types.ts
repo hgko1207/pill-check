@@ -59,4 +59,9 @@ export interface InteractionResult {
   checked?: boolean
   /** 확인한 제품이 이미 내 약에 있는지 (그 약과는 비교하지 않는다) */
   alreadyRegistered?: boolean
+  /**
+   * 내 약별 대조 상태. 키는 dur-match.ts의 medKey.
+   * unchecked(자료를 못 받음)인 약에는 "충돌 못 찾음"을 붙이지 않는다.
+   */
+  coverage?: Record<string, 'compared' | 'unchecked' | 'na' | 'self'>
 }

@@ -1,6 +1,14 @@
 import type { InteractionResult, InteractionDetail, UnifiedSearchResult } from './types'
 import { db, type RegisteredMedication } from './db'
-import { findDurConflicts, isSameProduct, type DurRow, type DurSide } from './dur-match'
+import {
+  findDurConflicts,
+  isSameProduct,
+  medCoverage,
+  medKey,
+  type DurRow,
+  type DurSide,
+  type MedCoverage,
+} from './dur-match'
 
 const NEDRUG_KEY = import.meta.env.VITE_NEDRUG_API_KEY ?? ''
 const isDev = import.meta.env.DEV
@@ -171,19 +179,21 @@ export async function checkInteraction(
   if (product.kind === 'drug' && product.id) itemSeqsToQuery.add(product.id)
 
   // 2) 병렬로 DUR row fetch (캐시 히트 시 즉시)
-  const fetchResults = await Promise.allSettled(
-    [...itemSeqsToQuery].map((seq) => fetchDurForItemSeq(seq)),
-  )
+  const seqs = [...itemSeqsToQuery]
+  const fetchResults = await Promise.allSettled(seqs.map((seq) => fetchDurForItemSeq(seq)))
 
-  // 모두 실패하면 네트워크/키 문제 — 안전하게 unknown
-  const successCount = fetchResults.filter((r) => r.status === 'fulfilled').length
-  if (successCount === 0 && itemSeqsToQuery.size > 0) {
-    return {
-      level: 'unknown',
-      title: '지금은 확인할 수 없어요',
-      message: '식약처 자료를 받아 오지 못했어요. 인터넷 연결을 확인한 뒤 다시 눌러 보시고, 급하면 약사에게 직접 물어보세요.',
-    }
+  // 자료를 실제로 받은 품목코드 (0행으로 받은 것도 받은 것이다)
+  const received = new Set(seqs.filter((_, i) => fetchResults[i].status === 'fulfilled'))
+
+  // 내 약별 대조 상태. 자료를 못 받은 약에 "충돌 못 찾음"을 붙이지 않으려고 따로 센다
+  const coverage: Record<string, MedCoverage> = {}
+  for (const med of registered) {
+    const side = toSide(med)
+    coverage[medKey(side)] = medCoverage(productSide, side, received)
   }
+  const states = Object.values(coverage)
+  const comparedCount = states.filter((s) => s === 'compared').length
+  const uncheckedCount = states.filter((s) => s === 'unchecked').length
 
   // 3) 모든 결과 dedup 합산
   const allRows = new Map<string, DurRow>()
@@ -196,26 +206,64 @@ export async function checkInteraction(
   // 4) 매칭 (자기 자신은 dur-match.ts에서 뺀다)
   const conflicts: InteractionDetail[] = findDurConflicts(productSide, registered.map(toSide), [...allRows.values()])
 
-  if (conflicts.length === 0) {
+  // 받은 자료에서 충돌이 나오면, 못 받은 약이 있어도 빨강은 그대로다
+  if (conflicts.length > 0) {
+    const hasDanger = conflicts.some((c) => c.severity === 'danger')
+    return {
+      level: hasDanger ? 'danger' : 'warn',
+      checked: true,
+      alreadyRegistered,
+      coverage,
+      title: hasDanger ? '함께 드시면 안 돼요' : '함께 드실 때 주의가 필요해요',
+      message: hasDanger
+        ? '드시기 전에 약사에게 이\u00A0화면을 보여 주세요.'
+        : '함께\u00A0드셔도 되는지 약사에게 물어보세요.',
+      details: conflicts,
+    }
+  }
+
+  // 충돌은 못 찾았다. 실제로 얼마나 대조했는지에 따라 말이 달라진다
+  if (uncheckedCount > 0 && comparedCount === 0) {
+    // 대조한 약이 하나도 없다 (네트워크, 키 문제)
+    return {
+      level: 'unknown',
+      alreadyRegistered,
+      coverage,
+      title: '지금은 확인할 수 없어요',
+      message:
+        '식약처 자료를 받아 오지 못했어요. 인터넷 연결을 확인한 뒤 "다시 확인"을 눌러 보시고, 급하면 약사에게 직접 물어보세요.',
+    }
+  }
+  if (uncheckedCount > 0) {
+    // 일부만 대조했다. 못 받은 약을 "충돌 못 찾음"이라고 하지 않는다
     return {
       level: 'unknown',
       checked: true,
       alreadyRegistered,
-      // 판정처럼 읽히지 않게 "없어요"가 아니라 "자료에서 못 찾았어요". 약사 안내는 ResultSheet가 상자 안에 붙인다
-      title: '식약처 자료에서는 충돌을 못\u00A0찾았어요',
-      message: '자료에 없는 조합도 있어요. 함께 드셔도\u00A0된다는 뜻은\u00A0아니에요.',
+      coverage,
+      title: '일부 내 약은 확인하지\u00A0못했어요',
+      message: '식약처 자료를 다 받지 못했어요. 아래에서 확인\u00A0못\u00A0한 약을 보시고 "다시 확인"을 눌러\u00A0주세요.',
+    }
+  }
+  if (comparedCount === 0) {
+    // 영양제끼리: 조회할 병용금기 자료가 없다. "비교했어요"라고 하지 않는다
+    return {
+      level: 'unknown',
+      alreadyRegistered,
+      coverage,
+      title: '식약처 자료로는 비교할 수\u00A0없어요',
+      message:
+        '식약처 병용금기 자료는 의약품 기준이에요. 영양제끼리는 이 자료로 비교할 수 없으니, 함께\u00A0드셔도 되는지 약사에게 물어보세요.',
     }
   }
 
-  const hasDanger = conflicts.some((c) => c.severity === 'danger')
   return {
-    level: hasDanger ? 'danger' : 'warn',
+    level: 'unknown',
     checked: true,
     alreadyRegistered,
-    title: hasDanger ? '함께 드시면 안 돼요' : '함께 드실 때 주의가 필요해요',
-    message: hasDanger
-      ? '드시기 전에 약사에게 이\u00A0화면을 보여 주세요.'
-      : '함께 드셔도 되는지 약사에게 물어보세요.',
-    details: conflicts,
+    coverage,
+    // 판정처럼 읽히지 않게 "없어요"가 아니라 "자료에서 못 찾았어요". 약사 안내는 ResultSheet가 상자 안에 붙인다
+    title: '식약처 자료에서는 충돌을 못\u00A0찾았어요',
+    message: '자료에 없는 조합도 있어요. 함께 드셔도\u00A0된다는 뜻은\u00A0아니에요.',
   }
 }
