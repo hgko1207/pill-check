@@ -57,4 +57,6 @@ export interface InteractionResult {
   details?: InteractionDetail[]
   /** 등록약과 실제로 대조했는지 (등록약 없음·자료 못 받음이면 false) */
   checked?: boolean
+  /** 확인한 제품이 이미 내 약에 있는지 (그 약과는 비교하지 않는다) */
+  alreadyRegistered?: boolean
 }

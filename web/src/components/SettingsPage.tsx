@@ -83,7 +83,7 @@ export function SettingsPage({ onShowGuide, onMedicationsChanged }: SettingsProp
         <div className="setting">
           <div className="setting__text">
             <div className="row__title" id="font-label">글자 크기</div>
-            <div className="row__sub">눈이 편한 크기로 골라 주세요.</div>
+            <div className="row__sub row__sub--guide">눈이 편한 크기로 골라 주세요.</div>
           </div>
           <div className="segmented" role="radiogroup" aria-labelledby="font-label">
             {(['normal', 'large'] as FontScale[]).map((f) => (
@@ -103,7 +103,7 @@ export function SettingsPage({ onShowGuide, onMedicationsChanged }: SettingsProp
         <div className="setting">
           <div className="setting__text">
             <div className="row__title" id="theme-label">화면 밝기</div>
-            <div className="row__sub">자동은 휴대폰 설정을 따라가요.</div>
+            <div className="row__sub row__sub--guide">자동은 휴대폰 설정을 따라가요.</div>
           </div>
           <div className="segmented" role="radiogroup" aria-labelledby="theme-label">
             {(['light', 'dark', 'system'] as Theme[]).map((t) => (
@@ -148,7 +148,7 @@ export function SettingsPage({ onShowGuide, onMedicationsChanged }: SettingsProp
           </span>
           <span className="row__body">
             <span className="row__title">{clearing ? '지우는 중' : '등록한 약 모두 지우기'}</span>
-            <span className="row__sub">하나씩 지우려면 내 약 탭에서 지워 주세요.</span>
+            <span className="row__sub row__sub--guide">하나씩 지우려면 내 약 탭에서 지워 주세요.</span>
           </span>
         </button>
       </div>

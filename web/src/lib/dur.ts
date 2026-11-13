@@ -1,5 +1,6 @@
 import type { InteractionResult, InteractionDetail, UnifiedSearchResult } from './types'
 import { db, type RegisteredMedication } from './db'
+import { findDurConflicts, isSameProduct, type DurRow, type DurSide } from './dur-match'
 
 const NEDRUG_KEY = import.meta.env.VITE_NEDRUG_API_KEY ?? ''
 const isDev = import.meta.env.DEV
@@ -7,46 +8,36 @@ const DUR_BASE = isDev
   ? '/api/nedrug/1471000/DURPrdlstInfoService03'
   : 'https://apis.data.go.kr/1471000/DURPrdlstInfoService03'
 
-interface DurTabooItem {
-  DUR_SEQ?: string
-  TYPE_NAME?: string
-  INGR_KOR_NAME?: string
-  INGR_ENG_NAME?: string
-  MIX_INGR?: string | null
-  ITEM_SEQ?: string
-  ITEM_NAME?: string
-  PROHBT_CONTENT?: string
-}
-
 interface DurResponseBody {
   body?: {
-    items?: DurTabooItem | DurTabooItem[]
+    items?: DurRow | DurRow[]
     totalCount?: number
   }
 }
 
-const DUR_PAGE_SIZE = 200 // 한 약의 DUR row는 보통 수십개 — 200이면 충분
+const DUR_PAGE_SIZE = 500 // 한 약의 행이 200을 넘는다(노비르정 427). 1000은 빈 응답 (2026-11-12 확인)
 const DUR_CACHE_TTL_MS = 24 * 60 * 60 * 1000 // 24h — DUR 데이터는 자주 안 바뀜
 
-/** in-memory cache: itemSeq → DurTabooItem[] */
-const memCache = new Map<string, { data: DurTabooItem[]; loadedAt: number }>()
+/** in-memory cache: itemSeq → DurRow[] */
+const memCache = new Map<string, { data: DurRow[]; loadedAt: number }>()
 
+/** v2: 모든 쪽을 받고 매칭 칸만 남긴 형식. 예전 'itemSeq:' 캐시는 1쪽만 받아 잘려 있어 쓰지 않는다 */
 function cacheKey(itemSeq: string): string {
-  return `itemSeq:${itemSeq}`
+  return `itemSeq-v2:${itemSeq}`
 }
 
-async function loadFromIDB(itemSeq: string): Promise<DurTabooItem[] | null> {
+async function loadFromIDB(itemSeq: string): Promise<DurRow[] | null> {
   try {
     const row = await db.durCache.get(cacheKey(itemSeq))
     if (!row) return null
     if (Date.now() - row.fetchedAt > DUR_CACHE_TTL_MS) return null
-    return row.data as DurTabooItem[]
+    return row.data as DurRow[]
   } catch {
     return null
   }
 }
 
-async function saveToIDB(itemSeq: string, data: DurTabooItem[]): Promise<void> {
+async function saveToIDB(itemSeq: string, data: DurRow[]): Promise<void> {
   try {
     await db.durCache.put({ id: cacheKey(itemSeq), data, fetchedAt: Date.now() })
   } catch {
@@ -54,30 +45,52 @@ async function saveToIDB(itemSeq: string, data: DurTabooItem[]): Promise<void> {
   }
 }
 
-async function fetchDurFromApi(itemSeq: string): Promise<DurTabooItem[]> {
-  if (!NEDRUG_KEY) throw new Error('식약처 API 키가 없습니다.')
+/** 매칭과 화면에 쓰는 칸만 남긴다 (캐시 크기 줄이기) */
+function pick(r: DurRow): DurRow {
+  return {
+    DUR_SEQ: r.DUR_SEQ,
+    TYPE_NAME: r.TYPE_NAME,
+    ITEM_SEQ: r.ITEM_SEQ,
+    INGR_KOR_NAME: r.INGR_KOR_NAME,
+    MIXTURE_ITEM_SEQ: r.MIXTURE_ITEM_SEQ,
+    MIXTURE_INGR_KOR_NAME: r.MIXTURE_INGR_KOR_NAME,
+    MIXTURE_MAIN_INGR: r.MIXTURE_MAIN_INGR,
+    PROHBT_CONTENT: r.PROHBT_CONTENT,
+  }
+}
 
+async function fetchDurPage(itemSeq: string, pageNo: number): Promise<{ items: DurRow[]; total: number }> {
   const url =
     `${DUR_BASE}/getUsjntTabooInfoList03` +
     `?serviceKey=${NEDRUG_KEY}` +
     `&type=json` +
     `&itemSeq=${encodeURIComponent(itemSeq)}` +
     `&numOfRows=${DUR_PAGE_SIZE}` +
-    `&pageNo=1`
+    `&pageNo=${pageNo}`
 
   const res = await fetch(url)
   if (!res.ok) throw new Error(`DUR API 응답 오류 (${res.status})`)
   const data = (await res.json()) as DurResponseBody
   const items = data.body?.items ?? []
-  return Array.isArray(items) ? items : [items]
+  return { items: Array.isArray(items) ? items : [items], total: Number(data.body?.totalCount ?? 0) }
+}
+
+/** 모든 쪽을 받는다: 첫 쪽의 totalCount로 나머지 쪽을 병렬로 */
+async function fetchDurFromApi(itemSeq: string): Promise<DurRow[]> {
+  if (!NEDRUG_KEY) throw new Error('식약처 API 키가 없습니다.')
+
+  const first = await fetchDurPage(itemSeq, 1)
+  const rest: Promise<{ items: DurRow[] }>[] = []
+  for (let n = 2; (n - 1) * DUR_PAGE_SIZE < first.total; n++) rest.push(fetchDurPage(itemSeq, n))
+  const pages = await Promise.all(rest)
+  return [first, ...pages].flatMap((p) => p.items).map(pick)
 }
 
 /**
  * 특정 약의 DUR row 가져오기 (memory → IDB → API)
- * - itemSeq 기준으로 그 약이 primary 또는 counterpart인 DUR row만 반환
  * - 빈 결과도 24h 캐싱 (재호출 절감)
  */
-async function fetchDurForItemSeq(itemSeq: string): Promise<DurTabooItem[]> {
+async function fetchDurForItemSeq(itemSeq: string): Promise<DurRow[]> {
   if (!itemSeq) return []
 
   // 1단계: in-memory
@@ -100,26 +113,26 @@ async function fetchDurForItemSeq(itemSeq: string): Promise<DurTabooItem[]> {
   return fresh
 }
 
-function lower(s: string | null | undefined): string {
-  return (s ?? '').toLowerCase()
+/** DUR row 중복 제거용 키 */
+function durDedupKey(d: DurRow): string {
+  return d.DUR_SEQ ?? `${d.ITEM_SEQ ?? ''}|${d.MIXTURE_ITEM_SEQ ?? ''}|${d.TYPE_NAME ?? ''}`
 }
 
-/** DUR row 중복 제거용 키 */
-function durDedupKey(d: DurTabooItem): string {
-  return d.DUR_SEQ ?? `${d.ITEM_SEQ ?? ''}|${d.INGR_KOR_NAME ?? ''}|${d.MIX_INGR ?? ''}`
+function toSide(m: RegisteredMedication): DurSide {
+  return { kind: m.kind, id: m.itemSeq, name: m.itemName, ingredient: m.mainIngredient }
 }
 
 /**
- * V1.1 매칭 정밀도 (옵션 A):
- * - 등록된 약 + 새 제품 각각의 itemSeq로 DUR API 타겟 쿼리
- * - 81만건 전체 검색은 불가능하지만 관련된 row만 정확히 가져옴 → 매칭 누락 거의 없음
- * - itemSeq별 IDB 캐시 24h — 두 번째부터 즉시
+ * 확인 제품과 내 약의 DUR 병용금기 충돌을 찾는다.
+ * - 등록된 의약품 + 확인 제품(의약품이면) 각각의 itemSeq로 DUR 행을 모두 받는다.
+ * - itemSeq별 IDB 캐시 24h — 두 번째부터 즉시.
+ * - 매칭은 dur-match.ts: 행의 상대 칸(MIXTURE_*)으로 맞추고, 확인 제품과 같은 내 약은 빼고 비교한다.
  *
  * 한계:
- * - 영양제(healthfood)는 itemSeq가 식약처 약 코드가 아니므로 그쪽 query는 스킵
- *   대신 등록된 약의 DUR row 안에서 MIX_INGR(원료/성분)이 영양제 원료와 매칭되는지 확인
- *   (예: 와파린 등록 → 와파린 DUR에 비타민K 금기 → 비타민K 영양제 검사 시 적중)
- * - 매칭 미발견 → 회색 ("데이터 부족"), 초록으로 단정 안 함
+ * - 영양제는 DUR 품목코드가 없어 그쪽 조회는 건너뛴다. 등록된 약의 행에서 상대 성분 이름이
+ *   영양제 원료 글에 있는지만 본다.
+ * - 이 API는 병용금기만 준다(노랑 병용주의 자료는 연결 안 됨).
+ * - 매칭 미발견 → 회색, 초록으로 단정 안 함.
  */
 export async function checkInteraction(
   product: UnifiedSearchResult,
@@ -130,6 +143,23 @@ export async function checkInteraction(
       level: 'unknown',
       title: '등록된 약이 없어요',
       message: '먼저 드시는 약을 등록해 주세요. 검색 결과에서 "내 약에 등록"을 누르면 돼요.',
+    }
+  }
+
+  const productSide: DurSide = {
+    kind: product.kind,
+    id: product.id,
+    name: product.name,
+    ingredient: product.ingredient,
+  }
+  const alreadyRegistered = registered.some((m) => isSameProduct(toSide(m), productSide))
+  const others = registered.filter((m) => !isSameProduct(toSide(m), productSide))
+  if (others.length === 0) {
+    return {
+      level: 'unknown',
+      alreadyRegistered,
+      title: '비교할 다른 내 약이 없어요',
+      message: '이 제품은 이미 내 약에 있어요. 드시는 다른 약을 등록하면 함께 드셔도 되는지 확인할 수\u00A0있어요.',
     }
   }
 
@@ -156,64 +186,24 @@ export async function checkInteraction(
   }
 
   // 3) 모든 결과 dedup 합산
-  const allRows = new Map<string, DurTabooItem>()
+  const allRows = new Map<string, DurRow>()
   for (const r of fetchResults) {
     if (r.status === 'fulfilled') {
       for (const row of r.value) allRows.set(durDedupKey(row), row)
     }
   }
 
-  // 4) 매칭 — 기존 로직 그대로
-  const productIngrText = lower(product.ingredient)
-  const productItemSeq = product.kind === 'drug' ? product.id : ''
-  const conflicts: InteractionDetail[] = []
-  const seen = new Set<string>() // 중복 conflict 방지
-
-  for (const med of registered) {
-    const medIngr = lower(med.mainIngredient)
-
-    for (const dur of allRows.values()) {
-      const durItemSeq = dur.ITEM_SEQ
-      const durIngr = lower(dur.INGR_KOR_NAME)
-      const mixIngr = lower(dur.MIX_INGR)
-
-      // 등록된 약이 이 DUR row에 매칭되는가?
-      const medMatchesDur =
-        (durItemSeq && durItemSeq === med.itemSeq) ||
-        (medIngr && durIngr && (medIngr.includes(durIngr) || durIngr.includes(medIngr)))
-
-      if (!medMatchesDur) continue
-
-      // 새 제품이 MIX_INGR 또는 ITEM_SEQ와 매칭되는가?
-      const ingrMatch = mixIngr && productIngrText && productIngrText.includes(mixIngr)
-      const itemMatch = product.kind === 'drug' && durItemSeq && durItemSeq === productItemSeq
-      const productConflictsWithMix = ingrMatch || itemMatch
-
-      if (productConflictsWithMix) {
-        const isStrict = (dur.TYPE_NAME ?? '').includes('금기')
-        const dedup = `${med.itemSeq}|${dur.MIX_INGR ?? ''}|${dur.TYPE_NAME ?? ''}`
-        if (seen.has(dedup)) continue
-        seen.add(dedup)
-
-        conflicts.push({
-          registeredMedName: med.itemName,
-          conflictWith: dur.MIX_INGR ?? '(성분 이름 없음)',
-          severity: isStrict ? 'danger' : 'warn',
-          source: dur.TYPE_NAME ?? 'DUR',
-          prohbtContent: dur.PROHBT_CONTENT,
-        })
-      }
-    }
-  }
+  // 4) 매칭 (자기 자신은 dur-match.ts에서 뺀다)
+  const conflicts: InteractionDetail[] = findDurConflicts(productSide, registered.map(toSide), [...allRows.values()])
 
   if (conflicts.length === 0) {
     return {
       level: 'unknown',
       checked: true,
-      title: '확인된 충돌은 없어요',
-      message:
-        '식약처 자료에서는 충돌을 찾지\u00A0못했어요. ' +
-        '자료에 없는 제품도 있으니 약사나 의사와 상담해 주세요.',
+      alreadyRegistered,
+      // 판정처럼 읽히지 않게 "없어요"가 아니라 "자료에서 못 찾았어요". 약사 안내는 ResultSheet가 상자 안에 붙인다
+      title: '식약처 자료에서는 충돌을 못\u00A0찾았어요',
+      message: '자료에 없는 조합도 있어요. 함께 드셔도\u00A0된다는 뜻은\u00A0아니에요.',
     }
   }
 
@@ -221,6 +211,7 @@ export async function checkInteraction(
   return {
     level: hasDanger ? 'danger' : 'warn',
     checked: true,
+    alreadyRegistered,
     title: hasDanger ? '함께 드시면 안 돼요' : '함께 드실 때 주의가 필요해요',
     message: hasDanger
       ? '드시기 전에 약사에게 이\u00A0화면을 보여 주세요.'

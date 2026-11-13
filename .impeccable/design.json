@@ -27,7 +27,7 @@
       "text": { "role": "neutral", "displayName": "Ink", "canonical": "#191F28", "dark": "#F2F3F5" },
       "text-muted": { "role": "neutral", "displayName": "Slate", "canonical": "#4E5968", "dark": "#C2C8D0" },
       "text-subtle": { "role": "neutral", "displayName": "Pebble", "canonical": "#5F6B78", "dark": "#9AA3AE" },
-      "placeholder": { "role": "neutral", "displayName": "Placeholder Gray", "canonical": "#6B7684", "dark": "#7F8893" },
+      "placeholder": { "role": "neutral", "displayName": "Placeholder Gray", "canonical": "#6B7684", "dark": "#868F9A" },
       "border": { "role": "neutral", "displayName": "Hairline", "canonical": "#E5E8EB", "dark": "#34343D" },
       "divider": { "role": "neutral", "displayName": "Divider", "canonical": "#EEF0F2", "dark": "#2C2C34" },
       "chevron": { "role": "neutral", "displayName": "Chevron Gray", "canonical": "#B0B8C1", "dark": "#5E6570" }

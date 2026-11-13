@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { CircleAlert, CircleCheck, Info, X } from 'lucide-react'
 import type { ToastType } from '../lib/dialog'
 
-const DEFAULT_DURATION = 3200
+const DEFAULT_DURATION = 5000 // 어르신이 끝까지 읽을 시간 (2026-11-13 디자인 점검: 3.2초는 짧음)
 
 interface Props {
   message: string
