@@ -5,6 +5,7 @@ import type { RegisteredMedication } from '../lib/db'
 import { generateExplanation, getRemainingQuota, LLM_DAILY_LIMIT } from '../lib/llm'
 import { buildLLMPrompt } from '../lib/promptBuilder'
 import { friendlyError } from '../lib/errors'
+import { medKey } from '../lib/dur-match'
 
 const VERDICT_ICON = {
   danger: X,
@@ -20,10 +21,13 @@ interface Props {
   onClose: () => void
   /** 다른 제품 확인: 결과를 닫고 검색창으로 */
   onCheckAnother: () => void
+  /** 자료를 못 받은 약이 있을 때 같은 제품을 다시 확인한다 */
+  onRetry?: () => Promise<void>
 }
 
 /** 충돌 결과 화면: 화면 전체를 덮고, 결론 한 문장 → 내 약별 상태 → 다음 행동 */
-export function ResultSheet({ result, product, registered, onClose, onCheckAnother }: Props) {
+export function ResultSheet({ result, product, registered, onClose, onCheckAnother, onRetry }: Props) {
+  const [retrying, setRetrying] = useState(false)
   const [aiText, setAiText] = useState<string | null>(null)
   const [aiFromCache, setAiFromCache] = useState(false)
   const [aiLoading, setAiLoading] = useState(false)
@@ -70,18 +74,35 @@ export function ResultSheet({ result, product, registered, onClose, onCheckAnoth
   const Icon = VERDICT_ICON[result.level]
   const details = result.details ?? []
 
-  // 내 약별 가장 높은 단계. 확인한 제품 자신은 비교하지 않았으므로 'self'
-  const isSelf = (med: RegisteredMedication) => med.kind === product.kind && med.itemSeq === product.id
-  const worstOf = (med: RegisteredMedication): 'danger' | 'warn' | null => {
+  // 내 약별 상태. 충돌이 있으면 그 단계, 없으면 대조 상태(coverage)를 따른다:
+  // unchecked = 식약처 자료를 못 받음, na = 영양제끼리라 비교할 자료가 없음, self = 확인한 제품 자신
+  type RowState = 'danger' | 'warn' | 'unchecked' | 'none' | 'na' | 'self'
+  const stateOf = (med: RegisteredMedication): RowState => {
+    if (med.kind === product.kind && med.itemSeq === product.id) return 'self'
     const hits = details.filter((d) => d.registeredMedName === med.itemName)
     if (hits.some((d) => d.severity === 'danger')) return 'danger'
-    return hits.length > 0 ? 'warn' : null
+    if (hits.length > 0) return 'warn'
+    const cov = result.coverage?.[medKey({ kind: med.kind, id: med.itemSeq })]
+    return cov === 'unchecked' ? 'unchecked' : cov === 'na' ? 'na' : 'none'
   }
-  const RANK = { danger: 0, warn: 1, none: 2, self: 3 } as const
+  const RANK: Record<RowState, number> = { danger: 0, warn: 1, unchecked: 2, none: 3, na: 4, self: 5 }
   const rows = registered
-    .map((med) => ({ med, state: isSelf(med) ? ('self' as const) : (worstOf(med) ?? ('none' as const)) }))
+    .map((med) => ({ med, state: stateOf(med) }))
     .sort((a, b) => RANK[a.state] - RANK[b.state])
-  const compared = rows.filter((r) => r.state !== 'self').length
+  const compared = rows.filter((r) => r.state === 'danger' || r.state === 'warn' || r.state === 'none').length
+  const uncheckedCount = rows.filter((r) => r.state === 'unchecked').length
+  // 자료를 못 받은 약이 있으면 "다시 확인"이 주 버튼이다 (AI 해설은 대조가 끝난 결과에만)
+  const canRetry = uncheckedCount > 0 && !!onRetry
+
+  async function handleRetry() {
+    if (!onRetry || retrying) return
+    setRetrying(true)
+    try {
+      await onRetry()
+    } finally {
+      setRetrying(false)
+    }
+  }
   // 결론 바로 아래에 어떤 내 약과 부딪히는지 (조사가 필요 없는 "라벨: 이름" 형태)
   const whoLevel = result.level === 'danger' ? 'danger' : result.level === 'warn' ? 'warn' : null
   const whoNames = whoLevel ? rows.filter((r) => r.state === whoLevel).map((r) => r.med.itemName) : []
@@ -120,10 +141,16 @@ export function ResultSheet({ result, product, registered, onClose, onCheckAnoth
 
         {result.checked && (
           <>
-            <h2 className="group-label">내 약 {compared}개와 비교했어요</h2>
+            <h2 className="group-label">
+              내 약 {compared}개와 비교했어요
+              {uncheckedCount > 0 && `, ${uncheckedCount}개는 확인하지 못했어요`}
+            </h2>
             <ul className="group">
               {rows.map(({ med, state }) => {
-                const hits = state === 'self' ? [] : details.filter((d) => d.registeredMedName === med.itemName)
+                const hits =
+                  state === 'danger' || state === 'warn'
+                    ? details.filter((d) => d.registeredMedName === med.itemName)
+                    : []
                 return (
                   <li key={med.id ?? med.itemSeq}>
                     <div className="row compare-row">
@@ -131,6 +158,12 @@ export function ResultSheet({ result, product, registered, onClose, onCheckAnoth
                         <div className="row__title">{med.itemName}</div>
                         {state === 'self' && (
                           <p className="compare-row__why">이미 내 약에 있는 제품이에요. 이 약과는 비교하지&nbsp;않아요.</p>
+                        )}
+                        {state === 'unchecked' && (
+                          <p className="compare-row__why">식약처 자료를 받지 못해서 비교하지&nbsp;못했어요.</p>
+                        )}
+                        {state === 'na' && (
+                          <p className="compare-row__why">영양제끼리는 식약처 자료로 비교할 수&nbsp;없어요.</p>
                         )}
                         {hits.map((d, i) => (
                           <p key={i} className="compare-row__why">
@@ -147,6 +180,7 @@ export function ResultSheet({ result, product, registered, onClose, onCheckAnoth
                       {state === 'danger' && <span className="status status--danger">함께 안&nbsp;돼요</span>}
                       {state === 'warn' && <span className="status status--warn">주의 필요</span>}
                       {state === 'none' && <span className="status status--unknown">충돌 못&nbsp;찾음</span>}
+                      {state === 'unchecked' && <span className="status status--unknown">확인 못&nbsp;함</span>}
                     </div>
                   </li>
                 )
@@ -183,7 +217,23 @@ export function ResultSheet({ result, product, registered, onClose, onCheckAnoth
 
       <div className="action-bar">
         <div className="action-bar__inner">
-          {showAi && !aiText && (
+          {canRetry && (
+            <button
+              type="button"
+              className="btn btn--primary"
+              onClick={() => void handleRetry()}
+              disabled={retrying}
+            >
+              {retrying ? (
+                <>
+                  <span className="spinner" aria-hidden="true" /> 다시 확인하는 중
+                </>
+              ) : (
+                '다시 확인'
+              )}
+            </button>
+          )}
+          {showAi && !canRetry && !aiText && (
             <button
               type="button"
               className="btn btn--secondary"
@@ -203,7 +253,11 @@ export function ResultSheet({ result, product, registered, onClose, onCheckAnoth
               )}
             </button>
           )}
-          <button type="button" className="btn btn--primary" onClick={onCheckAnother}>
+          <button
+            type="button"
+            className={canRetry ? 'btn btn--secondary' : 'btn btn--primary'}
+            onClick={onCheckAnother}
+          >
             다른 제품 확인
           </button>
         </div>

@@ -260,7 +260,8 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
     }
   }
 
-  async function handleCheck(item: SearchResultWithRaw) {
+  // 결과 화면의 "다시 확인"도 이 함수를 쓴다 (그쪽은 raw 없는 UnifiedSearchResult만 갖고 있다)
+  async function handleCheck(item: UnifiedSearchResult) {
     if (actionPending) return
     setActionPending(item.id)
     setError(null)
@@ -519,6 +520,7 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
           product={interactionContext.product}
           registered={interactionContext.registered}
           onClose={() => setInteractionContext(null)}
+          onRetry={() => handleCheck(interactionContext.product)}
           onCheckAnother={() => {
             setInteractionContext(null)
             clearSearch()

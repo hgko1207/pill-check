@@ -46,6 +46,34 @@ export function isSameProduct(a: DurSide, b: DurSide): boolean {
   return a.kind === b.kind && a.id !== '' && a.id === b.id
 }
 
+/**
+ * 내 약 하나를 확인 제품과 비교할 자료가 있었는가.
+ * - compared: 필요한 자료를 모두 받아 대조했다
+ * - unchecked: 필요한 자료를 받지 못했다 ("충돌 못 찾음"이라고 말하면 안 된다)
+ * - na: 영양제끼리라 병용금기 자료로 비교할 수 없다
+ * - self: 확인 제품 자신
+ */
+export type MedCoverage = 'compared' | 'unchecked' | 'na' | 'self'
+
+/** 결과에서 내 약을 가리키는 키 (이름은 겹칠 수 있다) */
+export function medKey(side: { kind: string; id: string }): string {
+  return `${side.kind}:${side.id}`
+}
+
+/**
+ * received: 병용금기 행을 실제로 받은 의약품 품목코드(0행으로 받은 것도 포함).
+ * 의약품끼리는 양쪽 자료가 모두 있어야 대조한 것으로 본다. 한쪽 자료만으로 충분한지는
+ * 확인하지 못해서 보수적으로 잡았다 (2026-11-13).
+ */
+export function medCoverage(product: DurSide, med: DurSide, received: ReadonlySet<string>): MedCoverage {
+  if (isSameProduct(med, product)) return 'self'
+  const needs: string[] = []
+  if (med.kind === 'drug') needs.push(med.id)
+  if (product.kind === 'drug') needs.push(product.id)
+  if (needs.length === 0) return 'na'
+  return needs.every((id) => id !== '' && received.has(id)) ? 'compared' : 'unchecked'
+}
+
 function ingrCodes(s: string | undefined): Set<string> {
   return new Set((s ?? '').match(/M\d{6}/g) ?? [])
 }
