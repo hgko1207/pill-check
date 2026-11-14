@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react'
+import { useBackClose } from '../lib/back-close'
 
 interface Props {
   title: string
@@ -20,6 +21,8 @@ export function ConfirmDialog({
   onCancel,
 }: Props) {
   const cancelBtnRef = useRef<HTMLButtonElement>(null)
+  // 뒤로 가기 = 취소
+  useBackClose(true, onCancel)
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

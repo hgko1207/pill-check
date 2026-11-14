@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { ChevronLeft } from 'lucide-react'
+import { useBackClose } from '../lib/back-close'
 
 interface Props {
   open: boolean
@@ -8,6 +9,7 @@ interface Props {
 
 /** 사용법: 화면 전체를 덮는 화면 */
 export function GuideModal({ open, onClose }: Props) {
+  useBackClose(open, onClose)
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {

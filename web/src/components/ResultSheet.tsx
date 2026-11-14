@@ -6,6 +6,7 @@ import { generateExplanation, getRemainingQuota, LLM_DAILY_LIMIT } from '../lib/
 import { buildLLMPrompt } from '../lib/promptBuilder'
 import { friendlyError } from '../lib/errors'
 import { medKey } from '../lib/dur-match'
+import { useBackClose } from '../lib/back-close'
 
 const VERDICT_ICON = {
   danger: X,
@@ -33,6 +34,7 @@ export function ResultSheet({ result, product, registered, onClose, onCheckAnoth
   const [aiLoading, setAiLoading] = useState(false)
   const [aiError, setAiError] = useState<string | null>(null)
   const [remaining, setRemaining] = useState<number>(LLM_DAILY_LIMIT)
+  useBackClose(true, onClose)
 
   useEffect(() => {
     setAiText(null)

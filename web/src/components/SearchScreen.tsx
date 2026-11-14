@@ -16,11 +16,11 @@ import { addMedication, listMedications } from '../lib/db'
 import { checkInteraction } from '../lib/dur'
 import { friendlyError } from '../lib/errors'
 import { useDialog } from '../lib/dialog'
-import { INGREDIENTS } from '../lib/ingredient-alias'
 import type { NedrugItem, InteractionResult, UnifiedSearchResult } from '../lib/types'
 import type { HealthFoodItem } from '../lib/healthfood-api'
 import type { RegisteredMedication } from '../lib/db'
-import { BarcodeScanner } from './BarcodeScanner'
+import { ScanSheet } from './ScanSheet'
+import { TvIngredientSheet } from './TvIngredientSheet'
 import { ResultSheet } from './ResultSheet'
 import { IngredientCard } from './IngredientCard'
 import { Disclaimer } from './Disclaimer'
@@ -358,25 +358,19 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
             <button
               type="button"
               className="quick__tile"
-              aria-expanded={scannerOpen}
-              onClick={() => {
-                setScannerOpen((v) => !v)
-                setTvOpen(false)
-              }}
+              aria-haspopup="dialog"
+              onClick={() => setScannerOpen(true)}
             >
               <span className="quick__icon" aria-hidden="true">
                 <ScanBarcode />
               </span>
-              <span className="quick__label">{scannerOpen ? '바코드 닫기' : '바코드로 찾기'}</span>
+              <span className="quick__label">바코드로 찾기</span>
             </button>
             <button
               type="button"
               className="quick__tile"
-              aria-expanded={tvOpen}
-              onClick={() => {
-                setTvOpen((v) => !v)
-                setScannerOpen(false)
-              }}
+              aria-haspopup="dialog"
+              onClick={() => setTvOpen(true)}
             >
               <span className="quick__icon" aria-hidden="true">
                 <Sparkles />
@@ -384,26 +378,6 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
               <span className="quick__label">TV에서 들은 성분&nbsp;찾기</span>
             </button>
           </div>
-
-          {scannerOpen && (
-            <div className="group scanner-box">
-              <BarcodeScanner onScan={(text) => void handleScan(text)} onError={() => setError('카메라를 켜지 못했어요. 카메라 사용을 허용한 뒤 다시 눌러 주세요.')} />
-              <p className="scanner-box__hint">제품 바코드를 화면 가운데에 비춰 주세요.</p>
-            </div>
-          )}
-
-          {tvOpen && (
-            <div className="group tv-box">
-              <p className="tv-box__hint">어떤 성분을 들으셨어요?</p>
-              <div className="chip-row">
-                {INGREDIENTS.map((ing) => (
-                  <button key={ing.key} type="button" className="chip" onClick={() => searchIngredient(ing.label)}>
-                    {ing.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
 
           <h2 className="group-label">내 약 {registered.length > 0 ? `${registered.length}개` : ''}</h2>
           <ul className="group">
@@ -524,6 +498,9 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
           <Disclaimer />
         </>
       )}
+
+      {scannerOpen && <ScanSheet onClose={() => setScannerOpen(false)} onScan={(text) => void handleScan(text)} />}
+      {tvOpen && <TvIngredientSheet onClose={() => setTvOpen(false)} onPick={searchIngredient} />}
 
       {interactionContext && (
         <ResultSheet
