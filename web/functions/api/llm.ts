@@ -9,10 +9,49 @@
  *
  * 키는 서버에만 존재하며 클라이언트 번들에 포함되지 않습니다.
  * POST가 아닌 요청은 onRequest에서 405로 돌려준다.
+ * 다른 사이트 Origin은 403, 같은 IP의 하루 호출이 IP_DAILY_LIMIT를 넘으면 429
+ * (횟수는 KV 바인딩 LLM_LIMIT, web/wrangler.toml).
  */
+
+/** Workers 타입 패키지 없이 쓰는 KV 최소 인터페이스 */
+interface KVLike {
+  get(key: string): Promise<string | null>
+  put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>
+}
 
 interface Env {
   GEMINI_API_KEY?: string
+  LLM_LIMIT?: KVLike
+}
+
+/** 같은 IP에서 하루(한국 시간)에 받는 최대 호출 수. 기기별 5회 × 집 안 여러 기기를 감안 */
+const IP_DAILY_LIMIT = 20
+
+const ALLOWED_ORIGINS = ['https://pill.hgko.dev', 'https://pill-check.pages.dev']
+
+function isAllowedOrigin(origin: string): boolean {
+  if (ALLOWED_ORIGINS.includes(origin)) return true
+  // 배포 미리보기 주소 (예: https://f1c8aac8.pill-check.pages.dev)
+  return /^https:\/\/[a-z0-9-]+\.pill-check\.pages\.dev$/.test(origin)
+}
+
+function kstDate(): string {
+  return new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10)
+}
+
+/** 한도를 넘었으면 true. KV가 없거나 오류면 막지 않는다(앱이 멈추지 않게) */
+async function overIpLimit(kv: KVLike | undefined, ip: string): Promise<boolean> {
+  if (!kv || !ip) return false
+  const key = `llm:${ip}:${kstDate()}`
+  try {
+    const count = Number((await kv.get(key)) ?? '0') || 0
+    // 막힌 요청은 쓰지 않는다 — KV 쓰기 한도를 아끼려고
+    if (count >= IP_DAILY_LIMIT) return true
+    await kv.put(key, String(count + 1), { expirationTtl: 2 * 24 * 60 * 60 })
+    return false
+  } catch {
+    return false
+  }
 }
 
 interface PagesContext {
@@ -72,6 +111,20 @@ export async function onRequest(context: PagesContext): Promise<Response> {
   }
   if (prompt.length > 4000) {
     return jsonResponse({ error: 'prompt가 너무 깁니다 (최대 4000자)' }, 400)
+  }
+
+  // 다른 사이트에서 부르는 것 막기 (Origin 없는 요청은 아래 횟수 제한이 맡는다)
+  const origin = context.request.headers.get('Origin')
+  if (origin && !isAllowedOrigin(origin)) {
+    return jsonResponse({ error: '허용되지 않은 출처입니다' }, 403)
+  }
+
+  const ip = context.request.headers.get('CF-Connecting-IP') ?? ''
+  if (await overIpLimit(context.env.LLM_LIMIT, ip)) {
+    return jsonResponse(
+      { error: `오늘 AI 해설 사용 한도(${IP_DAILY_LIMIT}회)를 넘었어요. 내일 다시 해 보세요.` },
+      429,
+    )
   }
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${apiKey}`

@@ -63,6 +63,7 @@ npx wrangler pages deploy dist --project-name pill-check --branch main
 
 - `VITE_*` 키는 빌드하는 PC의 `web/.env`에서 번들에 들어간다(Cloudflare에 넣지 않음).
 - `GEMINI_API_KEY`는 Cloudflare Pages Secret(대시보드 pill-check → Settings → Variables and Secrets)에 있다.
+- 배포 설정(KV 바인딩 등)은 `web/wrangler.toml`이 기준이다. `/api/llm`은 KV `LLM_LIMIT`(`pill-check-llm-limit`)에 IP별 하루 호출 수를 세서 20번을 넘으면 429, 다른 사이트 Origin이면 403을 돌려준다. 기기별 하루 5회 제한(`src/lib/llm.ts`)은 따로 있다.
 - `pill.hgko.dev` DNS 기록은 **DNS only(회색 구름)** 로 둔다. 주황 구름(프록시)이면 한국 요청이 홍콩 데이터센터로 가는 일이 있고, Gemini가 홍콩을 막아서(`User location is not supported`) AI 해설이 실패한다(2026-11-14 확인).
 
 ## 폴더 구조

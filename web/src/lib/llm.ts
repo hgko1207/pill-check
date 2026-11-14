@@ -174,6 +174,8 @@ async function callApiRoute(prompt: string): Promise<string> {
   } catch {
     /* noop */
   }
+  // 서버 쪽 IP별 하루 한도 초과 — 기기 한도와 같은 안내를 보여 준다
+  if (res.status === 429) throw new QuotaExceededError()
   if (!res.ok) {
     const msg = data.error || `LLM API 오류 (${res.status})`
     throw new Error(msg)

@@ -1,0 +1,26 @@
+# Cloudflare Pages 설정 (직접 올리기). 이 파일이 배포 설정의 기준이다.
+# `wrangler pages download config pill-check`로 받은 값에 KV 바인딩을 더했다.
+# GEMINI_API_KEY는 Secret이라 여기 없다(대시보드 Variables and Secrets).
+name = "pill-check"
+pages_build_output_dir = "dist"
+compatibility_date = "2026-11-13"
+
+[placement]
+mode = "off"
+
+# AI 해설 호출 횟수(IP별 하루) 저장소. functions/api/llm.ts에서 씀
+[[kv_namespaces]]
+binding = "LLM_LIMIT"
+id = "54d760db573647a4aed53e114625e6c8"
+
+[env.production]
+compatibility_date = "2026-06-01"
+
+# 30번 시험 때 넣었던 값이 프로젝트에 남아 있어 그대로 둔다(동작을 바꾸지 않으려고)
+[env.production.placement]
+region = "gcp:us-central1"
+
+# kv_namespaces는 환경으로 상속되지 않아 production에도 적는다
+[[env.production.kv_namespaces]]
+binding = "LLM_LIMIT"
+id = "54d760db573647a4aed53e114625e6c8"
