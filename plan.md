@@ -60,6 +60,51 @@
 
 ## 완료
 
+> 36~38은 홈 화면에 설치했을 때 앱처럼 보이게 하는 작업이다(2026-11-15 사용자 요청 "앱처럼 보이게"). 화면 디자인은 재디자인(7~11)으로 끝났고, 남은 차이는 설치 껍데기(상태바 색·아이콘·시작 화면)다. 방법 비교(아이콘·시작 화면): (A) `@vite-pwa/assets-generator`를 devDependency로 넣고 설정 파일 + `npm run` 명령으로 PNG를 만들어 `public/`에 커밋, manifest·`<head>`는 손으로 적음 — 다시 만들기 쉽고 빌드와 분리됨 **(추천)** / (B) `vite-plugin-pwa`의 `pwaAssets` 통합 모드 — 빌드 때 자동 생성·주입되지만 지금 쓰는 `vite-plugin-pwa` 0.21과 맞는 버전 확인이 필요하고 동작이 숨겨짐 / (C) 이미지 편집기로 손으로 만들기 — 크기 수십 개라 다시 만들기 어려움. 36 → 37 → 38 순서로, 각각 따로 검증한다.
+
+### [x] 36. 상태바 색을 실제 바탕색에 맞추기
+- 목표: 설치한 앱과 브라우저 주소창의 상단 색이 앱 바탕(`--pc-bg` 라이트 `#F8F4EE`, 다크 `#1A1815`)과 같다. 앱 안 설정에서 다크를 고르면 상태바도 바로 어두워지고, 기기가 다크여도 앱이 라이트면 상태바는 밝다.
+- 맥락: manifest와 `index.html`이 예전 색 `#F2F4F6`/`#17171C`로 남아 있다(`web/vite.config.ts:21-22`, `web/index.html:6-7`). 게다가 `theme-color`가 기기 다크 설정(`prefers-color-scheme`)을 따르는데, 앱 테마는 기본이 라이트이고 설정에서 따로 바꾼다(`web/src/lib/theme.ts:26-29`). 그래서 기기가 다크면 밝은 앱 위에 검은 띠가 생긴다.
+- 변경할 파일:
+  - `web/vite.config.ts` — manifest `theme_color`·`background_color`를 `#F8F4EE`로
+  - `web/index.html` — `media` 붙은 `theme-color` 두 줄을 `#F8F4EE` 한 줄로
+  - `web/src/lib/theme.ts` — `applyEffectiveTheme`에서 `meta[name="theme-color"]`의 `content`를 라이트·다크 바탕색으로 바꿈
+- 참조: `web/src/lib/theme.ts`의 `applyEffectiveTheme` (`data-theme`을 바꾸는 바로 그 자리)
+- 검증: `npm --prefix web run typecheck`, `npm --prefix web run build`, `web/dist/manifest.webmanifest`의 색 확인. dev에서 설정 라이트/다크/기기 설정을 바꾸며 `<meta name="theme-color">` 값이 바뀌는지 개발자 도구로 확인. 실제 폰 상태바는 사용자 확인.
+- 안 하는 것: 색 토큰 값 바꾸기, `apple-mobile-web-app-status-bar-style` 바꾸기(`default` 유지)
+- 멈춤 조건: iOS 설치 앱에서 `theme-color`가 안 먹어 상태바 처리를 바꿔야 할 때(`black-translucent` 등은 화면 위 여백이 바뀌므로 묻는다)
+- 결과(2026-11-15): manifest·`index.html` 색을 `#F8F4EE`로, `index.html`의 media 붙은 두 줄을 한 줄로 합침. `theme.ts`의 `applyEffectiveTheme`이 `meta[name="theme-color"]`를 앱 테마 바탕색(라이트 `#F8F4EE`, 다크 `#1A1815`)으로 바꿈. typecheck·build 통과, `dist/manifest.webmanifest`·`dist/index.html` 색 확인. dev에서 테마를 바꿔 가며 meta 값이 바뀌는지와 실제 폰 상태바는 확인 안 함(사용자 확인).
+
+### [x] 37. 홈 화면 아이콘 PNG 만들기
+- 목표: `web/public/`에 `apple-touch-icon-180x180.png`, `pwa-192x192.png`, `pwa-512x512.png`, `maskable-icon-512x512.png`가 있고, manifest에 any 3개(SVG·192·512)와 maskable 1개가 따로 적혀 있으며, `index.html`의 `apple-touch-icon`이 PNG를 가리킨다. 아이폰 홈 화면에 아이콘이 화면 캡처가 아닌 아이콘으로 보인다.
+- 맥락: 지금은 `icon.svg` 한 장뿐이다(`web/index.html:12`, `web/vite.config.ts:26`). iOS는 홈 화면 아이콘에 SVG를 쓰지 않는다. `purpose: 'any maskable'`을 한 파일에 같이 쓰면 안드로이드에서 가장자리가 잘린다. iOS 아이콘은 모서리가 투명하면 검게 채워지므로 꽉 찬 배경이어야 한다.
+- 변경할 파일:
+  - `web/package.json` — devDependency `@vite-pwa/assets-generator`, 스크립트 `generate-pwa-assets`
+  - `web/public/icon.svg` — 시안 A 그림으로 교체
+  - `web/pwa-assets.config.ts` (새 파일) — 원본 `public/icon.svg`, apple·maskable은 배경색을 채우고 안쪽 여백을 줌
+  - `web/public/*.png` (생성물, 커밋)
+  - `web/vite.config.ts` — manifest `icons`
+  - `web/index.html` — `apple-touch-icon` PNG로, favicon은 SVG 유지
+- 참조: 없음(이 저장소에 처음). 생성기 문서는 구현 때 context7로 확인한다.
+- 검증: `npm --prefix web run generate-pwa-assets`, typecheck, build, `web/dist/`에 PNG가 들어갔는지와 `manifest.webmanifest` 확인, 생성된 PNG를 열어 잘림 확인. 실제 폰 설치는 사용자 확인(미리보기 배포 `npx wrangler pages deploy dist --project-name pill-check --branch preview`로 https 주소에서).
+- 아이콘 그림: 2026-11-15 사용자 결정으로 시안 A(인디고 `#4A4FD0` 바탕 + 45° 캡슐 한 알, `.impeccable/mocks/app-icon.html`의 `ic-a`)로 바꾼다. 이유: 작게 봐도 알아보고, 체크처럼 "안전"으로 읽히지 않으며, 앱 안 주 버튼 색과 같다. `web/public/icon.svg`를 꽉 찬 배경(모서리 없음)으로 바꾸고 이것을 원본으로 PNG를 만든다.
+- 안 하는 것: 시작 화면(38번), 앱 안 화면 바꾸기
+- 멈춤 조건: 생성기가 Windows에서 안 돌거나(`sharp` 설치 실패), `vite-plugin-pwa` 0.21과 의존성이 부딪힐 때
+- 결과(2026-11-15): 계획과 다른 점 — 생성기 2.0.0이 `vite-plugin-pwa` 0.21의 peer(`^0.2.6`)와 부딪혀 0.2.6을 씀(강제 설치 안 함). npm이 설치 스크립트를 막았지만 `sharp` 0.32.6은 그대로 불러와짐. 원본 `icon.svg`는 둥근 인디고 사각형 + 캡슐(연한 캡슐 위에 흰 반쪽을 얹어 두 색 사이 틈을 없앰), apple·maskable은 여백 0 + 인디고로 꽉 채움. 64·192·512·maskable 512·apple 180·favicon.ico 생성, 눈으로 확인(잘림 없음). manifest 아이콘 5개(PNG 3 + SVG any + maskable), `index.html`은 favicon.ico + SVG + apple PNG. typecheck·build 통과, PNG가 precache에 들어감. 실제 폰 설치는 확인 안 함(사용자 확인).
+
+### [x] 38. iOS 시작 화면 넣기
+- 목표: 아이폰 홈 화면에서 앱을 열 때 하얀 화면 대신 바탕색(`#F8F4EE`) + 가운데 아이콘이 보인다. `index.html`에 기기 크기별 `apple-touch-startup-image` 링크가 있다.
+- 맥락: iOS는 manifest `background_color`로 시작 화면을 만들지 않고 `apple-touch-startup-image`만 쓴다. 지금은 없다.
+- 변경할 파일:
+  - `web/pwa-assets.config.ts` — apple 시작 화면 생성 설정(세로만, 라이트 바탕 `#F8F4EE`)
+  - `web/public/apple-splash-*.png` (생성물, 커밋)
+  - `web/index.html` — 생성기가 출력한 `<link rel="apple-touch-startup-image">` 줄
+- 참조: 37번의 `web/pwa-assets.config.ts`
+- 검증: 생성 명령, typecheck, build, `dist/` 크기 증가량 기록, PWA 미리 받기(precache) 목록에 시작 화면 PNG가 다 들어가는지 확인(`globPatterns`에 png 포함). 실제 아이폰 확인은 사용자.
+- 안 하는 것: 다크 시작 화면(앱 기본 테마가 라이트라서), 가로 화면, 안드로이드 시작 화면(manifest 색·아이콘으로 자동 생성)
+- 멈춤 조건: 시작 화면 PNG 합계가 1MB를 넘어 첫 설치 때 미리 받기 부담이 커질 때. 그때는 precache에서 빼는 방안을 묻는다.
+- 결과(2026-11-15): 계획과 다른 점 — 생성기가 가로 화면을 항상 같이 만들어 세로 13장 + 가로 13장(합계 184KB, 1MB 기준 안). 생성기 0.2.6 목록이 iPhone 14까지라 iPhone 16 Pro·17·17 Pro(1206×2622), 16 Pro Max·17 Pro Max(1320×2868), Air(1260×2736)를 더하고 같은 크기는 합침. 아이패드는 넣지 않음. 0.2.6은 파일 이름과 출력 링크 이름이 달라(`light-`) `name`을 직접 정함. 링크 26줄 모두 실제 파일과 대조해 일치, `index.html`에 옮김. 시작 화면 PNG 1장 눈으로 확인. build 후 precache 18 → 44개(804 → 937KiB). 실제 아이폰 확인은 안 함(사용자 확인).
+
 ### [x] 35. 식약처·식품안전나라 키를 서버에만 두기
 - 목표: 배포 번들에 식약처·식품안전나라 키가 없고(빌드 결과에서 키 문자열 0건), 배포본의 약 검색·DUR·영양제 검색이 34번 때와 같은 결과를 내며, dev(`npm run dev`)에서도 검색이 된다.
 - 맥락: 34번으로 호출이 서버 함수를 거치게 되어, 키를 클라이언트에 둘 이유가 없어졌다. 지금은 `VITE_NEDRUG_API_KEY`·`VITE_FOODSAFETY_API_KEY`가 번들에 들어가 누구나 꺼낼 수 있다(`nedrug-api.ts:3`, `dur.ts:14`, `healthfood-api.ts:14`).
