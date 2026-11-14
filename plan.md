@@ -60,6 +60,22 @@
 
 ## 완료
 
+### [x] 35. 식약처·식품안전나라 키를 서버에만 두기
+- 목표: 배포 번들에 식약처·식품안전나라 키가 없고(빌드 결과에서 키 문자열 0건), 배포본의 약 검색·DUR·영양제 검색이 34번 때와 같은 결과를 내며, dev(`npm run dev`)에서도 검색이 된다.
+- 맥락: 34번으로 호출이 서버 함수를 거치게 되어, 키를 클라이언트에 둘 이유가 없어졌다. 지금은 `VITE_NEDRUG_API_KEY`·`VITE_FOODSAFETY_API_KEY`가 번들에 들어가 누구나 꺼낼 수 있다(`nedrug-api.ts:3`, `dur.ts:14`, `healthfood-api.ts:14`).
+- 변경할 파일:
+  - Cloudflare Pages Secret — `NEDRUG_API_KEY`, `FOODSAFETY_API_KEY` 추가(production). 값 넣는 방법은 사용자 결정
+  - `web/functions/api/nedrug/[[path]].ts` — 요청에 `serviceKey`를 서버에서 붙임(클라이언트가 보낸 `serviceKey`는 지움). 다른 사이트 Origin은 403(`llm.ts`와 같은 규칙). 키 없으면 500
+  - `web/functions/api/foodsafety/[[path]].ts` — `/api/foodsafety/api/<서비스>/...`를 `/api/<키>/<서비스>/...`로 바꿔 넘김. Origin 403, 키 없으면 500
+  - `web/vite.config.ts` — dev 프록시도 같은 방식으로 키를 붙임(`loadEnv`로 `web/.env`의 기존 `VITE_*` 값을 Node 쪽에서만 읽음 — `.env`는 고치지 않음)
+  - `web/src/lib/nedrug-api.ts`, `web/src/lib/dur.ts`, `web/src/lib/healthfood-api.ts` — 키 상수·URL의 키 제거. 키 없음 검사(`MissingApiKeyError`, `FoodSafetyKeyMissingError`, `isFoodSafetyConfigured`)는 클라이언트가 더 알 수 없으므로 지우고 `web/src/lib/errors.ts`·`web/src/components/SearchScreen.tsx:152` 호출부도 맞춤(서버 500은 기존 `NedrugRequestError` 5xx 문구로 보임)
+  - `web/.env.example`, `web/README.md`, `CLAUDE.md` — 키 위치 설명 고치기
+- 참조: `web/functions/api/llm.ts`의 `isAllowedOrigin`·키 없음 500 처리
+- 검증: typecheck·build, 함수 파일 스크래치 tsconfig, 빌드 결과에서 Secret 값과 같은 문자열이 없는지 확인(값은 출력하지 않음), dev 서버에서 `/api/nedrug`·`/api/foodsafety` 호출 결과 코드 확인, 배포 후 키 없이 `/api/nedrug/...` 약 검색 `00`, DUR `00`, `/api/foodsafety/api/I0030/...` `INFO-000`, `Origin: https://example.com` 403
+- 안 하는 것: 키 재발급(이미 공개된 옛 번들이 이전 배포 주소에 남아 있음 — 사용자에게 따로 안내), `.env` 변수 이름 바꾸기, 검색 호출 횟수 제한
+- 멈춤 조건: Secret을 넣었는데 함수가 키를 못 읽어 500이 나면 멈추고 알린다
+- 결과(2026-11-14): 사용자 결정으로 `web/.env` 값을 화면에 찍지 않고 `wrangler pages secret put`에 표준입력으로 넘겨 Secret 2개 추가(길이만 확인: 64자, 20자). 함수가 키를 붙이고(식약처는 클라이언트가 보낸 serviceKey를 버리고 조회 문자열은 다시 인코딩하지 않음), 다른 사이트 Origin 403. dev 프록시도 `loadEnv`로 같은 방식. 클라이언트의 키 상수·키 없음 검사·`isFoodSafetyConfigured` 제거. typecheck·build 통과, 함수 파일과 `tsconfig.node.json`(vite.config) 따로 통과, 빌드 결과에 `.env` 키 값 0건(값 비교만, 출력 안 함). dev 프록시 주소 변환은 키를 가려 확인(집 회선이 정부 서버에 못 닿아 dev 실제 호출은 확인 안 함). 배포 후 키 없이 약 검색 `00` 7건, DUR `00`, 영양제 `INFO-000` 4955건, `Origin: https://example.com` 403, 허용 밖 경로 404. 배포 직후 DUR·영양제가 522(19초)였다가 1~2분 뒤 3회 반복 모두 200 — 34번 때와 같은 현상, 원인 확인 안 함. 옛 키는 이전 배포 주소(`<해시>.pill-check.pages.dev`)의 번들에 남아 있다 — 키 재발급은 사용자 몫.
+
 ### [x] 34. 배포본 식약처 호출을 우리 서버(Cloudflare) 경유로 바꾸기
 - 목표: 배포본에서 약 검색·DUR 확인·영양제 검색이 `pill.hgko.dev/api/nedrug/...`·`/api/foodsafety/...`로만 나가고, 휴대폰이 정부 서버에 직접 닿지 못하는 망에서도 검색 결과가 나온다.
 - 맥락(2026-11-14 확인): 사용자 휴대폰(와이파이 끔)에서도 식약처 검색이 안 됨. 조사 결과 키와 CORS는 문제없음 — Cloudflare 서울(ICN)에서 배포 번들의 키로 `getDrugPrdtPrmsnDtlInq06` 호출 시 `resultCode 00`, 7건, `access-control-allow-origin: https://pill.hgko.dev`(식품안전나라는 `*`). 반면 집 회선(LG U+)에서는 `apis.data.go.kr`(27.101.236.63)과 `openapi.foodsafetykorea.go.kr`(116.67.90.152) 모두 접속 자체가 안 된다(11-12에는 dev 프록시로 됐음). 지금 배포본은 브라우저가 정부 서버를 직접 부르므로(`nedrug-api.ts:7-9`, `dur.ts:16-18`, `healthfood-api.ts:17`) 그 망에서 막히면 앱도 막힌다. 휴대폰 망이 막힌 이유 자체는 확인 안 함.
