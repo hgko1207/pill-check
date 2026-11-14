@@ -35,6 +35,8 @@
 
 > 29~31은 배포를 Vercel에서 Cloudflare Pages로 옮기고 `pill.hgko.dev`를 붙이는 작업이다(2026-11-13 사용자 결정). 이유: 광고 계획이 있는데 Vercel Hobby는 비상업용만 허용(https://vercel.com/docs/limits/fair-use-guidelines), 아직 쓰는 사람이 없어 주소가 바뀌어도 등록약 데이터 이전이 필요 없음, 부모님께는 옮기고 도메인까지 붙인 뒤 드린다. `hgko.dev` DNS는 이미 Cloudflare에 있다. 방법 비교: (A) Cloudflare Pages + GitHub 연결 — 지금처럼 push하면 자동 배포, 브랜치 미리보기 있음 **(추천)** / (B) Pages 직접 올리기(wrangler) — 배포를 손으로 해야 하고 wrangler 설치 필요 / (C) Vercel Pro 유지 — 코드 그대로지만 유료. 29 → 30 → 31 순서로, 각각 따로 검증한다.
 
+> 32~33은 AI 해설 서버 함수 `/api/llm`에 서버 쪽 호출 제한을 넣는 작업이다(2026-11-14 사용자 승인 "추천대로"). 이유: 지금은 기기 브라우저 안 하루 5회 제한(`web/src/lib/llm.ts:15`)뿐이라 주소를 아는 사람이 직접 계속 부르면 모두가 함께 쓰는 Gemini 무료 한도를 혼자 다 쓸 수 있다. 조사: Cloudflare Rate Limiting 바인딩은 Workers 전용이고 Pages는 지원 안 함(cloudflare-docs `workers/static-assets/migration-guides/migrate-from-pages.mdx` 호환표 ❌, Pages 설정 키 목록에도 `ratelimits` 없음). `pill.hgko.dev`가 DNS only라 zone WAF 속도 제한 규칙도 못 쓴다. 방법 비교: (A) Pages KV에 IP별 하루 횟수 저장 + 출처(Origin) 확인 — 설정 파일 하나와 함수 수정으로 끝, KV 무료 등급 안(쓰기 하루 1,000, 읽기 10만), 다만 KV는 반영이 최대 60초 늦어 한꺼번에 몰아 부르면 몇 번 더 통과할 수 있음 **(추천)** / (B) Durable Object로 정확히 세기 — 정확하지만 Worker를 따로 만들어 묶어야 해서 이 규모엔 과함 / (C) 출처 확인만 — 가장 단순하지만 curl처럼 헤더를 꾸미면 그대로 뚫림 / (D) Turnstile 사람 확인 — 60대에게 단계가 늘어 제외. 32 → 33 순서로, 각각 따로 검증한다.
+
 #### 전체 점검에서 남은 것 (이번 범위 밖, 다음 계획 후보)
 - P1 검색: 종류별 10건에서 말없이 잘림(`nedrug-api.ts:26`, `healthfood-api.ts:157`), 실패와 "검색 결과가 없어요"가 함께 뜸(`SearchScreen.tsx:186-190`), 요청 시간 제한 없음, 검색 중 X나 새 검색어가 이전 검색을 취소하지 않음.
 - P1 등록과 판정: 등록할 때 내 약끼리 금기를 알리지 않음. 약 0개일 때 진한 버튼이 "내 약과 확인". 새 동작이라 설계부터.
@@ -57,6 +59,31 @@
 - 1~4번 중 발견한 4건은 위 5·6번 작업으로 옮겼다.
 
 ## 완료
+
+### [x] 32. KV 저장소 만들고 Pages 설정 파일로 묶기
+- 목표: `pill-check` 프로젝트에 KV 바인딩 `LLM_LIMIT`가 붙은 채로 배포되고, 기존 AI 해설(`GEMINI_API_KEY`)이 그대로 200을 돌려준다.
+- 맥락: 33번의 횟수 저장소. 직접 올리기 방식이라 바인딩은 `web/wrangler.toml`로 관리한다(설정 파일이 있으면 그 파일이 배포 설정의 기준이 됨).
+- 변경할 파일:
+  - Cloudflare 계정 — `npx --yes wrangler@4.161.0 kv namespace create pill-check-llm-limit`로 KV 만들기(바깥 계정 작업)
+  - `web/wrangler.toml` (새로) — `npx --yes wrangler@4.161.0 pages download config pill-check`로 지금 프로젝트 설정(이름, `compatibility_date`)을 받아 만들고, `pages_build_output_dir = "dist"`와 `[[kv_namespaces]] binding = "LLM_LIMIT"`, `id = <위에서 만든 id>` 추가. KV id는 비밀값이 아니라 커밋한다
+- 참조: 30번에서 `placement`용으로 `web/wrangler.toml`을 만들었다 지운 적 있음(그때도 Secret은 유지됨)
+- 검증: `npm --prefix web run typecheck`, `npm --prefix web run build`, `web/`에서 배포 후 `/`·`/sw.js` 200, `/api/llm` POST 200 (아직 제한 로직 없음)
+- 안 하는 것: 제한 로직(33번), 미리보기 환경 따로 설정
+- 멈춤 조건: `pages download config` 결과에 지금 설정과 다른 값(호환 날짜·플래그)이 보이거나, 설정 파일을 넣은 뒤 `GEMINI_API_KEY`가 사라져 500이 나면 멈추고 알린다
+- 결과(2026-11-14): KV `pill-check-llm-limit`(id `54d760db573647a4aed53e114625e6c8`) 만들고 `web/wrangler.toml`에 바인딩. `pages download config`로 받은 값에 30번 시험 때 넣은 production `placement`(gcp:us-central1)가 남아 있어 동작을 바꾸지 않으려고 그대로 뒀다(받은 형식 `mode = "targeted"` + `target` 배열은 배포 검사에서 거부돼 `region = ...`으로 적음). 배포 후 `/`·`/sw.js`·`/api/llm` 200, 첫 호출에 KV 키가 생겨 바인딩 확인.
+
+### [x] 33. `/api/llm`에 IP별 하루 횟수 제한과 출처 확인 넣기
+- 목표: 같은 IP에서 하루(한국 시간) 20번을 넘게 부르면 429와 한국어 안내가 오고, 다른 사이트 출처(Origin)에서 부르면 403이 오며, 앱 화면에서는 429 때 "오늘 AI 해설을 다 쓰셨어요. 내일 다시 해 보세요."가 보인다.
+- 맥락: 무료 한도를 한 사람이 다 쓰지 못하게. 20번은 집 와이파이 하나에 부모님 두 분(기기별 5회 × 2)이 써도 남는 값이다. 휴대폰 데이터는 통신사가 여러 사람에게 같은 IP를 줄 수 있어(CGNAT) 모르는 사람과 한도를 나눌 수 있다 — 지금 사용자 수에선 드물다고 본다.
+- 변경할 파일:
+  - `web/functions/api/llm.ts` — `Env`에 `LLM_LIMIT` 추가(타입은 Workers 타입 패키지 없이 `get`/`put`만 적은 작은 인터페이스). Gemini 호출 전에: (1) `Origin` 헤더가 있고 `https://pill.hgko.dev`·`https://pill-check.pages.dev`·`*.pill-check.pages.dev`가 아니면 403, (2) 키 `llm:<CF-Connecting-IP>:<KST 날짜>` 값을 읽어 20 이상이면 429(쓰기 안 함 — 막힌 요청은 KV 쓰기를 쓰지 않음), 아니면 +1 저장(`expirationTtl` 2일). KV 바인딩이 없거나 KV 오류면 막지 않고 통과(앱이 멈추지 않게)
+  - `web/src/lib/llm.ts` — `callApiRoute`에서 `res.status === 429`면 `QuotaExceededError`를 던져 기존 `friendlyError` 문구(`web/src/lib/errors.ts:38`)가 나오게
+  - `web/README.md` 빌드 & 배포 — KV 바인딩과 제한 값 한 줄, `CLAUDE.md` 구조 줄에 `web/wrangler.toml` 한 줄
+- 참조: `web/functions/api/llm.ts`의 `jsonResponse`·400 검사 흐름, `web/src/lib/errors.ts`의 `QuotaExceededError` 처리
+- 검증: `npm --prefix web run typecheck`, `npm --prefix web run build`, `web/functions/api/llm.ts`는 타입체크 대상이 아니라 스크래치 tsconfig로 따로 검사하고 직접 읽어 확인. 배포 후 curl로 (a) 정상 Origin 1회 200, (b) `Origin: https://example.com` 403, (c) 같은 IP로 21번째 429(KV 반영 지연 때문에 몇 번 더 통과할 수 있음 — 결과에 그대로 적는다), (d) 다음 날 키가 바뀌는지는 코드로만 확인. 앱 화면 429 문구는 코드 경로로 확인(실제 기기에서 20번 쓰기는 안 함)
+- 안 하는 것: 기기별 5회 제한 바꾸기, 클라이언트 하루 기준을 한국 시간으로 바꾸기(전체 점검 남은 것에 있음), 전체(모든 사용자 합계) 하루 상한, 사람 확인(Turnstile)
+- 멈춤 조건: 정상 앱 요청이 403/429로 막히면 멈추고 알린다. (c) 시험 뒤에는 집 IP가 오늘 막히므로 그 시험 키 하나만 `wrangler kv key delete`로 지운다(다른 키는 건드리지 않음)
+- 결과(2026-11-14): typecheck·build 통과, 함수 파일은 스크래치 tsconfig로 따로 통과. 배포 후 (a) 정상 Origin 200, (b) `Origin: https://example.com` 403, (c) Gemini 호출을 아끼려고 KV 값을 19로 맞춘 뒤 4번 호출 → 200, 429, 429, 429. 시험 키는 지웠고 다시 200. 앱 429 문구는 `callApiRoute` → `QuotaExceededError` → `errors.ts:38` 코드 경로로만 확인(기기에서 직접은 안 봄). KV 반영 지연(최대 60초)으로 몰아 부르면 몇 번 더 통과할 수 있는 점은 확인 안 함.
 
 ### [x] 30. Cloudflare Pages 프로젝트 만들고 pill.hgko.dev 연결
 - 목표: `https://pill.hgko.dev`가 200과 제목 "약똑똑"을 돌려주고, `/api/llm`에 짧은 질문을 보내면 200과 답이 오고, 없는 경로(`/abc`)도 앱 첫 화면으로 열린다.
