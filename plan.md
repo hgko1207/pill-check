@@ -40,7 +40,7 @@
 #### 전체 점검에서 남은 것 (이번 범위 밖, 다음 계획 후보)
 - P1 검색: 종류별 10건에서 말없이 잘림(`nedrug-api.ts:26`, `healthfood-api.ts:157`), 실패와 "검색 결과가 없어요"가 함께 뜸(`SearchScreen.tsx:186-190`), 요청 시간 제한 없음, 검색 중 X나 새 검색어가 이전 검색을 취소하지 않음.
 - P1 등록과 판정: 등록할 때 내 약끼리 금기를 알리지 않음. 약 0개일 때 진한 버튼이 "내 약과 확인". 새 동작이라 설계부터.
-- P1 뒤로 가기: 기기 뒤로 가기가 덮는 화면을 닫지 않고 앱을 벗어남. 탭을 오가면 검색이 사라짐(`App.tsx:47`).
+- P1 뒤로 가기: ~~기기 뒤로 가기가 덮는 화면을 닫지 않고 앱을 벗어남~~ (40에서 해결). 탭을 오가면 검색이 사라짐(`App.tsx:47`).
 - 기술 점검 P1: 덮는 화면 초점 관리, 목록 줄 초점 테두리 잘림(`App.css:415-422`), 다크 주 버튼 hover 1.86:1(`App.css:353`).
 - 대비 부족 3건: `.dont-box__title` 4.35:1, `.recall__title` 4.35:1, 성분 입력칸 안내 글씨 4.34:1.
 - 그 밖: 읽는 문장 15~16px 여러 곳, 앱 아이콘이 초록 체크, AI 해설 답이 버튼 줄 아래 화면 밖에 생김, 등록 한도 안내가 화면 밖에 뜸, 검색어의 `/`와 `%`로 영양제 검색 실패, AI 하루 횟수가 UTC 기준, 바코드 라이브러리가 첫 화면 묶음의 48%.
@@ -59,6 +59,98 @@
 - 1~4번 중 발견한 4건은 위 5·6번 작업으로 옮겼다.
 
 ## 완료
+
+> 39~40은 사용자 확인(2026-11-15 "바코드로 찾기나 TV에서 들은 성분 찾기를 누르고 닫으면 깜빡이는 느낌")에서 나왔다. 운영 주소를 헤드리스 Chrome(412×915)으로 재 보니, TV 성분 상자를 열면 아래 "내 약" 칸이 한 프레임에 428px → 947px로 이동해 화면 밖으로 나가고, 닫으면 한 번에 돌아온다(애니메이션 없이 조건부 렌더, `web/src/components/SearchScreen.tsx:388-406`). 바코드는 빈 상자(67px) → 카메라 영상 크기로 두 번 밀린다(두 번째는 실제 폰에서만, 확인 안 함). 카메라를 못 켰을 때 "카메라를 켜지 못했어요"가 홈 알림으로 떠서 바코드를 닫아도 남는다(`SearchScreen.tsx:390`). 방법 비교: (A) 제자리 펼침에 높이 애니메이션 — 범위 작지만 성분 상자가 519px라 열면 "내 약"이 여전히 화면 밖 / (B1) 새 바텀시트 — 앱에 없는 새 패턴(배경 어둡게, 끌어내리기), DESIGN.md "덮는 화면도 탭바 위에서 끝난다"와 맞추는 결정이 따로 필요 / (B2) 이미 있는 덮는 화면(`.sheet`, 오른쪽에서 들어오고 왼쪽 위 뒤로 버튼 — `GuideModal.tsx`·`DetailModal.tsx`·`ResultSheet.tsx`와 같은 방식)으로 띄우기 — 홈은 전혀 안 밀리고 새 패턴이 없으며 카메라를 넓게 씀 **(추천, 사용자 승인 "추천대로")**. 참고: 대화 중 "아래에서 올라오는 창"이라고 설명했으나, 앱의 기존 덮는 화면은 오른쪽에서 들어오는 전체 화면이다 — B2가 그 기존 방식이다. 뒤로 가기는 B2와 함께 걸려(덮는 화면이 늘어남) 40으로 같이 한다. 39 → 40 순서로, 각각 따로 검증한다.
+
+### [x] 39. 바코드·TV 성분 찾기를 덮는 화면으로 띄우기
+- 목표: 홈에서 두 타일을 누르면 홈은 그대로 두고 덮는 화면(`.sheet`)이 열린다. 열고 닫을 때 홈의 "내 약" 칸 위치가 바뀌지 않는다(헤드리스 측정으로 열기 전·연 뒤·닫은 뒤 같은 값). 카메라를 못 켰다는 안내는 바코드 화면 안에 뜨고, 닫으면 홈에 남지 않는다. 바코드를 인식하거나 성분을 고르면 화면이 닫히고 지금처럼 검색 결과가 나온다.
+- 맥락: 위 메모. 제자리 펼침이 화면을 크게 밀어 깜빡이는 느낌을 준다.
+- 변경할 파일:
+  - `web/src/components/ScanSheet.tsx` (새 파일) — 덮는 화면 + 뒤로 버튼 + 제목 "바코드로 찾기" + `BarcodeScanner` + 안내 문구. 카메라 오류는 이 화면 안 알림(`notice notice--error`)으로. Esc로 닫기·본문 스크롤 잠금은 `GuideModal`과 같게
+  - `web/src/components/TvIngredientSheet.tsx` (새 파일) — 덮는 화면 + 뒤로 버튼 + 제목 "TV에서 들은 성분 찾기" + 성분 칩(`INGREDIENTS`)
+  - `web/src/components/SearchScreen.tsx` — 제자리 상자 두 개(`scanner-box`, `tv-box`) 제거, 두 시트를 렌더. 타일은 `aria-expanded` 대신 `aria-haspopup="dialog"`, 라벨 "바코드 닫기" 전환 제거. `onError`로 홈 `setError`를 부르던 것 제거
+  - `web/src/App.css` — `.scanner-box`·`.tv-box` 규칙을 시트 안 배치에 맞게 바꾸고, 타일 선택 테두리(`.quick__tile[aria-expanded='true']`)는 더 쓰지 않으므로 지움. 누를 때 회색(`:active`)은 누름 피드백이라 남김
+- 참조: `web/src/components/GuideModal.tsx`(덮는 화면 뼈대·Esc·스크롤 잠금), `web/src/components/DetailModal.tsx`(topbar 뒤로 버튼)
+- 검증: typecheck, build. dev 서버를 헤드리스 Chrome으로 열어 두 타일 열기·닫기 때 "내 약" 칸 위치 측정(세 값 같음), 시트 스크린샷(라이트·다크·412px), 성분 칩을 누르면 시트가 닫히고 검색이 도는지(결과는 집 회선 사정으로 오류여도 시트가 닫히는 것까지), 카메라 없는 헤드리스에서 오류 안내가 시트 안에만 뜨고 닫으면 홈에 없는지. 실제 폰 카메라는 사용자 확인.
+- 안 하는 것: 기기 뒤로 가기(40), 바코드 인식 로직·`BarcodeScanner.tsx` 수정, 성분 목록 바꾸기, 탭 화면 전환 애니메이션
+- 멈춤 조건: 덮는 화면에서 카메라가 홈 상자일 때와 다르게 동작하면(예: 시트 열림 애니메이션 중 `html5-qrcode`가 크기를 잘못 잡음) 멈추고 알린다
+- 결과(2026-11-15): `ScanSheet.tsx`·`TvIngredientSheet.tsx`를 `GuideModal`과 같은 덮는 화면으로 만들고 홈의 제자리 상자 제거. 카메라를 못 켜면 빈 상자 대신 시트 안에 오류 안내 + "다시 켜기" 버튼(`BarcodeScanner`를 `key`로 새로 붙임) — 계획에 없던 버튼이라 알림. 타일 선택 테두리 CSS 제거, `:active` 회색은 유지. typecheck·build 통과. 헤드리스 Chrome(412×915)으로 dev와 빌드본(`vite preview`) 모두: 홈 "내 약" 칸 위치가 처음·TV 열기·뒤로 버튼·Esc·바코드 열기·닫기 내내 428px(전에는 열면 947px), 카메라 오류는 시트 안에만 있고 닫으면 없음, 성분 칩(루테인)을 누르면 시트가 닫히고 검색으로 넘어감, 콘솔 오류 0. 스크린샷 라이트(TV·바코드)·다크(바코드) 눈으로 확인. 실제 폰 카메라는 확인 안 함(사용자 확인).
+
+### [x] 40. 기기 뒤로 가기로 덮는 화면 닫기
+- 목표: 덮는 화면(상세, 사용법, 결과, 바코드, TV 성분)과 확인 창이 열려 있을 때 안드로이드 뒤로 가기(브라우저 뒤로)를 누르면 맨 위 화면 하나만 닫히고 앱은 그대로 있다. 화면을 뒤로 버튼·Esc·탭 누르기로 닫았을 때는 방문 기록에 빈 칸이 남지 않아, 그다음 뒤로 가기가 헛돌지 않는다. 확인 창을 뒤로 가기로 닫으면 "취소"와 같다.
+- 맥락: 지금은 `history`를 전혀 쓰지 않아(코드 검색 결과 `popstate`·`pushState` 0건) 뒤로 가기가 덮는 화면이 아니라 앱을 벗어난다(전체 점검 2026-11-13 P1 "뒤로 가기", 아래 "전체 점검에서 남은 것"의 그 항목을 이 작업이 맡는다). 39로 덮는 화면이 둘 늘어난다.
+- 방법: `web/src/lib/back-close.ts`에 훅 `useBackClose(open, onClose)`. 열릴 때 `history.pushState`로 칸을 하나 넣고 모듈 안 스택에 쌓는다. `popstate`가 오면 스택 맨 위만 닫는다. 화면 버튼으로 닫힐 때는 스택에서 빼고 넣었던 칸을 되돌린다 — 탭 누르기처럼 여러 개가 한꺼번에 닫힐 수 있어, 같은 순간 닫힌 개수를 모아 `history.go(-n)` 한 번으로 되돌리고 그때 오는 `popstate`는 무시한다. 다른 안: 주소에 `#detail` 같은 해시를 붙이는 방식은 주소가 바뀌고 새로고침 때 처리가 늘어 제외. Navigation API는 iOS Safari 지원 여부를 확인 안 해서 제외.
+- 변경할 파일:
+  - `web/src/lib/back-close.ts` (새 파일) — 위 훅
+  - `web/src/components/DetailModal.tsx`, `web/src/components/GuideModal.tsx`, `web/src/components/ResultSheet.tsx`, `web/src/components/ScanSheet.tsx`, `web/src/components/TvIngredientSheet.tsx` — 훅 연결
+  - `web/src/lib/dialog.tsx` — 확인 창이 열려 있을 때 훅 연결(뒤로 가기 = 취소)
+- 참조: 각 파일의 기존 Esc 닫기 `useEffect`(같은 자리에 붙인다)
+- 검증: typecheck, build. dev 서버를 헤드리스 Chrome으로 열어 화면마다 열기 → `history.back()` → 닫혔는지·주소가 앱 그대로인지·`history.length` 변화, 뒤로 버튼으로 닫은 뒤 `history.back()` 한 번에 앱 밖(about:blank)으로 나가는지(빈 칸 없음), 상세가 열린 채 탭을 눌렀을 때 기록이 맞는지, 결과 화면 위에서 확인 창을 연 뒤 뒤로 가기 두 번. 실제 안드로이드 뒤로 가기와 iOS 쓸어 넘기기는 사용자 확인.
+- 안 하는 것: 탭 사이 이동을 방문 기록에 넣기(탭은 뒤로 가기 대상 아님), 탭을 오가면 검색이 사라지는 문제(`App.tsx`), 덮는 화면 초점 관리
+- 멈춤 조건: iOS 홈 화면 앱에서 쓸어 넘기기 동작이 브라우저와 달라 화면이 두 번 닫히는 등 기기에서만 재현되는 문제가 나오면 멈추고 알린다. `history.go(-n)`이 기대와 다르게 동작해 단순한 방법으로 안 되면 방법을 다시 묻는다.
+- 결과(2026-11-15): `lib/back-close.ts`의 `useBackClose`(모듈 스택 + `pushState`, 화면 버튼으로 닫히면 같은 순간 닫힌 개수를 마이크로태스크로 모아 `history.go(-n)`, 그 popstate는 무시)를 상세·사용법·결과·바코드·TV 성분과 확인 창에 연결. 계획과 다른 점: 확인 창은 `dialog.tsx` 대신 `ConfirmDialog.tsx` 안에 붙임(창이 떠 있을 때만 렌더되는 컴포넌트라 더 단순). typecheck·build 통과. 헤드리스 Chrome으로 dev(StrictMode)와 빌드본 모두 통과: TV 뒤로 가기로 닫힘 → 다음 뒤로 가기는 앱 밖, 바코드 뒤로 버튼·TV Esc로 닫은 뒤 뒤로 가기 한 번에 앱 밖(빈 칸 없음), 사용법 뒤로 가기로 닫히고 설정 탭 유지, 사용법 열린 채 탭 누르기 뒤 뒤로 가기 한 번에 앱 밖. 확인 창(약 1개 넣고 "모두 지우기")은 dev에서만: 뒤로 가기 = 취소(약 그대로), 취소 버튼 뒤 뒤로 가기 한 번에 앱 밖. 테스트 약은 지움. 확인 안 함: 상세·결과 화면(검색 API가 필요해 자동 확인 못 함, 같은 훅), 결과 위 확인 창 겹침, 실제 안드로이드 뒤로 버튼과 iOS 쓸어 넘기기(사용자 확인). 알려진 한계: 덮는 화면이 열린 채 새로고침하면 기록 칸 하나가 남아 뒤로 가기가 한 번 헛돎.
+
+> 41~44는 가족 연결 작업이다(2026-11-15 사용자 요청: "부모님과 장인·장모님께 설치해 드리고, 어떤 약을 드시는지 알고 싶다. 가족이 더 늘어날 수도 있다"). 지금은 등록약이 각 폰의 IndexedDB에만 있어(`web/src/lib/db.ts:30-70`) 다른 사람이 볼 방법이 없고, 설계 문서도 V1을 "인증 없음, 로컬 only, 백업 없음"으로 정했다(`docs/product-design.md:120`, `:176`). 가족 공유는 "인증 필요"라며 미뤄 둔 항목이다(`:298`). 이 작업으로 그 결정을 바꾼다.
+> 사용자 결정(대화에서 승인): 로그인 계정은 만들지 않고 **초대 링크·초대 코드**로 기기를 잇는다. 그룹을 여러 개 둘 수 있고(예: 우리 집, 처가), 그룹마다 **구성원**(약을 등록하는 부모님)과 **보는 사람**(자녀)이 있다. 앱은 지금처럼 로컬 우선으로 돌고, 서버에는 등록약 목록 사본과 마지막 사용 시각만 올린다. 검색 기록은 이번 범위 밖. 모르는 사람이 쓰는 공개(정식 계정, 개인정보처리방침)도 이번 범위 밖.
+> 저장소 비교: (A) Cloudflare D1 — 그룹·구성원처럼 서로 묶인 자료에 맞고, 이미 쓰는 Pages Functions에 바인딩 하나로 붙음. Pages에서는 로컬 D1로만 개발 가능(cloudflare-docs `d1/best-practices/local-development.mdx`) **(추천)** / (B) 이미 있는 KV — 새 저장소가 없지만 반영이 최대 60초 늦고 목록 조회가 안 돼 "그룹의 구성원 목록"을 키로 따로 관리해야 함 / (C) Supabase — 계정 기능까지 있지만 쓰지 않을 기능이고 서비스가 하나 늘어남.
+> 신원 방식: 기기마다 무작위 토큰(256비트)을 받아 `localStorage`에 두고, 서버에는 SHA-256 해시만 저장한다. 그룹·초대를 만드는 것은 **관리자 키**(Pages Secret `FAMILY_ADMIN_KEY`)를 가진 기기만 한다 — 아무나 그룹을 만들지 못하게. Cloudflare Access는 `pill.hgko.dev`가 DNS only라 적용 가능한지 확인 안 해서 제외.
+> 알려진 위험(실제 폰에서 확인 필요): 카카오톡 안 브라우저나 iOS 홈 화면 앱은 일반 브라우저와 저장소가 따로라, 초대 링크를 연 곳과 설치한 앱이 다를 수 있다(확인 안 함). 그래서 링크와 함께 **앱 안에서 입력하는 8자리 코드**도 둔다.
+> 41 → 42 → 43 → 44 순서로, 각각 따로 검증한다. 운영 D1 만들기·Secret 설정·배포는 사용자 확인 뒤에 한다.
+
+### [ ] 41. 가족 서버: D1 테이블과 `/api/family` 함수
+- 목표: 로컬(`wrangler pages dev`)에서 curl 시나리오가 모두 기대대로 나온다 — 관리자 키로 그룹을 만들고 구성원·보는 사람 초대 코드를 받는다 → 코드로 연결해 토큰을 받는다 → 구성원 토큰으로 약 목록을 올린다 → 보는 사람 토큰으로 그 그룹 구성원의 약과 마지막 사용 시각을 본다 → 다른 그룹의 보는 사람은 못 본다(403) → 쓴 코드·만료 코드·틀린 키·틀린 토큰은 거절된다 → 구성원이 "연결 끊기"를 하면 서버에서 그 사람 행과 약이 사라진다.
+- 맥락: 위 메모. 화면 작업(42~44)이 기댈 서버를 먼저 만든다.
+- 변경할 파일:
+  - `web/migrations/0001_family.sql` (새 파일) — `family_groups`(id, name, created_at), `family_members`(id, group_id, role `member`|`viewer`, display_name, token_hash UNIQUE, meds_json, meds_updated_at, last_seen_at, created_at), `family_invites`(code_hash, group_id, role, display_name, member_id NULL — 폰을 바꾼 구성원 다시 잇기용, expires_at, used_at). 지울 때 연결된 행은 코드에서 직접 지운다(D1 외래키 연쇄 동작은 확인 안 함)
+  - `web/functions/api/family/[[path]].ts` (새 파일) — 한 파일에서 경로별 처리. `POST join`(코드 → 토큰, 역할, 그룹 이름, 구성원이면 서버에 있던 약), `GET me`(내 그룹 이름, 그 그룹의 보는 사람 이름 — 부모님께 "누가 보는지" 보여 주려고), `PUT me/meds`(구성원만, 최대 `MAX_MEDICATIONS` 10개 + 크기 제한, 마지막 사용 시각 함께 갱신), `DELETE me`(연결 끊기 = 서버의 내 행과 약 지우기), `GET view`(보는 사람만, 자기 그룹 구성원의 이름·약·마지막 사용 시각), 관리자 `GET/POST admin/groups`, `DELETE admin/groups/:id`, `POST admin/invites`(그룹, 역할, 표시 이름, 다시 잇기면 member_id), `DELETE admin/members/:id`. 토큰은 `Authorization: Bearer`, 관리자 키는 `X-Admin-Key` 헤더(상수 시간 비교). 출처 확인은 `llm.ts`와 같게. 초대 코드는 헷갈리는 글자(0/O, 1/I/L)를 뺀 8자, 7일 만료, 한 번만 사용. 코드 연결 시도는 IP별 하루 30회로 제한(KV `LLM_LIMIT`에 `family-join:` 접두사)
+  - `web/wrangler.toml` — `[[d1_databases]]`(binding `FAMILY_DB`, `preview_database_id`)를 최상위와 `env.production` 둘 다에 추가(KV처럼 상속 안 될 것으로 보고 둘 다 적음)
+  - `CLAUDE.md` — 구조에 `functions/api/family`·`migrations/`, 하지 말 것의 서버 전용 키 목록에 `FAMILY_ADMIN_KEY` 추가
+- 참조: `web/functions/api/llm.ts`(Env 최소 인터페이스, 출처 확인, KV 횟수 제한, `jsonResponse`), `web/functions/api/nedrug/[[path]].ts`(경로 나누기)
+- 검증: `npm --prefix web run typecheck`, `npm --prefix web run build`(둘 다 `functions/`는 검사하지 않으므로) + 함수 타입은 scratchpad의 임시 tsconfig로 `tsc --noEmit` 한 번. `npx wrangler d1 migrations apply <이름> --local` 후 `npx wrangler pages dev dist`로 띄워 위 목표의 curl 시나리오를 스크립트로 돌린다. 로컬 관리자 키는 테스트용 값을 `web/.dev.vars`에 둔다(`.gitignore`에 들어 있는지 먼저 확인, 없으면 추가).
+- 안 하는 것: 화면(42~44), 검색 기록 저장, 운영 D1 만들기·운영 Secret·배포(사용자 확인 뒤 따로), 계정·로그인
+- 멈춤 조건: `wrangler d1 create`(사용자 Cloudflare 계정에 실제 DB를 만듦)는 실행 전에 묻는다. Pages에서 D1 바인딩이 위 방식으로 안 붙거나 `[[path]]` 한 파일로 경로 처리가 안 되면 멈추고 방법을 다시 묻는다.
+
+### [ ] 42. 부모님 기기: 초대 코드로 연결, 약 목록 자동 올리기, 연결 끊기
+- 목표: 설정의 "가족 연결"에서 8자리 코드를 넣거나 `https://pill.hgko.dev/?join=코드` 링크로 열면 연결되고 "가족과 연결됐어요" 안내가 뜬다(주소의 `join`은 바로 지워짐). 연결된 기기에서 약을 등록·삭제·모두 지우기 하면 몇 초 안에 서버 목록이 같아진다(41의 `GET view`로 확인). 앱을 열 때도 한 번 올린다. 인터넷이 끊겨도 앱의 다른 기능은 그대로 되고, 올리기 실패는 사용자에게 알리지 않고 다음 열 때 다시 한다. 설정에 "OO에 연결돼 있어요. 볼 수 있는 사람: 철수, 영희"가 보이고, "연결 끊기"를 확인 창으로 누르면 서버의 내 정보가 지워지고 기기는 연결 전 상태가 된다(기기의 약은 그대로).
+- 맥락: 부모님이 따로 할 일 없이 자녀가 약 목록을 보게. 누가 보는지 부모님 화면에 드러나야 한다.
+- 변경할 파일:
+  - `web/src/lib/family.ts` (새 파일) — 토큰 저장(`localStorage` `pillcheck.family`), `joinFamily(code)`, `syncMyMedications()`(짧게 모았다가 한 번 보냄, 동시에 두 번 안 보냄), `getMyFamily()`, `leaveFamily()`, 전용 `FamilyRequestError`
+  - `web/src/lib/errors.ts` — `FamilyRequestError`를 `friendlyError`에 연결(코드 틀림·만료: "초대 코드가 맞지 않거나 기한이 지났어요. 자녀에게 새 코드를 받아 주세요." 등)
+  - `web/src/App.tsx` — 처음 열 때 `?join=` 처리 후 `history.replaceState`로 지우기, 열 때 한 번 올리기, `refreshSignal`이 바뀔 때 올리기
+  - `web/src/components/FamilySettings.tsx` (새 파일) — 설정 안 "가족 연결" 묶음: 연결 전(코드 입력칸 + 연결 버튼), 연결 후(그룹 이름, 볼 수 있는 사람, 연결 끊기)
+  - `web/src/components/SettingsPage.tsx` — "데이터" 위에 `FamilySettings` 렌더
+  - `web/src/App.css` — 코드 입력칸 등 필요한 만큼만, `--pc-*` 토큰 사용
+- 참조: `web/src/components/SettingsPage.tsx`(`group`·`row`·`setting` 구성, `useDialog`의 confirm·toast), `web/src/lib/healthfood-api.ts`(전용 Error + `friendlyError` 연결 방식), `web/src/lib/llm.ts`(`localStorage` 읽기·쓰기 try/catch)
+- 검증: typecheck, build. `wrangler pages dev dist`(41의 로컬 D1)를 헤드리스 Chrome(412px)으로 열어: 코드로 연결 → 약 2개 등록 → curl `GET view`에 2개 → 1개 삭제 → 1개 → 모두 지우기 → 0개, 링크 연결 후 주소에 `join` 없음, 서버를 끈 상태에서 등록해도 앱 오류 없음, 연결 끊기 후 `GET view`에서 사라짐, 설정 화면 스크린샷(라이트·다크). 등록·삭제·모두 지우기 세 곳이 모두 `refreshSignal`을 올리는지 먼저 코드로 확인한다. 카카오톡 링크·iOS 홈 화면 앱에서의 연결은 사용자가 실제 폰으로 확인.
+- 안 하는 것: 자녀 화면(43), 폰 바꾼 뒤 되찾기(44), `db.ts` 수정, 검색 기록
+- 멈춤 조건: `refreshSignal`을 안 올리는 곳이 있어 `db.ts`나 다른 컴포넌트를 고쳐야 하면 알리고 진행한다. 카카오톡·iOS 저장소 분리로 링크 연결이 실제로 안 되는 것이 확인되면 코드 입력만 남길지 묻는다.
+
+### [ ] 43. 자녀·관리자 화면: 가족 탭과 초대 만들기
+- 목표: 보는 사람 토큰이나 관리자 키가 있는 기기에만 아래 탭에 "가족"이 생긴다(부모님 기기는 탭 3개 그대로). 가족 탭에서 그룹별로 구성원 이름, 마지막 사용("3일 전"), 등록약 목록(약·영양제 구분)이 보인다. 관리자 기기는 `?admin` 주소로 연 뒤 키를 한 번 넣으면 그룹 만들기, 구성원·보는 사람 초대(표시 이름 입력 → 링크와 8자리 코드, 공유·복사 버튼), 구성원 빼기(확인 창)를 할 수 있다. 보는 사람 초대 링크로 연결한 기기는 그 그룹만 본다.
+- 맥락: 친척이 늘어도 관리자가 그룹·초대만 늘리면 되게. 처남은 처가 그룹만, 형제는 우리 집 그룹만 본다.
+- 변경할 파일:
+  - `web/src/components/FamilyPage.tsx` (새 파일) — 그룹 → 구성원 카드 → 약 목록. 서버에 못 닿으면 `friendlyError` 안내와 다시 시도 버튼
+  - `web/src/components/FamilyAdmin.tsx` (새 파일) — 관리자 키 입력, 그룹 만들기, 초대 만들기(`navigator.share`가 있으면 공유, 없으면 복사), 구성원 빼기
+  - `web/src/components/BottomNav.tsx` — `ViewKey`에 `'family'` 추가, 보일 때만 항목을 넣도록 prop 추가
+  - `web/src/App.tsx` — 가족 탭 화면 렌더, `?admin` 처리
+  - `web/src/lib/family.ts` — 보는 사람 토큰 여러 개(그룹마다), 관리자 키 저장, `getFamilyView()`, 관리자 함수들
+  - `web/src/App.css` — 구성원 카드 등 필요한 만큼만
+- 참조: `web/src/components/RegisteredList.tsx`(약 목록 줄 모양), `web/src/components/SettingsPage.tsx`(묶음·줄), `DESIGN.md`(색·글꼴·컴포넌트)
+- 검증: typecheck, build. 로컬에서 헤드리스 Chrome으로: 관리자 키 입력 → 그룹 두 개 만들기 → 각 그룹에 구성원 초대 → 다른 브라우저 컨텍스트(저장소가 따로)에서 구성원으로 연결해 약 등록 → 보는 사람 초대 링크로 세 번째 컨텍스트 연결 → 자기 그룹만 보이는지, 부모님 컨텍스트에는 가족 탭이 없는지, 구성원 빼기 후 목록에서 사라지는지. 스크린샷(라이트·다크·412px).
+- 안 하는 것: 보는 사람이 직접 초대 만들기(관리자만), 가족 화면에서 구성원 약끼리 충돌 확인, 알림·푸시, 폰 바꾼 뒤 되찾기(44)
+- 멈춤 조건: 탭 4개가 412px에서 글자 크게(`data-font-scale='large'`) 설정일 때 넘치면 배치를 묻는다.
+
+### [ ] 44. 폰을 바꾼 부모님 약 목록 되찾기
+- 목표: 관리자가 가족 탭에서 구성원의 "다시 연결" 초대를 만들어 새 폰에서 연결하면, 같은 구성원으로 이어지고(이전 토큰은 더 못 씀) 새 폰에 약이 없을 때 "저장돼 있던 약 N개를 불러올까요?"가 뜬다. "불러오기"를 누르면 내 약에 들어간다. 새 폰에 이미 약이 있으면 묻지 않고 새 폰 목록이 서버로 올라간다.
+- 맥락: 지금은 폰을 잃거나 바꾸면 등록약이 모두 사라진다(`docs/product-design.md:120`). 서버 사본이 생기니 백업으로 쓴다.
+- 변경할 파일:
+  - `web/src/components/FamilyAdmin.tsx` — 구성원마다 "다시 연결" 초대 버튼(41의 `member_id` 초대)
+  - `web/src/lib/family.ts` — `joinFamily` 응답의 서버 약을 돌려줌
+  - `web/src/components/FamilySettings.tsx`·`web/src/App.tsx` — 연결 직후 불러오기 확인 창, `addMedication`으로 넣기(중복·10개 한도 오류는 건너뛰고 들어간 개수를 안내)
+- 참조: `web/src/lib/db.ts`의 `addMedication`, `web/src/lib/dialog.tsx`
+- 검증: typecheck, build. 로컬에서 컨텍스트 A(구성원, 약 3개) → 관리자가 다시 연결 초대 → 빈 컨텍스트 B로 연결 → 확인 창 → 불러오기 후 B에 3개, A의 토큰으로 올리기가 401, 약이 있는 컨텍스트 C로 연결하면 확인 창 없이 C 목록이 서버에 올라감.
+- 안 하는 것: 자동 복원(묻지 않고 넣기), 여러 기기 동시 사용 시 합치기(마지막에 올린 기기 기준)
+- 멈춤 조건: 없음(41~43이 끝나 있으면 범위가 작음)
 
 > 36~38은 홈 화면에 설치했을 때 앱처럼 보이게 하는 작업이다(2026-11-15 사용자 요청 "앱처럼 보이게"). 화면 디자인은 재디자인(7~11)으로 끝났고, 남은 차이는 설치 껍데기(상태바 색·아이콘·시작 화면)다. 방법 비교(아이콘·시작 화면): (A) `@vite-pwa/assets-generator`를 devDependency로 넣고 설정 파일 + `npm run` 명령으로 PNG를 만들어 `public/`에 커밋, manifest·`<head>`는 손으로 적음 — 다시 만들기 쉽고 빌드와 분리됨 **(추천)** / (B) `vite-plugin-pwa`의 `pwaAssets` 통합 모드 — 빌드 때 자동 생성·주입되지만 지금 쓰는 `vite-plugin-pwa` 0.21과 맞는 버전 확인이 필요하고 동작이 숨겨짐 / (C) 이미지 편집기로 손으로 만들기 — 크기 수십 개라 다시 만들기 어려움. 36 → 37 → 38 순서로, 각각 따로 검증한다.
 
