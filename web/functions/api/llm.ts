@@ -1,17 +1,23 @@
 /**
- * Vercel Edge Function — Gemini Flash 호출 프록시
+ * Cloudflare Pages Function — Gemini Flash 호출 프록시
  *
  * 클라이언트가 /api/llm 으로 POST → 이 함수가 서버측 GEMINI_API_KEY로
  * Gemini API에 전달 → 응답을 클라이언트에 반환.
  *
- * 환경변수 (Vercel Settings → Environment Variables):
- *   GEMINI_API_KEY (또는 VITE_GEMINI_API_KEY 둘 다 지원)
+ * 환경변수 (Cloudflare Pages → Settings → Variables and Secrets, Encrypt):
+ *   GEMINI_API_KEY
  *
  * 키는 서버에만 존재하며 클라이언트 번들에 포함되지 않습니다.
+ * POST가 아닌 요청은 onRequest에서 405로 돌려준다.
  */
 
-export const config = {
-  runtime: 'edge',
+interface Env {
+  GEMINI_API_KEY?: string
+}
+
+interface PagesContext {
+  request: Request
+  env: Env
 }
 
 interface LLMRequestBody {
@@ -36,21 +42,18 @@ function jsonResponse(data: unknown, status = 200): Response {
   })
 }
 
-export default async function handler(req: Request): Promise<Response> {
-  if (req.method !== 'POST') {
+export async function onRequest(context: PagesContext): Promise<Response> {
+  if (context.request.method !== 'POST') {
     return jsonResponse({ error: 'Method not allowed' }, 405)
   }
 
-  // 키는 process.env로 접근 (Vercel Edge runtime 지원)
-  const apiKey =
-    (typeof process !== 'undefined' && (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY)) ||
-    ''
+  const apiKey = context.env.GEMINI_API_KEY ?? ''
 
   if (!apiKey) {
     return jsonResponse(
       {
         error:
-          'GEMINI_API_KEY가 서버에 설정되지 않았습니다. Vercel Settings → Environment Variables 에 추가하세요.',
+          'GEMINI_API_KEY가 서버에 설정되지 않았습니다. Cloudflare Pages Settings → Variables and Secrets 에 추가하세요.',
       },
       500,
     )
@@ -58,7 +61,7 @@ export default async function handler(req: Request): Promise<Response> {
 
   let body: LLMRequestBody
   try {
-    body = (await req.json()) as LLMRequestBody
+    body = (await context.request.json()) as LLMRequestBody
   } catch {
     return jsonResponse({ error: 'Invalid JSON body' }, 400)
   }
@@ -93,7 +96,7 @@ export default async function handler(req: Request): Promise<Response> {
         ],
       }),
     })
-  } catch (e) {
+  } catch {
     return jsonResponse(
       { error: 'Gemini API 호출에 실패했습니다 (네트워크 오류).' },
       502,

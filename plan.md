@@ -33,6 +33,8 @@
 
 > 24~27은 사용자 확인(2026-11-13)에서 나온 것이다: "신고 정보와 기준규격 보기 위에 여백이 많다", "한눈에 보기가 딱딱해서 어르신이 안 읽을 것 같다", "'내 약과 확인'이 음식 '약과'처럼 읽힌다, 전체를 쉬운 말로", "영양제끼리 '비교할 수 없어요'면 어떻게 하나". 대부분 50대 이상이 쓸 것으로 본다. 결정은 아래 각 항목에 적는다.
 
+> 29~31은 배포를 Vercel에서 Cloudflare Pages로 옮기고 `pill.hgko.dev`를 붙이는 작업이다(2026-11-13 사용자 결정). 이유: 광고 계획이 있는데 Vercel Hobby는 비상업용만 허용(https://vercel.com/docs/limits/fair-use-guidelines), 아직 쓰는 사람이 없어 주소가 바뀌어도 등록약 데이터 이전이 필요 없음, 부모님께는 옮기고 도메인까지 붙인 뒤 드린다. `hgko.dev` DNS는 이미 Cloudflare에 있다. 방법 비교: (A) Cloudflare Pages + GitHub 연결 — 지금처럼 push하면 자동 배포, 브랜치 미리보기 있음 **(추천)** / (B) Pages 직접 올리기(wrangler) — 배포를 손으로 해야 하고 wrangler 설치 필요 / (C) Vercel Pro 유지 — 코드 그대로지만 유료. 29 → 30 → 31 순서로, 각각 따로 검증한다.
+
 #### 전체 점검에서 남은 것 (이번 범위 밖, 다음 계획 후보)
 - P1 검색: 종류별 10건에서 말없이 잘림(`nedrug-api.ts:26`, `healthfood-api.ts:157`), 실패와 "검색 결과가 없어요"가 함께 뜸(`SearchScreen.tsx:186-190`), 요청 시간 제한 없음, 검색 중 X나 새 검색어가 이전 검색을 취소하지 않음.
 - P1 등록과 판정: 등록할 때 내 약끼리 금기를 알리지 않음. 약 0개일 때 진한 버튼이 "내 약과 확인". 새 동작이라 설계부터.
@@ -55,6 +57,43 @@
 - 1~4번 중 발견한 4건은 위 5·6번 작업으로 옮겼다.
 
 ## 완료
+
+### [x] 30. Cloudflare Pages 프로젝트 만들고 pill.hgko.dev 연결
+- 목표: `https://pill.hgko.dev`가 200과 제목 "약똑똑"을 돌려주고, `/api/llm`에 짧은 질문을 보내면 200과 답이 오고, 없는 경로(`/abc`)도 앱 첫 화면으로 열린다.
+- 맥락: 대시보드 작업이라 사용자가 하고, 확인은 Claude가 한다. `hgko.dev`가 Cloudflare zone이라 도메인을 붙이면 DNS 기록이 자동으로 생긴다(Cloudflare 문서 Custom domains).
+- 방식 변경 (2026-11-13 사용자 결정): GitHub 연결 대신 **wrangler 직접 올리기**. 이 PC에 wrangler 로그인이 있고 `navi-bible`·`trip-rehearsal`도 같은 방식(Git Provider: No)이다. 직접 올리기 프로젝트는 나중에 GitHub 연결로 못 바꾸지만, 등록약은 주소(`pill.hgko.dev`)에 묶이므로 나중에 GitHub 연결 프로젝트를 새로 만들어 도메인만 옮겨도 데이터는 남는다. 배포는 push로 되지 않고 `cd web && npm run build && npx wrangler pages deploy dist --project-name pill-check --branch main`으로 한다(`functions/`가 있는 `web/`에서 실행해야 서버 함수가 같이 올라간다). `VITE_*` 키는 빌드하는 PC의 `web/.env`에서 번들에 들어가므로 Cloudflare에 넣지 않는다.
+- Claude가 한 일: Vercel에 넣어 둔 `pill.hgko.dev` alias 제거(`vercel alias rm`), `wrangler pages project create pill-check`, 첫 배포(`https://pill-check.pages.dev`).
+- 사용자가 할 일: `GEMINI_API_KEY`를 Secret으로 넣기(대시보드 pill-check → Settings → Variables and Secrets, 또는 `npx wrangler pages secret put GEMINI_API_KEY --project-name pill-check`), Custom domains → `pill.hgko.dev`. 키는 채팅에 붙여 넣지 않는다. 키를 넣은 뒤 Claude가 다시 배포한다.
+- 진행 (2026-11-14): 키 Secret 확인, 재배포, `pill-check.pages.dev/api/llm` 200. 도메인 연결 후 `pill.hgko.dev`의 화면·`/abc`·`sw.js`·manifest는 200인데 `/api/llm` POST가 여러 번에 한 번씩 502였다.
+  - 원인: 도메인 DNS 기록이 프록시(주황 구름)라 한국(LG U+) 요청 일부가 홍콩(HKG) 데이터센터로 가고, Gemini가 `400 User location is not supported for the API use.`로 막는다(임시로 상태 코드를 바꿔 올려 응답 본문 확인). 함수가 돌려준 502는 zone 프록시가 "error code: 502" 화면으로 바꿔서 가려졌다. `pages.dev`는 서울(ICN)로 간다.
+  - 시도했다 뺀 것: `wrangler.toml`의 `placement.region = "gcp:us-central1"` — 함수는 오마하에서 돌았지만(`cf-placement: remote-OMA`) Gemini는 여전히 위치 거부. 효과가 없어 파일을 지웠다.
+  - 해결: `pill` DNS 기록을 **DNS only(회색 구름)** 로. `pages.dev` IP로 `pill.hgko.dev`를 보내는 시험(`curl --resolve`)에서 5/5 ICN·200, 인증서 검증 통과.
+  - 결과 (2026-11-14): 사용자가 DNS only로 바꾼 뒤 `pill.hgko.dev`가 `pages.dev` IP로 풀리고, `/api/llm` POST 8/8 ICN·200(1.1~1.4초), `/`·`/abc`·`sw.js`·manifest 200.
+  - 확인 안 함: 다른 통신사(KT·SKT)에서도 `pages.dev` IP가 서울로 가는지.
+- 검증: `curl -s https://pill.hgko.dev`(200, `<title>약똑똑</title>`), `/api/llm` POST 200, `/abc` 200, `/sw.js`와 `/manifest.webmanifest` 200. 휴대폰에서 열어 검색·AI 해설을 사용자가 확인한다(집 LG U+ 와이파이에서는 2026-11-13 현재 정부 사이트가 안 열리므로 LTE로 확인).
+- 안 하는 것: 루트 `hgko.dev` 설정, 광고, `ads.txt`.
+- 멈춤 조건: Cloudflare 빌드 실패(Node 버전 문제면 `NODE_VERSION` 변수를 제안하고 묻는다 — Vercel은 24.x였고 Cloudflare 기본값은 확인 안 함), 도메인에서 522가 나면 멈추고 알린다.
+
+### [x] 31. Vercel 정리와 문서 고치기
+- 목표: 저장소에 Vercel 전용 코드와 설명이 남지 않고, GitHub 저장소 홈페이지 주소가 `https://pill.hgko.dev`다.
+- 맥락: 30번이 확인된 뒤에 한다.
+- 변경할 파일:
+  - `web/api/llm.ts` — 삭제(29번 함수로 대체됨).
+  - `CLAUDE.md`(4, 12줄), `.claude/rules/typescript-react.md`(14줄), `PRODUCT.md`(37줄) — "Vercel Edge Function `web/api/llm.ts`"를 "Cloudflare Pages Function `web/functions/api/llm.ts`"로.
+  - `web/README.md` — "빌드 & 배포"에 Cloudflare Pages 설정(루트 `web`, 출력 `dist`, 변수 3개)을 적는다.
+  - GitHub 저장소 홈페이지(`gh repo edit --homepage`) — 지금 404인 `pill-check-ten.vercel.app`을 바꾼다.
+- 참조: 없음.
+- 검증: `npm --prefix web run typecheck`, `npm --prefix web run build`, `grep -rn "Vercel" CLAUDE.md .claude PRODUCT.md web/README.md web/src`로 남은 곳 확인.
+- 안 하는 것: `docs/product-design.md`의 과거 기록 고치기(결정 당시 기록이라 둔다), 광고.
+- 멈춤 조건: Vercel 프로젝트(`pill-check`)를 지우거나 GitHub 연결을 끊는 것은 되돌릴 수 없으므로, 그때 사용자에게 묻는다. 추천은 아직 쓰는 사람이 없으니 지워서 옛 주소를 닫는 것이다.
+- 진행 (2026-11-14): `web/api/llm.ts` 삭제, `CLAUDE.md`(스택·구조·검증·배포 명령 추가), `.claude/rules/typescript-react.md`, `PRODUCT.md`, `web/src/lib/llm.ts` 주석, `web/README.md` 배포 절(직접 올리기, 키 위치, DNS only 이유) 고침. `web/README.md:41`의 "Vercel preview"는 Week 0 실측용 임시 호스팅 예시라 둔다. GitHub 홈페이지를 `https://pill.hgko.dev`로 바꿈. Vercel `pill-check` 프로젝트 삭제(사용자 확인, 옛 주소 404 확인). `navi-bible`·`data-weave`·`hgko.dev` 도메인 등록은 사용자가 남기기로 함. PR #8.
+
+### [x] 29. AI 해설 서버 함수를 Cloudflare Pages Functions로 옮기기
+- 목표: `web/functions/api/llm.ts`가 지금 `/api/llm`과 같은 약속(POST `{prompt}` → `{text}` 또는 `{error}`와 같은 상태 코드)으로 동작하고, 타입체크와 빌드가 통과한다.
+- 맥락: Cloudflare Pages는 프로젝트 루트(여기서는 `web/`)의 `functions/` 폴더를 서버 함수로 쓴다. `functions/api/llm.ts`가 `/api/llm` 주소가 된다. 키는 `process.env`가 아니라 `context.env`로 읽는다(Cloudflare 문서 Pages Functions › Bindings).
+- 변경한 파일: `web/functions/api/llm.ts`(새로 만듦, 검사·Gemini 호출·응답 처리는 `web/api/llm.ts`를 그대로 옮김, 타입은 파일 안에 최소로 적어 새 패키지 없음), `web/src/lib/llm.ts`(안내 문구 "Vercel 배포본" → "배포본").
+- 계획과 다른 점: `onRequestPost` 대신 `onRequest` 하나로 받고 POST가 아니면 405를 돌려준다. `onRequestPost`만 두면 GET 등에 405가 아닌 다른 응답이 나갈 수 있어서 지금 동작을 그대로 지키려고 바꿨다.
+- 결과 (2026-11-13): `npm --prefix web run typecheck` 통과, `npm --prefix web run build` 통과. `web/functions/`는 기본 타입체크 밖이라 임시 tsconfig(strict, noUnused*, lib ES2022+DOM)로 그 파일만 `tsc` 검사해 통과. 실제 호출 확인은 30번 미리보기 주소에서 한다.
 
 ### [x] 27. 영양제끼리 같은 성분이 겹치는지 알려 주기
 - 목표: 영양제를 확인할 때, 내 약의 영양제와 같은 성분(예: 비타민D, 칼슘, 오메가3)이 겹치면 결과에 "같은 성분이 겹쳐요: 비타민D (내 약: OO)"가 나온다. 겹침이 없으면 "같은 성분은 못 찾았어요"로 말하고, 괜찮다고 단정하지 않는다.

@@ -1,7 +1,7 @@
 /**
  * LLM 클라이언트 helper.
  *
- * Production: /api/llm (Vercel Edge Function, 키 서버측만)
+ * Production: /api/llm (Cloudflare Pages Function, 키 서버측만)
  * Local dev: VITE_GEMINI_API_KEY 있으면 직접 호출, 없으면 친화 에러
  *
  * 일일 quota: 5회 (사용자별 localStorage)
@@ -129,7 +129,7 @@ export class QuotaExceededError extends Error {
 export class DevLLMUnavailableError extends Error {
   constructor() {
     super(
-      'AI 해설은 Vercel 배포본에서만 동작합니다. (로컬 dev에서 테스트하려면 .env에 VITE_GEMINI_API_KEY 추가)',
+      'AI 해설은 배포본에서만 동작합니다. (로컬 dev에서 테스트하려면 .env에 VITE_GEMINI_API_KEY 추가)',
     )
     this.name = 'DevLLMUnavailableError'
   }

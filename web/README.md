@@ -47,14 +47,23 @@ npm run dev
 # 폰 Safari/Chrome에서 http://192.168.x.x:5173/feasibility.html
 ```
 
-## 빌드 & 배포 (Week 3 이후)
+## 빌드 & 배포
 
 ```bash
 npm run build     # dist/ 생성
 npm run preview   # 로컬에서 빌드 결과 확인
 ```
 
-배포는 Vercel 또는 Cloudflare Pages 권장 (Git push 시 자동 빌드). `web/`을 root directory로 설정.
+배포는 Cloudflare Pages 직접 올리기(프로젝트 `pill-check`, 주소 https://pill.hgko.dev). Git push로는 배포되지 않는다. `web/`에서 실행해야 `functions/`(AI 해설 `/api/llm`)가 같이 올라간다.
+
+```bash
+npm run build
+npx wrangler pages deploy dist --project-name pill-check --branch main
+```
+
+- `VITE_*` 키는 빌드하는 PC의 `web/.env`에서 번들에 들어간다(Cloudflare에 넣지 않음).
+- `GEMINI_API_KEY`는 Cloudflare Pages Secret(대시보드 pill-check → Settings → Variables and Secrets)에 있다.
+- `pill.hgko.dev` DNS 기록은 **DNS only(회색 구름)** 로 둔다. 주황 구름(프록시)이면 한국 요청이 홍콩 데이터센터로 가는 일이 있고, Gemini가 홍콩을 막아서(`User location is not supported`) AI 해설이 실패한다(2026-11-14 확인).
 
 ## 폴더 구조
 

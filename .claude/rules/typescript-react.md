@@ -11,7 +11,7 @@ paths:
 - 화면·UI는 `web/src/components/`, 외부 API·DB·순수 로직은 `web/src/lib/`. 컴포넌트가 `lib/`를 쓰고, `lib/`는 컴포넌트를 import하지 않는다.
 - 외부 API 클라이언트는 실패를 전용 Error 클래스로 던지고(`NedrugRequestError`, `FoodSafetyAuthError` 등), 화면에서는 `friendlyError(e)`로 바꿔 보여 준다.
 - 식약처 API는 dev에서 Vite 프록시(`/api/nedrug`, `/api/foodsafety`)를 탄다. 새 엔드포인트는 `vite.config.ts` 프록시와 `import.meta.env.DEV` 분기를 같이 맞춘다.
-- `web/api/*.ts`는 Vercel Edge Function이다. 서버 키는 여기서만 읽는다.
+- `web/functions/**/*.ts`는 Cloudflare Pages Function이다(`context.env`로 키를 읽음). 서버 키는 여기서만 읽는다.
 
 ## 코드 스타일
 - 포매터·린터 없음. 세미콜론 없음, 작은따옴표, 2칸 들여쓰기를 손으로 맞춘다.
@@ -26,5 +26,5 @@ paths:
 
 ## 검증
 - `npm --prefix web run typecheck`, `npm --prefix web run build` (CLAUDE.md 검증 명령).
-- `web/api/`는 타입체크 대상이 아니므로 고쳤다면 직접 읽어 확인하고 그렇다고 보고한다.
+- `web/functions/`는 타입체크 대상이 아니므로 고쳤다면 직접 읽어 확인하고 그렇다고 보고한다.
 - UI 변경은 `npm --prefix web run dev`로 띄워 눈으로 확인하기 전에는 "된다"고 말하지 않는다.

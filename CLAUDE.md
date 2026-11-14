@@ -1,7 +1,7 @@
 # 약똑똑 (PillCheck)
 
 60대 부모님과 그 자녀가 쓰는 약·영양제 상호작용 체크 PWA. 바코드·검색으로 제품을 찾아 등록한 약과의 DUR 충돌을 빨강/노랑/회색/초록으로 보여 준다.
-- 스택: Vite 6 + React 19 + TypeScript(strict), Dexie(IndexedDB), vite-plugin-pwa, html5-qrcode. AI 해설은 Vercel Edge Function(`web/api/llm.ts`) → Gemini.
+- 스택: Vite 6 + React 19 + TypeScript(strict), Dexie(IndexedDB), vite-plugin-pwa, html5-qrcode. AI 해설은 Cloudflare Pages Function(`web/functions/api/llm.ts`) → Gemini. 배포는 Cloudflare Pages(`https://pill.hgko.dev`).
 - 답변은 한국어로, 코드 식별자는 영문으로 쓴다.
 
 ## 구조
@@ -9,7 +9,7 @@
 - `web/src/components/` — 화면·UI 컴포넌트 (`SearchScreen.tsx`, `InteractionResultCard.tsx` 등)
 - `web/src/lib/` — API 클라이언트(`nedrug-api.ts`, `healthfood-api.ts`, `dur.ts`, `llm.ts`), DB(`db.ts`), 에러 변환(`errors.ts`), 타입(`types.ts`)
 - `web/src/App.css` — 디자인 토큰(`--pc-*`, 다크 모드 `html[data-theme='dark']`) + 컴포넌트 스타일
-- `web/api/` — Vercel Edge Function (서버 측 키 사용)
+- `web/functions/` — Cloudflare Pages Function (서버 측 키 사용, `functions/api/llm.ts` → `/api/llm`)
 - `scripts/week0/` — Week 0 GATE 1 데이터 검증용 Python 스크립트 (앱 빌드와 무관)
 - `docs/product-design.md` — 제품 설계 문서(소스 오브 트루스), `docs/api-key-guide.md` — 식약처 API 키 발급
 - `PRODUCT.md`·`DESIGN.md` — `/impeccable` 디자인 스킬용 제품 정의와 디자인 시스템(색·글꼴·컴포넌트). 화면 디자인 결정은 `DESIGN.md`를 따른다
@@ -22,12 +22,13 @@
 | 설치 | `npm --prefix web install` |
 | 실행 | `npm --prefix web run dev` (LAN 노출, 폰 접속용) |
 | 빌드 | `npm --prefix web run build` |
+| 배포 | `cd web && npm run build && npx wrangler pages deploy dist --project-name pill-check --branch main` (push로 자동 배포 안 됨, `web/`에서 실행해야 `functions/`가 같이 올라감) |
 
 ## 검증 명령
 
 `verify` 스킬이 이 순서로 실행한다. 실제로 실행해 확인한 명령만 적는다.
 
-1. 타입체크: `npm --prefix web run typecheck` (`tsc --noEmit`, `web/src`만 대상 — `web/api/`는 검사 안 됨)
+1. 타입체크: `npm --prefix web run typecheck` (`tsc --noEmit`, `web/src`만 대상 — `web/functions/`는 검사 안 됨)
 2. 빌드: `npm --prefix web run build`
 - 린트·테스트는 아직 없다. 동작 확인은 `npm --prefix web run dev` 후 브라우저/폰에서 한다.
 
