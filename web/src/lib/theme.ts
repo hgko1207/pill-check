@@ -13,6 +13,9 @@ function resolveSystemTheme(): 'light' | 'dark' {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
+// 상태바 색 = 앱 바탕색(App.css의 --pc-bg). 기기 설정이 아니라 앱 테마를 따라야 해서 여기서 바꾼다
+const STATUS_BAR_COLOR = { light: '#F8F4EE', dark: '#1A1815' }
+
 function applyEffectiveTheme(theme: Theme) {
   const effective = theme === 'system' ? resolveSystemTheme() : theme
   if (effective === 'dark') {
@@ -20,6 +23,7 @@ function applyEffectiveTheme(theme: Theme) {
   } else {
     document.documentElement.removeAttribute('data-theme')
   }
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', STATUS_BAR_COLOR[effective])
 }
 
 export function loadTheme(): Theme {

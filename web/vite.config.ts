@@ -18,13 +18,18 @@ export default defineConfig({
         name: '약똑똑',
         short_name: '약똑똑',
         description: '드시는 약과 새로 산 영양제나 일반약을 함께 먹어도 되는지 식약처 자료로 알려 드려요.',
-        theme_color: '#F2F4F6',
-        background_color: '#F2F4F6',
+        theme_color: '#F8F4EE',
+        background_color: '#F8F4EE',
         display: 'standalone',
         start_url: '/',
         lang: 'ko-KR',
+        // PNG는 npm run generate-pwa-assets로 public/icon.svg에서 만든다(pwa-assets.config.ts)
         icons: [
-          { src: '/icon.svg', sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' },
+          { src: '/pwa-64x64.png', sizes: '64x64', type: 'image/png' },
+          { src: '/pwa-192x192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/pwa-512x512.png', sizes: '512x512', type: 'image/png' },
+          { src: '/icon.svg', sizes: 'any', type: 'image/svg+xml' },
+          { src: '/maskable-icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
       workbox: {
