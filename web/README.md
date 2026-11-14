@@ -97,5 +97,5 @@ web/
 ## 알려진 제약 (V1)
 
 - **iOS Safari "홈 화면에 추가"는 자동 prompt 없음** — 첫 진입 시 Share 시트 → "홈 화면에 추가" 안내 필요. UI에 큰 가이드 카드로 처리(Week 4).
-- **Production CORS**: dev 프록시는 `npm run dev`에만 작동. 배포 시 식약처 API 호출이 CORS 차단되면 Cloudflare Worker 1-파일 proxy로 우회 (Week 1 후반에 결정).
+- **식약처·식품안전나라 호출 경로**: 브라우저는 항상 같은 주소의 `/api/nedrug/...`·`/api/foodsafety/...`를 부른다. dev는 Vite 프록시, 배포본은 Pages Function(`functions/api/nedrug`, `functions/api/foodsafety`)이 정부 서버로 넘긴다. 휴대폰 망에서 정부 서버에 직접 닿지 못하는 일이 있어서다(2026-11-14). 키는 아직 `VITE_*`로 번들에 들어간다.
 - **바코드 정확도**: html5-qrcode는 ML Kit 대비 떨어짐. 실측 결과 < 70%면 Capacitor wrap (V1.5).

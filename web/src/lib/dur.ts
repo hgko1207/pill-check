@@ -12,10 +12,8 @@ import {
 } from './dur-match'
 
 const NEDRUG_KEY = import.meta.env.VITE_NEDRUG_API_KEY ?? ''
-const isDev = import.meta.env.DEV
-const DUR_BASE = isDev
-  ? '/api/nedrug/1471000/DURPrdlstInfoService03'
-  : 'https://apis.data.go.kr/1471000/DURPrdlstInfoService03'
+// dev는 Vite 프록시, 배포본은 Cloudflare Pages Function(functions/api/nedrug)이 같은 경로를 받는다
+const DUR_BASE = '/api/nedrug/1471000/DURPrdlstInfoService03'
 
 interface DurResponseBody {
   body?: {

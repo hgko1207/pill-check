@@ -9,7 +9,7 @@
 - `web/src/components/` — 화면·UI 컴포넌트 (`SearchScreen.tsx`, `InteractionResultCard.tsx` 등)
 - `web/src/lib/` — API 클라이언트(`nedrug-api.ts`, `healthfood-api.ts`, `dur.ts`, `llm.ts`), DB(`db.ts`), 에러 변환(`errors.ts`), 타입(`types.ts`)
 - `web/src/App.css` — 디자인 토큰(`--pc-*`, 다크 모드 `html[data-theme='dark']`) + 컴포넌트 스타일
-- `web/functions/` — Cloudflare Pages Function (서버 측 키 사용, `functions/api/llm.ts` → `/api/llm`, IP별 하루 횟수 제한)
+- `web/functions/` — Cloudflare Pages Function (서버 측 키 사용, `functions/api/llm.ts` → `/api/llm`, IP별 하루 횟수 제한). `functions/api/nedrug`·`functions/api/foodsafety`는 배포본의 식약처·식품안전나라 호출 중계(dev는 Vite 프록시가 같은 경로를 받음)
 - `web/wrangler.toml` — Pages 배포 설정(KV 바인딩 `LLM_LIMIT`). 이 파일이 배포 설정의 기준
 - `scripts/week0/` — Week 0 GATE 1 데이터 검증용 Python 스크립트 (앱 빌드와 무관)
 - `docs/product-design.md` — 제품 설계 문서(소스 오브 트루스), `docs/api-key-guide.md` — 식약처 API 키 발급

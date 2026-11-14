@@ -13,8 +13,8 @@
 
 const FOODSAFETY_KEY = import.meta.env.VITE_FOODSAFETY_API_KEY ?? ''
 
-const isDev = import.meta.env.DEV
-const BASE = isDev ? '/api/foodsafety' : 'https://openapi.foodsafetykorea.go.kr'
+// dev는 Vite 프록시, 배포본은 Cloudflare Pages Function(functions/api/foodsafety)이 같은 경로를 받는다
+const BASE = '/api/foodsafety'
 
 const SERVICE_HEALTHFOOD = 'I0030' // 건강기능식품정보 (검증 후 필요 시 변경)
 

@@ -3,10 +3,8 @@ import type { NedrugItem, NedrugSearchResponse } from './types'
 const NEDRUG_KEY = import.meta.env.VITE_NEDRUG_API_KEY ?? ''
 
 // 2026-05 fact-check: Service06 → Service07 (구버전 90일 후 중지). 검증된 endpoint.
-const isDev = import.meta.env.DEV
-const NEDRUG_BASE = isDev
-  ? '/api/nedrug/1471000/DrugPrdtPrmsnInfoService07'
-  : 'https://apis.data.go.kr/1471000/DrugPrdtPrmsnInfoService07'
+// dev는 Vite 프록시, 배포본은 Cloudflare Pages Function(functions/api/nedrug)이 같은 경로를 받는다
+const NEDRUG_BASE = '/api/nedrug/1471000/DrugPrdtPrmsnInfoService07'
 
 export class MissingApiKeyError extends Error {
   constructor() {

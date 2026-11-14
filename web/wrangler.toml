@@ -16,9 +16,10 @@ id = "54d760db573647a4aed53e114625e6c8"
 [env.production]
 compatibility_date = "2026-06-01"
 
-# 30번 시험 때 넣었던 값이 프로젝트에 남아 있어 그대로 둔다(동작을 바꾸지 않으려고)
+# 함수는 사용자 가까이(서울)에서 돈다. 미국(gcp:us-central1)으로 두면 식품안전나라가
+# 해외 요청을 받지 않아 영양제 검색이 522로 실패한다(2026-11-14 확인)
 [env.production.placement]
-region = "gcp:us-central1"
+mode = "off"
 
 # kv_namespaces는 환경으로 상속되지 않아 production에도 적는다
 [[env.production.kv_namespaces]]
