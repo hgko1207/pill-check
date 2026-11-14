@@ -1,6 +1,6 @@
-import { MissingApiKeyError, NedrugRequestError } from './nedrug-api'
+import { NedrugRequestError } from './nedrug-api'
 import { QuotaExceededError } from './llm'
-import { FoodSafetyKeyMissingError, FoodSafetyAuthError } from './healthfood-api'
+import { FoodSafetyAuthError } from './healthfood-api'
 import {
   MedicationLimitError,
   DuplicateMedicationError,
@@ -14,12 +14,6 @@ import {
  * - 자녀 도움이 필요한 시스템 오류는 명시
  */
 export function friendlyError(e: unknown): string {
-  if (e instanceof MissingApiKeyError) {
-    return '앱 설정이 덜 됐어요. 이 화면을 자녀에게 보여 주세요.'
-  }
-  if (e instanceof FoodSafetyKeyMissingError) {
-    return '영양제는 아직 찾을 수 없어요. 약 검색은 그대로 쓸 수 있어요. 자녀에게 알려 주세요.'
-  }
   if (e instanceof FoodSafetyAuthError) {
     return '영양제 정보를 받아 오지 못했어요. 자녀에게 알려 주세요.'
   }

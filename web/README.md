@@ -61,8 +61,8 @@ npm run build
 npx wrangler pages deploy dist --project-name pill-check --branch main
 ```
 
-- `VITE_*` 키는 빌드하는 PC의 `web/.env`에서 번들에 들어간다(Cloudflare에 넣지 않음).
-- `GEMINI_API_KEY`는 Cloudflare Pages Secret(대시보드 pill-check → Settings → Variables and Secrets)에 있다.
+- 키는 모두 Cloudflare Pages Secret(대시보드 pill-check → Settings → Variables and Secrets)에 있다: `GEMINI_API_KEY`, `NEDRUG_API_KEY`(data.go.kr), `FOODSAFETY_API_KEY`(식품안전나라). 번들에는 키가 없다.
+- `web/.env`의 `VITE_NEDRUG_API_KEY`·`VITE_FOODSAFETY_API_KEY`는 dev 프록시(`vite.config.ts`)만 읽는다. 클라이언트 코드에서 참조하면 번들에 들어가니 쓰지 않는다.
 - 배포 설정(KV 바인딩 등)은 `web/wrangler.toml`이 기준이다. `/api/llm`은 KV `LLM_LIMIT`(`pill-check-llm-limit`)에 IP별 하루 호출 수를 세서 20번을 넘으면 429, 다른 사이트 Origin이면 403을 돌려준다. 기기별 하루 5회 제한(`src/lib/llm.ts`)은 따로 있다.
 - `pill.hgko.dev` DNS 기록은 **DNS only(회색 구름)** 로 둔다. 주황 구름(프록시)이면 한국 요청이 홍콩 데이터센터로 가는 일이 있고, Gemini가 홍콩을 막아서(`User location is not supported`) AI 해설이 실패한다(2026-11-14 확인).
 
@@ -97,5 +97,5 @@ web/
 ## 알려진 제약 (V1)
 
 - **iOS Safari "홈 화면에 추가"는 자동 prompt 없음** — 첫 진입 시 Share 시트 → "홈 화면에 추가" 안내 필요. UI에 큰 가이드 카드로 처리(Week 4).
-- **식약처·식품안전나라 호출 경로**: 브라우저는 항상 같은 주소의 `/api/nedrug/...`·`/api/foodsafety/...`를 부른다. dev는 Vite 프록시, 배포본은 Pages Function(`functions/api/nedrug`, `functions/api/foodsafety`)이 정부 서버로 넘긴다. 휴대폰 망에서 정부 서버에 직접 닿지 못하는 일이 있어서다(2026-11-14). 키는 아직 `VITE_*`로 번들에 들어간다.
+- **식약처·식품안전나라 호출 경로**: 브라우저는 항상 같은 주소의 `/api/nedrug/...`·`/api/foodsafety/...`를 부른다. dev는 Vite 프록시, 배포본은 Pages Function(`functions/api/nedrug`, `functions/api/foodsafety`)이 정부 서버로 넘긴다. 휴대폰 망에서 정부 서버에 직접 닿지 못하는 일이 있어서다(2026-11-14). 키는 프록시·함수가 붙이고 클라이언트는 모른다.
 - **바코드 정확도**: html5-qrcode는 ML Kit 대비 떨어짐. 실측 결과 < 70%면 Capacitor wrap (V1.5).

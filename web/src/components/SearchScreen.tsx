@@ -11,7 +11,7 @@ import {
   X,
 } from 'lucide-react'
 import { searchDrug, searchDrugByBarcode } from '../lib/nedrug-api'
-import { searchHealthFood, isFoodSafetyConfigured, groupSameName } from '../lib/healthfood-api'
+import { searchHealthFood, groupSameName } from '../lib/healthfood-api'
 import { addMedication, listMedications } from '../lib/db'
 import { checkInteraction } from '../lib/dur'
 import { friendlyError } from '../lib/errors'
@@ -148,10 +148,7 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
       setWarn(null)
       setInfo(null)
 
-      const promises: Promise<unknown>[] = [searchDrug(q)]
-      if (isFoodSafetyConfigured()) {
-        promises.push(searchHealthFood(q))
-      }
+      const promises: Promise<unknown>[] = [searchDrug(q), searchHealthFood(q)]
 
       const [drugRes, hfRes] = await Promise.allSettled(promises)
 

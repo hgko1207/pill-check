@@ -6,14 +6,11 @@
  *   (잘못된 키로 호출 시 200 + "인증키가 유효하지 않습니다" alert HTML 반환)
  * - service ID `I0030` — 통용값(여러 튜토리얼 일치). 사용자 키로 첫 호출 시 검증 권장.
  *   다른 ID 필요 시 마이페이지에서 확인 후 SERVICE_HEALTHFOOD 상수 갱신.
- * - 사용자가 식품안전나라 별도 가입(foodsafetykorea.go.kr/api)하고 인증키를
- *   .env의 VITE_FOODSAFETY_API_KEY 에 채우면 영양제 검색 자동 활성화.
- *   비어있으면 graceful fallback (의약품 검색만 사용).
+ * - 인증키는 클라이언트에 없다. 배포본은 Pages Secret FOODSAFETY_API_KEY, dev는 web/.env의
+ *   VITE_FOODSAFETY_API_KEY를 프록시가 경로에 끼운다. 클라이언트는 `/api/{SERVICE}/...`만 부른다.
  */
 
-const FOODSAFETY_KEY = import.meta.env.VITE_FOODSAFETY_API_KEY ?? ''
-
-// dev는 Vite 프록시, 배포본은 Cloudflare Pages Function(functions/api/foodsafety)이 같은 경로를 받는다
+// dev는 Vite 프록시, 배포본은 Cloudflare Pages Function(functions/api/foodsafety)이 같은 경로를 받아 키를 끼운다
 const BASE = '/api/foodsafety'
 
 const SERVICE_HEALTHFOOD = 'I0030' // 건강기능식품정보 (검증 후 필요 시 변경)
@@ -128,25 +125,11 @@ interface FoodSafetyResponse<T> {
   }
 }
 
-export class FoodSafetyKeyMissingError extends Error {
-  constructor() {
-    super(
-      '식품안전나라 인증키가 설정되지 않아 영양제(건강기능식품)는 검색되지 않습니다. ' +
-        'foodsafetykorea.go.kr/api 회원가입 후 키 발급 → .env의 VITE_FOODSAFETY_API_KEY 에 추가.',
-    )
-    this.name = 'FoodSafetyKeyMissingError'
-  }
-}
-
 export class FoodSafetyAuthError extends Error {
   constructor() {
     super('식품안전나라 인증키가 유효하지 않습니다. 키 또는 서비스 ID를 확인하세요.')
     this.name = 'FoodSafetyAuthError'
   }
-}
-
-export function isFoodSafetyConfigured(): boolean {
-  return FOODSAFETY_KEY.length > 0
 }
 
 export async function searchHealthFood(
@@ -164,8 +147,7 @@ async function fetchService<T>(
   end: number,
   filter = '',
 ): Promise<T[]> {
-  if (!FOODSAFETY_KEY) throw new FoodSafetyKeyMissingError()
-  const url = `${BASE}/api/${FOODSAFETY_KEY}/${service}/json/${start}/${end}${filter ? `/${filter}` : ''}`
+  const url = `${BASE}/api/${service}/json/${start}/${end}${filter ? `/${filter}` : ''}`
 
   const res = await fetch(url)
   if (!res.ok) {

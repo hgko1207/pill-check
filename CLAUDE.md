@@ -68,7 +68,7 @@
 ## 하지 말 것
 
 - `web/src/lib/db.ts`의 기존 `this.version(N)` 블록을 고치지 않는다 — 스키마 변경은 새 버전 + `upgrade()`로 추가한다 (사용자 기기에 이미 저장된 데이터).
-- 서버 전용 키(`GEMINI_API_KEY`)를 `VITE_` 변수나 클라이언트 코드로 옮기지 않는다 — `VITE_*`는 번들에 그대로 들어간다. 운영 호출은 `/api/llm` 경유.
+- 서버 전용 키(`GEMINI_API_KEY`, `NEDRUG_API_KEY`, `FOODSAFETY_API_KEY` — Pages Secret)를 클라이언트 코드로 옮기지 않는다. `src/`에서 `import.meta.env.VITE_*`로 키를 참조하면 번들에 그대로 들어간다. 운영 호출은 `/api/llm`·`/api/nedrug`·`/api/foodsafety` 경유.
 - 결과 문구에서 "안전하다"고 단정하지 않는다 — 초록도 "충돌이 확인되지 않음(참고용)"이다. 면책 문구(`Disclaimer.tsx`)를 빼지 않는다.
 - 테스트를 통과시키려고 테스트를 지우거나 건너뛰게 바꾸지 않는다.
 - 비밀값(.env, 키)을 읽거나 코드에 넣지 않는다.
