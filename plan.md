@@ -60,6 +60,20 @@
 
 ## 완료
 
+### [x] 34. 배포본 식약처 호출을 우리 서버(Cloudflare) 경유로 바꾸기
+- 목표: 배포본에서 약 검색·DUR 확인·영양제 검색이 `pill.hgko.dev/api/nedrug/...`·`/api/foodsafety/...`로만 나가고, 휴대폰이 정부 서버에 직접 닿지 못하는 망에서도 검색 결과가 나온다.
+- 맥락(2026-11-14 확인): 사용자 휴대폰(와이파이 끔)에서도 식약처 검색이 안 됨. 조사 결과 키와 CORS는 문제없음 — Cloudflare 서울(ICN)에서 배포 번들의 키로 `getDrugPrdtPrmsnDtlInq06` 호출 시 `resultCode 00`, 7건, `access-control-allow-origin: https://pill.hgko.dev`(식품안전나라는 `*`). 반면 집 회선(LG U+)에서는 `apis.data.go.kr`(27.101.236.63)과 `openapi.foodsafetykorea.go.kr`(116.67.90.152) 모두 접속 자체가 안 된다(11-12에는 dev 프록시로 됐음). 지금 배포본은 브라우저가 정부 서버를 직접 부르므로(`nedrug-api.ts:7-9`, `dur.ts:16-18`, `healthfood-api.ts:17`) 그 망에서 막히면 앱도 막힌다. 휴대폰 망이 막힌 이유 자체는 확인 안 함.
+- 변경할 파일:
+  - `web/functions/api/nedrug/[[path]].ts` (새로) — `/api/nedrug/1471000/...`를 `https://apis.data.go.kr/1471000/...`로 그대로 넘김(GET만, `1471000/` 아래만 허용)
+  - `web/functions/api/foodsafety/[[path]].ts` (새로) — `/api/foodsafety/api/...`를 `https://openapi.foodsafetykorea.go.kr/api/...`로 넘김(GET만)
+  - `web/src/lib/nedrug-api.ts`, `web/src/lib/dur.ts`, `web/src/lib/healthfood-api.ts` — dev/배포 분기를 없애고 항상 `/api/nedrug`·`/api/foodsafety` 사용(dev는 지금처럼 Vite 프록시가 받음)
+  - `web/README.md` 알려진 제약의 "Production CORS" 줄 고치기
+- 참조: `web/vite.config.ts:42-53` dev 프록시 경로 규칙, `web/functions/api/llm.ts`
+- 검증: typecheck·build, 함수 파일은 스크래치 tsconfig. 배포 후 curl로 `/api/nedrug/...` 약 검색 `resultCode 00`, DUR 호출 정상, `/api/foodsafety/...` 영양제 검색 정상(집 회선에서 되는지가 곧 "정부 서버에 직접 못 닿는 망" 시험). 사용자 휴대폰 확인 요청
+- 안 하는 것: 키를 서버로 옮기기(지금처럼 번들에 남음 — 따로 제안), 응답 캐시, 호출 횟수 제한
+- 멈춤 조건: 운영 환경에 남은 `placement`(us-central1) 때문에 함수가 미국에서 돌아 정부 서버가 해외 요청을 막으면, placement를 지울지(그러면 AI 해설이 서울에서 Gemini를 부름 — 다시 시험 필요) 묻는다
+- 결과(2026-11-14): 함수 2개 추가, 클라이언트 3곳을 항상 `/api/nedrug`·`/api/foodsafety`로. typecheck·build 통과, 함수 파일은 스크래치 tsconfig로 통과, 번들에 정부 주소 0건. 배포 후 정부 서버에 직접 못 닿는 집 회선에서 약 검색 `00` 7건, DUR `00`, 영양제 I0030 `INFO-000`(비타민 4955건, 오메가 2007건), 허용 밖 경로 404. 처음엔 영양제가 522(19초)였다 — 운영 환경 placement(us-central1)가 남아 있었고 사용자 승인으로 `web/wrangler.toml`에서 `mode = "off"`로 바꿨다. 바꾼 직후 한 번 더 522, 몇 분 뒤 정상. 미국 실행이 원인이었는지는 확실하지 않다(서울에서 돈 시험 Worker는 처음부터 정상). placement를 끈 뒤 AI 해설 5/5 200. 사용자 휴대폰 확인은 아직.
+
 ### [x] 32. KV 저장소 만들고 Pages 설정 파일로 묶기
 - 목표: `pill-check` 프로젝트에 KV 바인딩 `LLM_LIMIT`가 붙은 채로 배포되고, 기존 AI 해설(`GEMINI_API_KEY`)이 그대로 200을 돌려준다.
 - 맥락: 33번의 횟수 저장소. 직접 올리기 방식이라 바인딩은 `web/wrangler.toml`로 관리한다(설정 파일이 있으면 그 파일이 배포 설정의 기준이 됨).
