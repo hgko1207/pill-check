@@ -20,9 +20,10 @@ interface SettingsProps {
   onShowGuide?: () => void
   onMedicationsChanged?: () => void
   onNeedFamilyLogin?: (code: string) => void
+  onOpenFamily?: () => void
 }
 
-export function SettingsPage({ onShowGuide, onMedicationsChanged, onNeedFamilyLogin }: SettingsProps = {}) {
+export function SettingsPage({ onShowGuide, onMedicationsChanged, onNeedFamilyLogin, onOpenFamily }: SettingsProps = {}) {
   const [clearing, setClearing] = useState(false)
   const { confirm, toast } = useDialog()
 
@@ -137,7 +138,11 @@ export function SettingsPage({ onShowGuide, onMedicationsChanged, onNeedFamilyLo
         </button>
       </div>
 
-      <FamilySettings onMedicationsChanged={onMedicationsChanged} onNeedLogin={onNeedFamilyLogin} />
+      <FamilySettings
+        onMedicationsChanged={onMedicationsChanged}
+        onNeedLogin={onNeedFamilyLogin}
+        onOpenFamily={onOpenFamily}
+      />
 
       <h2 className="group-label">데이터</h2>
       <div className="group">

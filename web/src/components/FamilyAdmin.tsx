@@ -1,18 +1,15 @@
-import { useCallback, useEffect, useState } from 'react'
-import { Copy, Share2, ShieldCheck } from 'lucide-react'
+import { useState } from 'react'
+import { Copy, Share2 } from 'lucide-react'
 import { useDialog } from '../lib/dialog'
 import { friendlyError } from '../lib/errors'
-import {
-  adminCreateGroup,
-  adminCreateInvite,
-  adminListUsers,
-  adminSetRole,
-  type AuthUser,
-  type CreatedInvite,
-  type FamilyRole,
-} from '../lib/family'
+import { createGroup, createInvite, type CreatedInvite, type FamilyRole } from '../lib/family'
 
-/** 관리자 화면 조각들 (plan.md 43, 46, 49). 가족 탭(FamilyPage)이 쓴다 */
+/** 가족 탭 조각들 (plan.md 43, 46, 49, 52). 가족 탭(FamilyPage)·그룹 관리 화면이 쓴다 */
+
+/** 메일 주소가 하이픈에서 줄바꿈되지 않게 줄바꿈 없는 하이픈(U+2011)으로 바꾼다 */
+export function keepHyphen(text: string): string {
+  return text.replace(/-/g, '‑')
+}
 
 /** 역할 이름 (화면에 보이는 말) */
 export const ROLE_TEXT: Record<FamilyRole, string> = {
@@ -20,114 +17,8 @@ export const ROLE_TEXT: Record<FamilyRole, string> = {
   viewer: '함께 보는 가족',
 }
 
-/** 다른 계정에 관리자 주기/빼기. 내 계정은 실수로 빼지 않게 목록에서 뺀다 */
-export function AdminUsers({ currentUserId }: { currentUserId: string }) {
-  const { confirm, toast } = useDialog()
-  const [users, setUsers] = useState<AuthUser[] | null>(null)
-  const [busyId, setBusyId] = useState<string | null>(null)
-
-  const load = useCallback(async () => {
-    try {
-      setUsers(await adminListUsers())
-    } catch (e) {
-      toast(friendlyError(e), 'error')
-    }
-  }, [toast])
-
-  useEffect(() => {
-    void load()
-  }, [load])
-
-  async function toggle(u: AuthUser) {
-    const label = u.name ?? u.email ?? '이 계정'
-    const giving = u.role !== 'admin'
-    const ok = await confirm(
-      giving
-        ? {
-            title: `${label}에게 관리자를 줄까요?`,
-            message: <>모든 가족 그룹의 약을 보고, 초대를 만들고, 가족을 뺄 수 있게&nbsp;돼요.</>,
-            confirmLabel: '관리자 주기',
-            cancelLabel: '취소',
-          }
-        : {
-            title: `${label}의 관리자를 뺄까요?`,
-            message: <>그 계정은 함께 보는 가족으로 연결된 그룹만 보게&nbsp;돼요.</>,
-            confirmLabel: '관리자 빼기',
-            cancelLabel: '취소',
-            variant: 'danger',
-          },
-    )
-    if (!ok) return
-    setBusyId(u.id)
-    try {
-      await adminSetRole(u.id, giving ? 'admin' : 'user')
-      toast(giving ? `${label}에게 관리자를 줬어요.` : `${label}의 관리자를 뺐어요.`, 'success')
-      void load()
-    } catch (e) {
-      toast(friendlyError(e), 'error')
-    } finally {
-      setBusyId(null)
-    }
-  }
-
-  const others = users?.filter((u) => u.id !== currentUserId) ?? null
-
-  return (
-    <>
-      <h2 className="group-label">관리자 권한</h2>
-      <ul className="group family-users">
-        {others === null && (
-          <li>
-            <p className="loading-line">
-              <span className="spinner" aria-hidden="true" /> 불러오는 중
-            </p>
-          </li>
-        )}
-        {others?.length === 0 && (
-          <li>
-            <div className="row family-row--top">
-              <span className="row__icon" aria-hidden="true">
-                <ShieldCheck />
-              </span>
-              <span className="row__body">
-                <span className="row__title">함께 관리할 가족이 아직 없어요</span>
-                <span className="row__sub row__sub--guide">
-                  가족이 Google로 한 번 로그인하면 여기에 나와요. 그때 관리자를 줄 수&nbsp;있어요.
-                </span>
-              </span>
-            </div>
-          </li>
-        )}
-        {others?.map((u) => {
-          const label = u.name ?? u.email ?? 'Google 계정'
-          return (
-            <li key={u.id}>
-              <div className="row">
-                <div className="row__body">
-                  <div className="row__title">{label}</div>
-                  <div className="row__sub">{u.role === 'admin' ? '관리자' : '함께 보는 가족'}</div>
-                  {u.email && <div className="row__sub family-email">{u.email}</div>}
-                </div>
-                <button
-                  type="button"
-                  className={`text-btn${u.role === 'admin' ? ' text-btn--danger' : ''}`}
-                  onClick={() => void toggle(u)}
-                  disabled={busyId === u.id}
-                  aria-label={`${label} ${u.role === 'admin' ? '관리자 빼기' : '관리자 주기'}`}
-                >
-                  {u.role === 'admin' ? '관리자 빼기' : '관리자 주기'}
-                </button>
-              </div>
-            </li>
-          )
-        })}
-      </ul>
-    </>
-  )
-}
-
 /** 새 그룹 만들기. 이름 칸에는 예시를 넣지 않는다 */
-export function NewGroupForm({ onCreated, onCancel }: { onCreated: () => void; onCancel?: () => void }) {
+export function NewGroupForm({ onCreated, onCancel }: { onCreated: (groupId: string) => void; onCancel?: () => void }) {
   const { toast } = useDialog()
   const [name, setName] = useState('')
   const [busy, setBusy] = useState(false)
@@ -137,10 +28,10 @@ export function NewGroupForm({ onCreated, onCancel }: { onCreated: () => void; o
     if (!trimmed) return
     setBusy(true)
     try {
-      await adminCreateGroup(trimmed)
+      const group = await createGroup(trimmed)
       setName('')
-      toast(`${trimmed} 그룹을 만들었어요.`, 'success')
-      onCreated()
+      toast(`${trimmed} 그룹을 만들었어요. 이제 가족을 초대해 보세요.`, 'success')
+      onCreated(group.id)
     } catch (e) {
       toast(friendlyError(e), 'error')
     } finally {
@@ -157,7 +48,7 @@ export function NewGroupForm({ onCreated, onCancel }: { onCreated: () => void; o
       }}
     >
       <div className="row__title">새 그룹 만들기</div>
-      <div className="row__sub row__sub--guide">집마다 그룹을 하나씩 만들면 돼요. 이름은 가족 탭에만 보여요.</div>
+      <div className="row__sub row__sub--guide">집마다 그룹을 하나씩 만들면 돼요. 만든 사람이 그 그룹의 관리자가 돼요.</div>
       <label className="family-field">
         <span className="family-field__label">그룹 이름</span>
         <span className="field field--flat">
@@ -208,7 +99,7 @@ export function InviteForm({
     if (!trimmed) return
     setBusy(true)
     try {
-      onCreated(await adminCreateInvite({ groupId, role, displayName: trimmed }))
+      onCreated(await createInvite(groupId, { role, displayName: trimmed }))
     } catch (e) {
       toast(friendlyError(e), 'error')
     } finally {

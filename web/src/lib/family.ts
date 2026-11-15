@@ -53,7 +53,7 @@ interface FamilyStore {
   session?: Session
 }
 
-/** 보는 사람·관리자에게 보이는 구성원 */
+/** 약 드시는 분(구성원) */
 export interface FamilyMemberView {
   id: string
   role: FamilyRole
@@ -63,17 +63,36 @@ export interface FamilyMemberView {
   lastSeenAt: number | null
   medsUpdatedAt: number | null
   meds: FamilyMed[]
-  /** 관리자 화면에서 보는 사람의 계정 메일 */
-  accountEmail?: string | null
 }
 
+/** 함께 보는 가족(계정) */
+export interface FamilyViewerView {
+  id: string
+  displayName: string
+  /** 이 그룹 관리자인가 */
+  isManager: boolean
+  isMe: boolean
+  /** 그룹 관리자에게만 보이는 계정 메일 */
+  accountEmail: string | null
+}
+
+export interface PendingInvite {
+  role: FamilyRole
+  displayName: string
+  memberId: string | null
+  expiresAt: number
+}
+
+/** 내가 속한 그룹 하나 (plan.md 50: 그룹별 관리자) */
 export interface FamilyGroupView {
   id: string
   name: string
-  /** 약을 등록하는 구성원 */
+  /** 내가 이 그룹의 관리자인가 */
+  isManager: boolean
   members: FamilyMemberView[]
-  /** 보는 사람 (관리자 화면에서만 id가 필요해 구성원 모양 그대로) */
-  viewers: FamilyMemberView[]
+  viewers: FamilyViewerView[]
+  /** 관리자에게만 채워진다 */
+  pendingInvites: PendingInvite[]
 }
 
 export interface CreatedInvite {
@@ -387,74 +406,51 @@ export async function leaveFamily(): Promise<void> {
   clearMemberLink()
 }
 
-// ---------- 보기 (보는 사람·관리자) ----------
+// ---------- 그룹 (plan.md 52: 그룹별 관리자) ----------
 
-/** 가족 탭에 보여 줄 그룹들. 관리자 계정이면 모든 그룹, 아니면 내가 보는 사람인 그룹만 */
+/** 내가 속한 그룹들. 그룹마다 내가 관리자인지가 들어 있다 */
 export async function getFamilyView(): Promise<FamilyGroupView[]> {
-  const user = getSessionUser()
-  if (user?.role === 'admin') {
-    const res = await sessionRequest<{ groups: { id: string; name: string; members: FamilyMemberView[] }[] }>(
-      'GET',
-      '/admin/groups',
-    )
-    return res.groups.map((g) => ({
-      id: g.id,
-      name: g.name,
-      members: g.members.filter((m) => m.role === 'member'),
-      viewers: g.members.filter((m) => m.role === 'viewer'),
-    }))
-  }
-
-  const res = await sessionRequest<{
-    groups: { id: string; name: string; members: FamilyMemberView[]; viewers: string[] }[]
-  }>('GET', '/view')
-  return res.groups.map((g) => ({
-    id: g.id,
-    name: g.name,
-    members: g.members,
-    viewers: g.viewers.map((name, i) => ({
-      id: `viewer-${i}`,
-      role: 'viewer' as const,
-      displayName: name,
-      connected: true,
-      lastSeenAt: null,
-      medsUpdatedAt: null,
-      meds: [],
-    })),
-  }))
+  return (await sessionRequest<{ groups: FamilyGroupView[] }>('GET', '/view')).groups
 }
 
-// ---------- 관리자 ----------
-
-export async function adminCreateGroup(name: string): Promise<void> {
-  await sessionRequest('POST', '/admin/groups', { name })
+/** 그룹 만들기. 만든 사람이 그 그룹의 관리자가 된다 */
+export async function createGroup(name: string): Promise<{ id: string; name: string }> {
+  return sessionRequest<{ id: string; name: string }>('POST', '/groups', { name })
 }
 
-/** 새 초대(역할·이름) 또는 다시 잇기 초대(memberId) */
-export async function adminCreateInvite(input: {
-  groupId: string
-  role?: FamilyRole
-  displayName?: string
-  memberId?: string
-}): Promise<CreatedInvite> {
+/** 새 초대(역할·이름) 또는 폰을 바꾼 분 다시 잇기(memberId) — 그룹 관리자만 */
+export async function createInvite(
+  groupId: string,
+  input: { role: FamilyRole; displayName: string } | { memberId: string },
+): Promise<CreatedInvite> {
   const res = await sessionRequest<{ code: string; role: FamilyRole; displayName: string; expiresAt: number }>(
     'POST',
-    '/admin/invites',
+    `/groups/${encodeURIComponent(groupId)}/invites`,
     input,
   )
   return { ...res, link: `${window.location.origin}/?join=${res.code}` }
 }
 
-export async function adminRemoveMember(memberId: string): Promise<void> {
-  await sessionRequest('DELETE', `/admin/members/${encodeURIComponent(memberId)}`)
+/** 그룹에서 빼기 — 그룹 관리자만 */
+export async function removeFromGroup(groupId: string, memberId: string): Promise<void> {
+  await sessionRequest('DELETE', `/groups/${encodeURIComponent(groupId)}/members/${encodeURIComponent(memberId)}`)
 }
 
-export async function adminListUsers(): Promise<AuthUser[]> {
-  return (await sessionRequest<{ users: AuthUser[] }>('GET', '/admin/users')).users
+/** 함께 보는 가족에게 관리 권한 주기/빼기 — 그룹 관리자만 */
+export async function setGroupManager(groupId: string, memberId: string, isManager: boolean): Promise<void> {
+  await sessionRequest('PUT', `/groups/${encodeURIComponent(groupId)}/members/${encodeURIComponent(memberId)}`, {
+    isManager,
+  })
 }
 
-export async function adminSetRole(userId: string, role: UserRole): Promise<void> {
-  await sessionRequest('PUT', `/admin/users/${encodeURIComponent(userId)}`, { role })
+/** 그룹 나가기 (마지막 관리자는 못 나간다) */
+export async function leaveGroup(groupId: string): Promise<void> {
+  await sessionRequest('POST', `/groups/${encodeURIComponent(groupId)}/leave`)
+}
+
+/** 그룹 지우기 — 그룹 관리자만. 구성원·초대도 함께 지워진다 */
+export async function deleteGroup(groupId: string): Promise<void> {
+  await sessionRequest('DELETE', `/groups/${encodeURIComponent(groupId)}`)
 }
 
 // ---------- 약 목록 올리기 ----------

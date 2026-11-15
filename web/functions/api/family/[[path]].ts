@@ -1,8 +1,10 @@
 /**
- * Cloudflare Pages Function — 가족 연결 (plan.md 41, 45)
+ * Cloudflare Pages Function — 가족 연결 (plan.md 41, 45, 50)
  *
  * 구성원(부모님)은 로그인 없이 초대 코드로 기기를 잇고 기기 토큰을 받는다.
- * 관리자·보는 사람(자녀)은 Google 로그인 계정으로 들어온다. 관리자 여부는 계정 역할(role)로 정한다.
+ * 보는 사람(자녀)은 Google 로그인 계정으로 들어온다. 로그인한 누구나 그룹을 만들 수 있고,
+ * 만든 사람(과 그가 권한을 준 보는 사람)이 그 그룹의 관리자다(family_members.is_manager).
+ * 서비스 운영자 계정(auth_users.role = 'admin')이라도 자기가 속하지 않은 그룹은 볼 수 없다.
  * 서버(D1 FAMILY_DB)에는 기기 토큰·세션 토큰·초대 코드의 SHA-256 해시만 둔다.
  *
  *   GET    /api/family/auth/config        → { googleClientId }
@@ -14,14 +16,14 @@
  *   GET    /api/family/me                 (기기 토큰) 내 그룹과 볼 수 있는 사람
  *   PUT    /api/family/me/meds            (기기 토큰) { meds } 등록약 목록 통째로 올리기
  *   DELETE /api/family/me                 (기기 토큰) 연결 끊기 = 서버의 내 정보 지우기
- *   GET    /api/family/view               (세션) 내가 보는 사람인 그룹들
- *   GET    /api/family/admin/groups       (관리자 세션) 모든 그룹·구성원·약
- *   POST   /api/family/admin/groups       (관리자) { name }
- *   DELETE /api/family/admin/groups/:id   (관리자)
- *   POST   /api/family/admin/invites      (관리자) { groupId, role, displayName, memberId? }
- *   DELETE /api/family/admin/members/:id  (관리자)
- *   GET    /api/family/admin/users        (관리자) 로그인한 계정 목록
- *   PUT    /api/family/admin/users/:id    (관리자) { role } — 마지막 관리자는 못 뺀다
+ *   GET    /api/family/view                       (세션) 내가 속한 그룹들(그룹마다 내가 관리자인지)
+ *   POST   /api/family/groups                     (세션) { name } 그룹 만들기 → 만든 사람이 관리자
+ *   DELETE /api/family/groups/:id                 (그룹 관리자) 그룹 지우기
+ *   POST   /api/family/groups/:id/invites         (그룹 관리자) { role, displayName } 또는 { memberId } 다시 잇기
+ *   DELETE /api/family/groups/:id/members/:mid    (그룹 관리자) 빼기
+ *   PUT    /api/family/groups/:id/members/:mid    (그룹 관리자) { isManager } 관리 권한 주기/빼기
+ *   POST   /api/family/groups/:id/leave           (그룹의 보는 사람) 그룹 나가기
+ *   그룹의 마지막 관리자는 빼거나 나갈 수 없다(last_manager). 남의 그룹 요청은 403.
  *
  * 토큰은 모두 Authorization: Bearer. /me는 기기 토큰, 나머지는 세션 토큰.
  * 오류 본문은 { error: '<코드>' } — 클라이언트(src/lib/family.ts)가 코드로 안내 문구를 고른다.
@@ -76,6 +78,8 @@ interface MemberRow {
   display_name: string
   token_hash: string | null
   user_id: string | null
+  /** 보는 사람 행만: 1이면 그 그룹 관리자 (0003) */
+  is_manager: number
   meds_json: string | null
   meds_updated_at: number | null
   last_seen_at: number | null
@@ -86,6 +90,8 @@ interface GroupRow {
   id: string
   name: string
   created_at: number
+  /** 만든 계정 (0003) */
+  created_by: string | null
 }
 
 interface UserRow {
@@ -114,6 +120,10 @@ const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000
 const SESSION_TTL_MS = 90 * 24 * 60 * 60 * 1000
 /** 세션은 쓸 때마다 연장하되, 하루에 한 번만 DB에 쓴다 */
 const SESSION_EXTEND_AFTER_MS = 24 * 60 * 60 * 1000
+/** 계정 하나가 만들 수 있는 그룹 수 (가족 규모 추정, 확인 안 함) */
+const MAX_GROUPS_PER_USER = 10
+/** 그룹 하나의 구성원 + 보는 사람 합 (가족 규모 추정, 확인 안 함) */
+const MAX_GROUP_PEOPLE = 20
 /** 같은 IP에서 하루(한국 시간)에 받는 초대 코드 시도 수(미리보기 포함) */
 const JOIN_DAILY_LIMIT = 30
 /** 헷갈리는 글자(0 O 1 I L)를 뺀 31자 */
@@ -512,6 +522,12 @@ async function handleJoin(db: D1Like, env: Env, request: Request): Promise<Respo
     if (!existing) return fail('invalid_code', 400)
   }
 
+  // 그룹 인원 상한 (다시 잇기와 이미 들어와 있는 계정은 인원이 늘지 않으니 뺀다)
+  if (!existing) {
+    const already = user ? await myRowInGroup(db, user.id, group.id) : null
+    if (!already && (await peopleCount(db, group.id)) >= MAX_GROUP_PEOPLE) return fail('group_full', 400)
+  }
+
   // 같은 코드가 동시에 두 번 쓰이지 않게, 먼저 "사용됨"으로 바꾼 쪽만 진행
   const claim = await db
     .prepare('UPDATE family_invites SET used_at = ? WHERE code_hash = ? AND used_at IS NULL')
@@ -607,6 +623,72 @@ async function handleMe(db: D1Like, request: Request, method: string, sub: strin
   return fail('not_found', 404)
 }
 
+// ---------- 그룹 (plan.md 50: 그룹별 관리자) ----------
+
+/** 그룹 안 보는 사람(계정) 행 + 계정 메일 */
+type ViewerRow = MemberRow & { account_email: string | null }
+
+/** 이 그룹에서 나의 보는 사람 행. 없으면 이 그룹에 속하지 않음 */
+async function myRowInGroup(db: D1Like, userId: string, groupId: string): Promise<MemberRow | null> {
+  return db
+    .prepare("SELECT * FROM family_members WHERE group_id = ? AND role = 'viewer' AND user_id = ?")
+    .bind(groupId, userId)
+    .first<MemberRow>()
+}
+
+async function managerCount(db: D1Like, groupId: string): Promise<number> {
+  const r = await db
+    .prepare("SELECT COUNT(*) AS n FROM family_members WHERE group_id = ? AND role = 'viewer' AND is_manager = 1")
+    .bind(groupId)
+    .first<{ n: number }>()
+  return r?.n ?? 0
+}
+
+async function peopleCount(db: D1Like, groupId: string): Promise<number> {
+  const r = await db.prepare('SELECT COUNT(*) AS n FROM family_members WHERE group_id = ?').bind(groupId).first<{ n: number }>()
+  return r?.n ?? 0
+}
+
+/** 그룹 하나를 화면에 줄 모양으로. 관리자에게만 보는 사람 메일과 초대 중 목록을 준다 */
+async function groupView(db: D1Like, group: GroupRow, me: MemberRow, now: number) {
+  const isManager = me.is_manager === 1
+  const { results: members } = await db
+    .prepare("SELECT * FROM family_members WHERE group_id = ? AND role = 'member' ORDER BY created_at")
+    .bind(group.id)
+    .all<MemberRow>()
+  const { results: viewers } = await db
+    .prepare(
+      "SELECT m.*, u.email AS account_email FROM family_members m LEFT JOIN auth_users u ON u.id = m.user_id WHERE m.group_id = ? AND m.role = 'viewer' ORDER BY m.is_manager DESC, m.created_at",
+    )
+    .bind(group.id)
+    .all<ViewerRow>()
+  const pendingInvites = isManager
+    ? (
+        await db
+          .prepare(
+            'SELECT role, display_name, member_id, expires_at FROM family_invites WHERE group_id = ? AND used_at IS NULL AND expires_at > ? ORDER BY created_at',
+          )
+          .bind(group.id, now)
+          .all<{ role: Role; display_name: string; member_id: string | null; expires_at: number }>()
+      ).results.map((i) => ({ role: i.role, displayName: i.display_name, memberId: i.member_id, expiresAt: i.expires_at }))
+    : []
+  return {
+    id: group.id,
+    name: group.name,
+    isManager,
+    members: members.map((m) => memberView(m)),
+    viewers: viewers.map((v) => ({
+      id: v.id,
+      displayName: v.display_name,
+      isManager: v.is_manager === 1,
+      isMe: v.id === me.id,
+      // 메일은 그 그룹 관리자에게만
+      accountEmail: isManager ? v.account_email : null,
+    })),
+    pendingInvites,
+  }
+}
+
 async function handleView(db: D1Like, request: Request): Promise<Response> {
   const user = await findSessionUser(db, request)
   if (!user) return fail('bad_session', 401)
@@ -616,95 +698,71 @@ async function handleView(db: D1Like, request: Request): Promise<Response> {
     .bind(user.id)
     .all<MemberRow>()
   const groups = []
-  for (const v of mine) {
-    const group = await getGroup(db, v.group_id)
+  for (const me of mine) {
+    const group = await getGroup(db, me.group_id)
     if (!group) continue
-    await db.prepare('UPDATE family_members SET last_seen_at = ? WHERE id = ?').bind(now, v.id).run()
-    const { results } = await db
-      .prepare("SELECT * FROM family_members WHERE group_id = ? AND role = 'member' ORDER BY created_at")
-      .bind(group.id)
-      .all<MemberRow>()
-    groups.push({
-      id: group.id,
-      name: group.name,
-      members: results.map(memberView),
-      viewers: await viewerNames(db, group.id),
-    })
+    await db.prepare('UPDATE family_members SET last_seen_at = ? WHERE id = ?').bind(now, me.id).run()
+    groups.push(await groupView(db, group, me, now))
   }
   return json({ groups })
 }
 
-async function handleAdmin(
-  db: D1Like,
-  request: Request,
-  method: string,
-  parts: string[],
-): Promise<Response> {
+async function handleGroups(db: D1Like, request: Request, method: string, parts: string[]): Promise<Response> {
   const user = await findSessionUser(db, request)
   if (!user) return fail('bad_session', 401)
-  if (user.role !== 'admin') return fail('forbidden', 403)
-
-  const [resource, id] = parts
   const now = Date.now()
+  const [groupId, sub, targetId] = parts
 
-  if (resource === 'groups' && !id && method === 'GET') {
-    const groups = (await db.prepare('SELECT * FROM family_groups ORDER BY created_at').all<GroupRow>()).results
-    const members = (
-      await db
-        .prepare(
-          'SELECT m.*, u.email AS account_email FROM family_members m LEFT JOIN auth_users u ON u.id = m.user_id ORDER BY m.created_at',
-        )
-        .all<MemberRow & { account_email: string | null }>()
-    ).results
-    const invites = (
-      await db
-        .prepare(
-          'SELECT group_id, role, display_name, member_id, expires_at FROM family_invites WHERE used_at IS NULL AND expires_at > ? ORDER BY created_at',
-        )
-        .bind(now)
-        .all<{ group_id: string; role: Role; display_name: string; member_id: string | null; expires_at: number }>()
-    ).results
-    return json({
-      groups: groups.map((g) => ({
-        id: g.id,
-        name: g.name,
-        members: members.filter((m) => m.group_id === g.id).map(memberView),
-        pendingInvites: invites
-          .filter((i) => i.group_id === g.id)
-          .map((i) => ({ role: i.role, displayName: i.display_name, memberId: i.member_id, expiresAt: i.expires_at })),
-      })),
-    })
-  }
-
-  if (resource === 'groups' && !id && method === 'POST') {
+  // 그룹 만들기: 로그인한 누구나. 만든 사람이 그 그룹의 관리자
+  if (!groupId && method === 'POST') {
     const body = await readBody<{ name?: unknown }>(request)
     const name = str(body?.name, 40)
     if (!name) return fail('bad_request', 400)
-    const groupId = crypto.randomUUID()
-    await db
-      .prepare('INSERT INTO family_groups (id, name, created_at) VALUES (?, ?, ?)')
-      .bind(groupId, name, now)
-      .run()
-    return json({ id: groupId, name })
+    const owned = await db
+      .prepare('SELECT COUNT(*) AS n FROM family_groups WHERE created_by = ?')
+      .bind(user.id)
+      .first<{ n: number }>()
+    if ((owned?.n ?? 0) >= MAX_GROUPS_PER_USER) return fail('too_many_groups', 400)
+    const id = crypto.randomUUID()
+    await db.batch([
+      db.prepare('INSERT INTO family_groups (id, name, created_at, created_by) VALUES (?, ?, ?, ?)').bind(id, name, now, user.id),
+      db
+        .prepare(
+          "INSERT INTO family_members (id, group_id, role, display_name, user_id, is_manager, last_seen_at, created_at) VALUES (?, ?, 'viewer', ?, ?, 1, ?, ?)",
+        )
+        .bind(crypto.randomUUID(), id, (user.name ?? user.email ?? '관리자').slice(0, 20), user.id, now, now),
+    ])
+    return json({ id, name })
   }
 
-  if (resource === 'groups' && id && method === 'DELETE') {
+  if (!groupId) return fail('not_found', 404)
+  const group = await getGroup(db, groupId)
+  const me = group ? await myRowInGroup(db, user.id, groupId) : null
+  // 남의 그룹이면 있는지 없는지도 알리지 않는다
+  if (!group || !me) return fail('forbidden', 403)
+
+  // 그룹 나가기: 함께 보는 가족 누구나. 마지막 관리자는 못 나간다(그룹 지우기를 쓴다)
+  if (sub === 'leave' && !targetId && method === 'POST') {
+    if (me.is_manager === 1 && (await managerCount(db, groupId)) <= 1) return fail('last_manager', 400)
+    await db.prepare('DELETE FROM family_members WHERE id = ?').bind(me.id).run()
+    return json({ ok: true })
+  }
+
+  // 여기부터는 그 그룹 관리자만
+  if (me.is_manager !== 1) return fail('forbidden', 403)
+
+  if (!sub && method === 'DELETE') {
     await db.batch([
-      db.prepare('DELETE FROM family_invites WHERE group_id = ?').bind(id),
-      db.prepare('DELETE FROM family_members WHERE group_id = ?').bind(id),
-      db.prepare('DELETE FROM family_groups WHERE id = ?').bind(id),
+      db.prepare('DELETE FROM family_invites WHERE group_id = ?').bind(groupId),
+      db.prepare('DELETE FROM family_members WHERE group_id = ?').bind(groupId),
+      db.prepare('DELETE FROM family_groups WHERE id = ?').bind(groupId),
     ])
     return json({ ok: true })
   }
 
-  if (resource === 'invites' && !id && method === 'POST') {
-    const body = await readBody<{ groupId?: unknown; role?: unknown; displayName?: unknown; memberId?: unknown }>(
-      request,
-    )
-    const groupId = str(body?.groupId, 64)
+  if (sub === 'invites' && !targetId && method === 'POST') {
+    const body = await readBody<{ role?: unknown; displayName?: unknown; memberId?: unknown }>(request)
     const memberId = str(body?.memberId, 64)
-    if (!groupId || !(await getGroup(db, groupId))) return fail('not_found', 404)
-
     let role: Role
     let displayName: string | undefined
     if (memberId) {
@@ -720,6 +778,7 @@ async function handleAdmin(
       if (body?.role !== 'member' && body?.role !== 'viewer') return fail('bad_request', 400)
       role = body.role
       displayName = str(body?.displayName, 20)
+      if ((await peopleCount(db, groupId)) >= MAX_GROUP_PEOPLE) return fail('group_full', 400)
     }
     if (!displayName) return fail('bad_request', 400)
 
@@ -734,31 +793,35 @@ async function handleAdmin(
     return json({ code, role, displayName, expiresAt })
   }
 
-  if (resource === 'members' && id && method === 'DELETE') {
-    await db.batch([
-      db.prepare('DELETE FROM family_invites WHERE member_id = ?').bind(id),
-      db.prepare('DELETE FROM family_members WHERE id = ?').bind(id),
-    ])
-    return json({ ok: true })
-  }
-
-  if (resource === 'users' && !id && method === 'GET') {
-    const { results } = await db.prepare('SELECT * FROM auth_users ORDER BY created_at').all<UserRow>()
-    return json({ users: results.map(userView) })
-  }
-
-  if (resource === 'users' && id && method === 'PUT') {
-    const body = await readBody<{ role?: unknown }>(request)
-    const role = body?.role === 'admin' || body?.role === 'user' ? body.role : null
-    if (!role) return fail('bad_request', 400)
-    const target = await db.prepare('SELECT * FROM auth_users WHERE id = ?').bind(id).first<UserRow>()
+  if (sub === 'members' && targetId) {
+    const target = await db
+      .prepare('SELECT * FROM family_members WHERE id = ? AND group_id = ?')
+      .bind(targetId, groupId)
+      .first<MemberRow>()
     if (!target) return fail('not_found', 404)
-    if (target.role === 'admin' && role === 'user') {
-      const admins = await db.prepare("SELECT COUNT(*) AS n FROM auth_users WHERE role = 'admin'").first<{ n: number }>()
-      if ((admins?.n ?? 0) <= 1) return fail('last_admin', 400)
+
+    if (method === 'DELETE') {
+      if (target.role === 'viewer' && target.is_manager === 1 && (await managerCount(db, groupId)) <= 1) {
+        return fail('last_manager', 400)
+      }
+      await db.batch([
+        db.prepare('DELETE FROM family_invites WHERE member_id = ?').bind(target.id),
+        db.prepare('DELETE FROM family_members WHERE id = ?').bind(target.id),
+      ])
+      return json({ ok: true })
     }
-    await db.prepare('UPDATE auth_users SET role = ? WHERE id = ?').bind(role, id).run()
-    return json({ user: userView({ ...target, role }) })
+
+    if (method === 'PUT') {
+      // 관리 권한은 계정이 있는 함께 보는 가족에게만 줄 수 있다
+      if (target.role !== 'viewer') return fail('bad_request', 400)
+      const body = await readBody<{ isManager?: unknown }>(request)
+      if (typeof body?.isManager !== 'boolean') return fail('bad_request', 400)
+      if (!body.isManager && target.is_manager === 1 && (await managerCount(db, groupId)) <= 1) {
+        return fail('last_manager', 400)
+      }
+      await db.prepare('UPDATE family_members SET is_manager = ? WHERE id = ?').bind(body.isManager ? 1 : 0, target.id).run()
+      return json({ ok: true })
+    }
   }
 
   return fail('not_found', 404)
@@ -782,9 +845,7 @@ export async function onRequest(context: PagesContext): Promise<Response> {
     if (parts[0] === 'join' && parts.length === 1 && method === 'POST') return await handleJoin(db, env, request)
     if (parts[0] === 'me' && parts.length <= 2) return await handleMe(db, request, method, parts[1] ?? '')
     if (parts[0] === 'view' && parts.length === 1 && method === 'GET') return await handleView(db, request)
-    if (parts[0] === 'admin' && parts.length >= 2 && parts.length <= 3) {
-      return await handleAdmin(db, request, method, parts.slice(1))
-    }
+    if (parts[0] === 'groups' && parts.length <= 4) return await handleGroups(db, request, method, parts.slice(1))
     return fail('not_found', 404)
   } catch {
     return fail('server_error', 500)

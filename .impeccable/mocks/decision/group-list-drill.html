@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=390">
+<title>가족 탭 · 그룹 목록 → 그룹 화면</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; width: 390px; height: 844px; overflow: hidden; }
+  body { background: #F8F4EE; color: #28221D; font-family: 'Pretendard Variable', 'Noto Sans KR', system-ui, sans-serif; word-break: keep-all; position: relative; }
+  .head { display: flex; align-items: flex-start; padding: 28px 20px 6px; }
+  .head h1 { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.02em; flex: 1; }
+  .head p { margin: 8px 0 0; font-size: 16px; color: #5A5047; line-height: 1.5; }
+  .refresh { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; color: #5A5047; margin-top: -4px; }
+  .label { margin: 22px 32px 8px; font-size: 15px; font-weight: 600; color: #5A5047; }
+  .group { margin: 0 16px; background: #fff; border-radius: 22px; box-shadow: 0 1px 2px rgba(70,48,24,.05), 0 6px 18px rgba(70,48,24,.06); overflow: hidden; }
+  .row { display: flex; align-items: center; gap: 12px; min-height: 76px; padding: 14px 18px; }
+  .row + .row { border-top: 1px solid #F1EBE2; }
+  .tile { width: 44px; height: 44px; border-radius: 14px; background: #EEECFB; color: #3A3EB0; display: grid; place-items: center; flex: none; font-weight: 800; font-size: 18px; }
+  .body { flex: 1; min-width: 0; }
+  .t { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .s { font-size: 15px; color: #66594E; margin-top: 3px; line-height: 1.45; }
+  .tag { font-size: 13px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: #EEECFB; color: #3A3EB0; }
+  .tag.grey { background: #F7F2EA; color: #5A5047; }
+  .chev { color: #BCB1A3; font-size: 22px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #4A4FD0; display: inline-block; margin-right: 6px; vertical-align: middle; }
+  .add .tile { background: #F7F2EA; color: #5A5047; font-size: 26px; font-weight: 400; }
+  .add .t { color: #3A3EB0; }
+  .note { margin: 10px 32px 0; font-size: 15px; color: #66594E; line-height: 1.55; }
+  .sheet { position: absolute; left: 92px; right: -40px; top: 520px; bottom: 64px; background: #F8F4EE; border-radius: 24px 0 0 0; box-shadow: -8px 0 24px rgba(25,31,40,.12); padding: 14px 0 0; }
+  .sheet .bar { display: flex; align-items: center; gap: 6px; padding: 0 14px; font-size: 17px; font-weight: 600; }
+  .sheet .back { font-size: 24px; color: #28221D; }
+  .mini { margin: 10px 12px 0; background: #fff; border-radius: 18px; padding: 12px 14px; }
+  .mini .t { font-size: 16px; }
+  .mini .s { font-size: 13px; }
+  .tabbar { position: absolute; left: 0; right: 0; bottom: 0; height: 64px; background: #fff; border-top: 1px solid #EAE2D5; display: flex; }
+  .tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 13px; font-weight: 600; color: #66594E; }
+  .tab i { width: 24px; height: 24px; border-radius: 7px; border: 2px solid currentColor; display: block; }
+  .tab.on { color: #28221D; }
+  .tab.on i { border-color: #4A4FD0; }
+</style>
+</head>
+<body>
+  <div class="head">
+    <div style="flex:1">
+      <h1>가족</h1>
+      <p>내가 속한 가족 그룹이에요.</p>
+    </div>
+    <div class="refresh">↻</div>
+  </div>
+
+  <div class="label">내 그룹</div>
+  <div class="group">
+    <div class="row">
+      <div class="tile">우</div>
+      <div class="body">
+        <div class="t">우리집 <span class="tag">관리자</span></div>
+        <div class="s"><span class="dot"></span>아버지 약 1개 추가 · 2시간 전</div>
+        <div class="s">약 드시는 분 2명 · 함께 보는 가족 1명</div>
+      </div>
+      <div class="chev">›</div>
+    </div>
+    <div class="row">
+      <div class="tile">처</div>
+      <div class="body">
+        <div class="t">처가 <span class="tag grey">함께 보는 가족</span></div>
+        <div class="s">장인어른 마지막 사용 3일 전</div>
+        <div class="s">약 드시는 분 2명</div>
+      </div>
+      <div class="chev">›</div>
+    </div>
+    <div class="row add">
+      <div class="tile">+</div>
+      <div class="body"><div class="t">새 그룹 만들기</div></div>
+    </div>
+  </div>
+  <p class="note">그룹을 누르면 그 그룹 가족의 약과 초대·관리 메뉴가 열려요.</p>
+
+  <div class="sheet">
+    <div class="bar"><span class="back">‹</span> 우리집</div>
+    <div class="mini">
+      <div class="t">아버지</div>
+      <div class="s">노바스크정5밀리그램 · 리피토정10밀리그램 · 오메가3</div>
+    </div>
+    <div class="mini">
+      <div class="t">약 드시는 분 초대</div>
+    </div>
+  </div>
+
+  <div class="tabbar">
+    <div class="tab"><i></i>확인</div>
+    <div class="tab"><i></i>내 약</div>
+    <div class="tab on"><i></i>가족</div>
+    <div class="tab"><i></i>설정</div>
+  </div>
+</body>
+</html>

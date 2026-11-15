@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Unlink, Users } from 'lucide-react'
+import { ChevronRight, Eye, Unlink, Users } from 'lucide-react'
 import { useDialog, type ConfirmOptions } from '../lib/dialog'
 import { friendlyError } from '../lib/errors'
 import {
@@ -64,16 +64,16 @@ export async function joinWithConsent(code: string, deps: JoinDeps): Promise<'jo
   const info = await previewInvite(code)
   if (info.role === 'member') {
     const ok = await deps.confirm({
-      title: `${info.groupName}에 '${info.displayName}'(으)로 연결할까요?`,
+      title: `'${info.displayName}' 이름으로 ${info.groupName}에 연결할까요?`,
       message: (
         <>
           연결하면 아래 내용이 가족에게 보여요.
           <ul className="consent-list">
             <li>
-              <b>보이는 것</b>: 내 약에 등록한 약·영양제 이름과 성분, 제조사, 마지막으로 앱을 쓴&nbsp;때
+              <b>보이는 것</b>: 내 약에 등록한 약과 영양제의 이름, 성분, 제조사, 마지막으로 앱을 쓴&nbsp;때
             </li>
             <li>
-              <b>보는 사람</b>: 이 그룹에 연결된 가족과 앱을 관리하는&nbsp;가족
+              <b>볼 수 있는 사람</b>: 이 그룹을 함께 보는 가족(그룹 관리자&nbsp;포함)
             </li>
             <li>
               <b>저장하는 곳</b>: 해외에 있는 클라우드 서버(Cloudflare)
@@ -106,11 +106,29 @@ interface Props {
   onMedicationsChanged?: () => void
   /** 보는 사람 초대인데 로그인 전일 때: 코드를 넘겨 가족 탭 로그인 화면으로 */
   onNeedLogin?: (code: string) => void
+  /** "가족 약 함께 보기": 가족 탭(로그인 화면)으로 들어가는 입구 */
+  onOpenFamily?: () => void
 }
 
-/** 설정 안 "가족 연결" 묶음 (plan.md 42) */
-export function FamilySettings({ onMedicationsChanged, onNeedLogin }: Props) {
+/** 설정 안 "가족 연결" 묶음 (plan.md 42, 52) */
+export function FamilySettings({ onMedicationsChanged, onNeedLogin, onOpenFamily }: Props) {
   const { confirm, toast } = useDialog()
+
+  // 자녀 기기에서 가족 탭으로 들어가는 입구 (부모님은 쓰지 않아도 되는 줄)
+  const familyEntry = onOpenFamily && (
+    <div className="group family-entry">
+      <button type="button" className="row" onClick={onOpenFamily}>
+        <span className="row__icon" aria-hidden="true">
+          <Eye />
+        </span>
+        <span className="row__body">
+          <span className="row__title">가족 약 함께 보기</span>
+          <span className="row__sub">가족 그룹을 만들거나 가족의 약을 볼 때 써요. Google&nbsp;로그인이&nbsp;필요해요.</span>
+        </span>
+        <ChevronRight className="row__chev" aria-hidden="true" />
+      </button>
+    </div>
+  )
   const [member, setMember] = useState<MemberLink | null>(() => getMemberLink())
   const [viewers, setViewers] = useState<string[] | null>(null)
   const [code, setCode] = useState('')
@@ -195,8 +213,7 @@ export function FamilySettings({ onMedicationsChanged, onNeedLogin }: Props) {
                     {' '}
                     볼&nbsp;수&nbsp;있는&nbsp;사람: <b>{viewers.join(', ')}</b>.
                   </>
-                )}{' '}
-                앱을 관리하는 가족도 볼 수&nbsp;있어요.
+                )}
               </span>
             </span>
           </div>
@@ -214,6 +231,7 @@ export function FamilySettings({ onMedicationsChanged, onNeedLogin }: Props) {
             </span>
           </button>
         </div>
+        {familyEntry}
       </>
     )
   }
@@ -257,6 +275,7 @@ export function FamilySettings({ onMedicationsChanged, onNeedLogin }: Props) {
           </form>
         </div>
       </div>
+      {familyEntry}
     </>
   )
 }

@@ -29,8 +29,17 @@ function AppContent() {
   const [rootSignal, setRootSignal] = useState(0)
   const { confirm, toast } = useDialog()
   const [familyTab, setFamilyTab] = useState(() => hasFamilyTab())
-  // 로그인 전 기기에서 가족 탭(로그인 화면)으로 들어가는 입구: `?admin` 주소
-  const [adminEntry] = useState(() => new URLSearchParams(window.location.search).has('admin'))
+  // 로그인 전 기기에서 가족 탭(로그인 화면)으로 들어가는 입구: `?admin`·`?family` 주소 또는 설정의 "가족 약 함께 보기"
+  const [urlEntry] = useState(() => {
+    const p = new URLSearchParams(window.location.search)
+    return p.has('admin') || p.has('family')
+  })
+  const [familyEntry, setFamilyEntry] = useState(urlEntry)
+
+  function openFamily() {
+    setFamilyEntry(true)
+    setView('family')
+  }
   // 로그인이 필요한 초대를 받았을 때 가족 탭을 새로 그리기 위한 값
   const [familyNonce, setFamilyNonce] = useState(0)
 
@@ -48,15 +57,16 @@ function AppContent() {
     return () => window.removeEventListener(FAMILY_CHANGED_EVENT, update)
   }, [])
 
-  // `?admin`으로 열었으면 주소를 정리하고 가족 탭을 연다
+  // `?admin`·`?family`로 열었으면 주소를 정리하고 가족 탭을 연다
   useEffect(() => {
-    if (!adminEntry) return
+    if (!urlEntry) return
     const params = new URLSearchParams(window.location.search)
     params.delete('admin')
+    params.delete('family')
     const rest = params.toString()
     window.history.replaceState(null, '', window.location.pathname + (rest ? `?${rest}` : '') + window.location.hash)
     setView('family')
-  }, [adminEntry])
+  }, [urlEntry])
 
   // 탭을 누르면 상세·사용법을 닫고, 지금 탭을 다시 누르면 그 탭의 처음으로 돌아간다
   function handleTab(next: ViewKey) {
@@ -138,11 +148,12 @@ function AppContent() {
             onShowGuide={() => setGuideOpen(true)}
             onMedicationsChanged={() => setRefreshSignal((n) => n + 1)}
             onNeedFamilyLogin={handleNeedLogin}
+            onOpenFamily={openFamily}
           />
         )}
       </main>
 
-      <BottomNav current={view} onChange={handleTab} showFamily={familyTab || adminEntry} />
+      <BottomNav current={view} onChange={handleTab} showFamily={familyTab || familyEntry} />
 
       <DetailModal target={detailTarget} onClose={() => setDetailTarget(null)} />
       <GuideModal open={guideOpen} onClose={() => setGuideOpen(false)} />
