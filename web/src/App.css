@@ -1158,6 +1158,18 @@ html[data-theme='dark'] .segmented__btn[aria-checked='true'] { background: var(-
 }
 .family-panel .family-form { margin-top: 12px; }
 .family-panel__cancel { display: block; margin: 8px 0 0 auto; }
+/* 부모님 연결 전 동의 (확인 창 안 목록) */
+.consent-list { margin: 10px 0 0; padding-left: 1.1em; text-align: left; }
+.consent-list li { margin-top: 6px; line-height: 1.5; }
+
+/* Google 로그인 (가족 탭) */
+.family-login .setting__text { margin-bottom: 16px; }
+.google-signin { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
+.google-signin__button { display: flex; justify-content: center; min-height: 44px; }
+.google-signin__retry { margin-top: 4px; }
+.family-users-note { margin: 0 0 8px; }
+.family-users__me { font-weight: 400; color: var(--pc-text-subtle); }
+.family-users .tag { margin-left: 4px; vertical-align: middle; }
 .family-code {
   margin: 12px 0 8px;
   font-size: 34px;

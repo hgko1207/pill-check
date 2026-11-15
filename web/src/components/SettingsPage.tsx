@@ -19,9 +19,10 @@ function applyFontScale(scale: FontScale) {
 interface SettingsProps {
   onShowGuide?: () => void
   onMedicationsChanged?: () => void
+  onNeedFamilyLogin?: (code: string) => void
 }
 
-export function SettingsPage({ onShowGuide, onMedicationsChanged }: SettingsProps = {}) {
+export function SettingsPage({ onShowGuide, onMedicationsChanged, onNeedFamilyLogin }: SettingsProps = {}) {
   const [clearing, setClearing] = useState(false)
   const { confirm, toast } = useDialog()
 
@@ -136,7 +137,7 @@ export function SettingsPage({ onShowGuide, onMedicationsChanged }: SettingsProp
         </button>
       </div>
 
-      <FamilySettings onMedicationsChanged={onMedicationsChanged} />
+      <FamilySettings onMedicationsChanged={onMedicationsChanged} onNeedLogin={onNeedFamilyLogin} />
 
       <h2 className="group-label">데이터</h2>
       <div className="group">

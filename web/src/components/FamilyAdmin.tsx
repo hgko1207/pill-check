@@ -1,72 +1,129 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Copy, Share2 } from 'lucide-react'
 import { useDialog } from '../lib/dialog'
 import { friendlyError } from '../lib/errors'
 import {
   adminCreateGroup,
   adminCreateInvite,
-  saveAdminKey,
+  adminListUsers,
+  adminSetRole,
+  type AuthUser,
   type CreatedInvite,
   type FamilyRole,
 } from '../lib/family'
 
-/** 관리자 화면 조각들 (plan.md 43). 가족 탭(FamilyPage)이 쓴다 */
+/** 관리자 화면 조각들 (plan.md 43, 46). 가족 탭(FamilyPage)이 쓴다 */
 
-/** 관리자 키 입력. 서버에 맞는지 확인한 뒤 저장한다 */
-export function AdminKeyForm({ onSaved }: { onSaved: () => void }) {
-  const { toast } = useDialog()
-  const [key, setKey] = useState('')
-  const [busy, setBusy] = useState(false)
+/** 로그인한 계정 목록과 관리자 주기/빼기 */
+export function AdminUsers({
+  currentUserId,
+  onSelfRoleChanged,
+}: {
+  currentUserId: string
+  onSelfRoleChanged: () => void
+}) {
+  const { confirm, toast } = useDialog()
+  const [users, setUsers] = useState<AuthUser[] | null>(null)
+  const [busyId, setBusyId] = useState<string | null>(null)
 
-  async function submit() {
-    if (!key.trim()) return
-    setBusy(true)
+  const load = useCallback(async () => {
     try {
-      await saveAdminKey(key)
-      setKey('')
-      toast('관리자로 들어왔어요.', 'success')
-      onSaved()
+      setUsers(await adminListUsers())
+    } catch (e) {
+      toast(friendlyError(e), 'error')
+    }
+  }, [toast])
+
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  async function toggle(u: AuthUser) {
+    const label = u.name ?? u.email ?? '이 계정'
+    const giving = u.role !== 'admin'
+    const self = u.id === currentUserId
+    const ok = await confirm(
+      giving
+        ? {
+            title: `${label}에게 관리자를 줄까요?`,
+            message: <>모든 가족 그룹의 약을 보고, 초대를 만들고, 사람을 뺄 수 있게&nbsp;돼요.</>,
+            confirmLabel: '관리자 주기',
+            cancelLabel: '취소',
+          }
+        : {
+            title: self ? '내 관리자 권한을 뺄까요?' : `${label}의 관리자를 뺄까요?`,
+            message: self ? (
+              <>다시 받으려면 다른 관리자에게 부탁해야&nbsp;해요.</>
+            ) : (
+              <>그룹을 보는 것은 그 계정이 보는 사람으로 연결된 그룹만 남아요.</>
+            ),
+            confirmLabel: '관리자 빼기',
+            cancelLabel: '취소',
+            variant: 'danger',
+          },
+    )
+    if (!ok) return
+    setBusyId(u.id)
+    try {
+      await adminSetRole(u.id, giving ? 'admin' : 'user')
+      toast(giving ? `${label}에게 관리자를 줬어요.` : `${label}의 관리자를 뺐어요.`, 'success')
+      if (self) onSelfRoleChanged()
+      else void load()
     } catch (e) {
       toast(friendlyError(e), 'error')
     } finally {
-      setBusy(false)
+      setBusyId(null)
     }
   }
 
   return (
     <>
       <h2 className="group-label">관리자</h2>
-      <div className="group">
-        <div className="setting">
-          <div className="setting__text">
-            <div className="row__title">관리자 키</div>
-            <div className="row__sub row__sub--guide">
-              그룹과 초대를 만들려면 관리자 키를 한 번 넣어 주세요. 이 기기에만 저장돼요.
-            </div>
-          </div>
-          <form
-            className="family-form"
-            onSubmit={(e) => {
-              e.preventDefault()
-              void submit()
-            }}
-          >
-            <label className="field field--flat">
-              <span className="sr-only">관리자 키</span>
-              <input
-                className="field__input"
-                type="password"
-                value={key}
-                onChange={(e) => setKey(e.target.value)}
-                autoComplete="off"
-              />
-            </label>
-            <button type="submit" className="btn btn--primary btn--small" disabled={busy || !key.trim()}>
-              {busy ? '확인 중' : '확인'}
-            </button>
-          </form>
-        </div>
-      </div>
+      <p className="group-note family-users-note">
+        로그인한 계정이에요. 관리자는 모든 그룹을 보고 초대를 만들 수&nbsp;있어요.
+      </p>
+      <ul className="group family-users">
+        {users === null && (
+          <li>
+            <p className="loading-line">
+              <span className="spinner" aria-hidden="true" /> 불러오는 중
+            </p>
+          </li>
+        )}
+        {users?.map((u) => {
+          const label = u.name ?? u.email ?? 'Google 계정'
+          return (
+            <li key={u.id}>
+              <div className="row">
+                <div className="row__body">
+                  <div className="row__title">
+                    {label}
+                    {u.id === currentUserId && <span className="family-users__me"> (나)</span>}
+                  </div>
+                  <div className="row__sub">
+                    {u.email ?? ''}
+                    {u.role === 'admin' && (
+                      <>
+                        {' '}
+                        <span className="tag tag--primary">관리자</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className={`text-btn${u.role === 'admin' ? ' text-btn--danger' : ''}`}
+                  onClick={() => void toggle(u)}
+                  disabled={busyId === u.id}
+                  aria-label={`${label} ${u.role === 'admin' ? '관리자 빼기' : '관리자 주기'}`}
+                >
+                  {u.role === 'admin' ? '관리자 빼기' : '관리자 주기'}
+                </button>
+              </div>
+            </li>
+          )
+        })}
+      </ul>
     </>
   )
 }

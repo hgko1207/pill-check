@@ -1,8 +1,9 @@
 /**
- * 가족 연결 클라이언트 (plan.md 42~44)
+ * 가족 연결 클라이언트 (plan.md 42~46)
  *
  * 서버: /api/family (web/functions/api/family/[[path]].ts, D1).
- * 로그인 없이 초대 코드로 연결하고, 받은 토큰은 이 기기 localStorage에만 둔다.
+ * - 구성원(부모님): 로그인 없이 초대 코드로 연결하고, 받은 기기 토큰을 이 기기 localStorage에만 둔다.
+ * - 관리자·보는 사람(자녀): Google 로그인 → 서버 세션 토큰을 localStorage에 둔다. 관리자 여부는 계정 역할.
  * 앱은 지금처럼 로컬(IndexedDB) 우선이고, 서버에는 등록약 목록 사본만 올린다.
  * 올리기 실패는 사용자에게 알리지 않는다 — 다음에 앱을 열 때 다시 올린다.
  */
@@ -10,10 +11,12 @@
 import { addMedication, listMedications, type MedicationKind } from './db'
 
 const STORE_KEY = 'pillcheck.family'
+const PENDING_JOIN_KEY = 'pillcheck.pendingJoin'
 const BASE = '/api/family'
 const TIMEOUT_MS = 10_000
 
 export type FamilyRole = 'member' | 'viewer'
+export type UserRole = 'admin' | 'user'
 
 export interface FamilyMed {
   kind: MedicationKind
@@ -31,19 +34,23 @@ export interface MemberLink {
   displayName: string
 }
 
-/** 이 기기가 보는 사람으로 연결된 그룹 하나 */
-export interface ViewerLink {
+/** 로그인한 계정 */
+export interface AuthUser {
+  id: string
+  name: string | null
+  email: string | null
+  role: UserRole
+  lastLoginAt?: number | null
+}
+
+interface Session {
   token: string
-  groupId: string
-  groupName: string
-  displayName: string
+  user: AuthUser
 }
 
 interface FamilyStore {
   member?: MemberLink
-  viewers?: ViewerLink[]
-  /** 관리자 기기만. 그룹·초대를 만들고 모든 그룹을 본다 */
-  adminKey?: string
+  session?: Session
 }
 
 /** 보는 사람·관리자에게 보이는 구성원 */
@@ -56,6 +63,8 @@ export interface FamilyMemberView {
   lastSeenAt: number | null
   medsUpdatedAt: number | null
   meds: FamilyMed[]
+  /** 관리자 화면에서 보는 사람의 계정 메일 */
+  accountEmail?: string | null
 }
 
 export interface FamilyGroupView {
@@ -65,8 +74,6 @@ export interface FamilyGroupView {
   members: FamilyMemberView[]
   /** 보는 사람 (관리자 화면에서만 id가 필요해 구성원 모양 그대로) */
   viewers: FamilyMemberView[]
-  /** 그룹을 못 불러왔을 때의 오류. 화면에서 friendlyError로 바꿔 보여 준다 */
-  error?: unknown
 }
 
 export interface CreatedInvite {
@@ -75,6 +82,12 @@ export interface CreatedInvite {
   displayName: string
   role: FamilyRole
   expiresAt: number
+}
+
+export interface InvitePreview {
+  role: FamilyRole
+  groupName: string
+  displayName: string
 }
 
 /** 가족 연결 정보가 바뀌면 window에 보내는 이벤트 (App이 가족 탭 표시를 다시 정함) */
@@ -116,42 +129,22 @@ function loadStore(): FamilyStore {
 }
 
 function saveStore(store: FamilyStore): void {
+  // 예전 방식(관리자 키·보는 사람 기기 토큰) 값은 저장하지 않는다
+  const clean: FamilyStore = { member: store.member, session: store.session }
   try {
-    localStorage.setItem(STORE_KEY, JSON.stringify(store))
+    localStorage.setItem(STORE_KEY, JSON.stringify(clean))
   } catch {
     /* 저장 공간 부족 등 무시 */
   }
+  notifyChanged()
+}
+
+function notifyChanged(): void {
   window.dispatchEvent(new Event(FAMILY_CHANGED_EVENT))
-}
-
-/** 가족 탭을 보여 줄 기기인가 (보는 사람으로 연결됐거나 관리자 키가 있음) */
-export function hasFamilyTab(): boolean {
-  const store = loadStore()
-  return Boolean(store.adminKey) || (store.viewers?.length ?? 0) > 0
-}
-
-export function getAdminKey(): string | null {
-  return loadStore().adminKey ?? null
-}
-
-export function clearAdminKey(): void {
-  const store = loadStore()
-  delete store.adminKey
-  saveStore(store)
-}
-
-function removeViewerLink(groupId: string): void {
-  const store = loadStore()
-  store.viewers = (store.viewers ?? []).filter((v) => v.groupId !== groupId)
-  saveStore(store)
 }
 
 export function getMemberLink(): MemberLink | null {
   return loadStore().member ?? null
-}
-
-export function getViewerLinks(): ViewerLink[] {
-  return loadStore().viewers ?? []
 }
 
 function clearMemberLink(): void {
@@ -160,17 +153,58 @@ function clearMemberLink(): void {
   saveStore(store)
 }
 
+export function getSessionUser(): AuthUser | null {
+  return loadStore().session?.user ?? null
+}
+
+function sessionToken(): string | null {
+  return loadStore().session?.token ?? null
+}
+
+function clearSession(): void {
+  const store = loadStore()
+  delete store.session
+  saveStore(store)
+}
+
+/** 가족 탭을 보여 줄 기기인가 (로그인했거나, 로그인해야 이어지는 초대를 들고 있음) */
+export function hasFamilyTab(): boolean {
+  return Boolean(loadStore().session) || Boolean(getPendingJoin())
+}
+
+/** 로그인이 필요한 보는 사람 초대 코드를 잠시 보관한다 (로그인 후 이어서 연결) */
+export function savePendingJoin(code: string): void {
+  try {
+    localStorage.setItem(PENDING_JOIN_KEY, code)
+  } catch {
+    /* 무시 */
+  }
+  notifyChanged()
+}
+
+export function getPendingJoin(): string | null {
+  try {
+    return localStorage.getItem(PENDING_JOIN_KEY)
+  } catch {
+    return null
+  }
+}
+
+export function clearPendingJoin(): void {
+  try {
+    localStorage.removeItem(PENDING_JOIN_KEY)
+  } catch {
+    /* 무시 */
+  }
+  notifyChanged()
+}
+
 // ---------- 요청 ----------
 
-async function request<T>(
-  method: string,
-  path: string,
-  opts: { token?: string; adminKey?: string; body?: unknown } = {},
-): Promise<T> {
+async function request<T>(method: string, path: string, opts: { token?: string | null; body?: unknown } = {}): Promise<T> {
   const headers: Record<string, string> = {}
   if (opts.body !== undefined) headers['Content-Type'] = 'application/json'
   if (opts.token) headers.Authorization = `Bearer ${opts.token}`
-  if (opts.adminKey) headers['X-Admin-Key'] = opts.adminKey
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS)
   let res: Response
@@ -198,32 +232,100 @@ async function request<T>(
   return data as T
 }
 
+/** 세션이 필요한 요청. 세션이 끝났으면(401) 저장된 세션을 지운다 */
+async function sessionRequest<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const token = sessionToken()
+  if (!token) throw new FamilyRequestError(401, 'bad_session')
+  try {
+    return await request<T>(method, path, { token, body })
+  } catch (e) {
+    if (e instanceof FamilyRequestError && e.status === 401) clearSession()
+    throw e
+  }
+}
+
+// ---------- 로그인 ----------
+
+let clientIdPromise: Promise<string> | null = null
+
+/** Google OAuth 클라이언트 ID (서버 설정값) */
+export function getGoogleClientId(): Promise<string> {
+  if (!clientIdPromise) {
+    clientIdPromise = request<{ googleClientId: string }>('GET', '/auth/config').then((r) => r.googleClientId)
+    clientIdPromise.catch(() => {
+      clientIdPromise = null
+    })
+  }
+  return clientIdPromise
+}
+
+/** Google이 준 ID 토큰을 서버에서 확인받고 세션을 저장한다 */
+export async function signInWithGoogle(credential: string): Promise<AuthUser> {
+  const res = await request<{ token: string; user: AuthUser }>('POST', '/auth/google', { body: { credential } })
+  const store = loadStore()
+  store.session = { token: res.token, user: res.user }
+  saveStore(store)
+  return res.user
+}
+
+/** 서버에서 내 계정(역할 포함)을 다시 받아 저장한다. 세션이 끝났으면 null */
+export async function refreshSessionUser(): Promise<AuthUser | null> {
+  if (!sessionToken()) return null
+  try {
+    const res = await sessionRequest<{ user: AuthUser }>('GET', '/auth/me')
+    const store = loadStore()
+    if (store.session) {
+      store.session.user = res.user
+      saveStore(store)
+    }
+    return res.user
+  } catch (e) {
+    if (e instanceof FamilyRequestError && e.status === 401) return null
+    throw e
+  }
+}
+
+export async function signOut(): Promise<void> {
+  const token = sessionToken()
+  if (token) {
+    try {
+      await request('POST', '/auth/logout', { token })
+    } catch {
+      /* 서버에 못 닿아도 이 기기에서는 로그아웃 */
+    }
+  }
+  clearSession()
+}
+
 // ---------- 연결 ----------
 
+/** 초대 코드를 쓰지 않고 어떤 초대인지 본다 */
+export async function previewInvite(code: string): Promise<InvitePreview> {
+  return request<InvitePreview>('GET', `/invite?code=${encodeURIComponent(code)}`)
+}
+
 /**
- * 초대 코드로 연결하고 토큰을 저장한다. 약 목록은 여기서 올리지 않는다 —
+ * 초대 코드로 연결한다. 보는 사람 초대는 로그인(세션)이 있어야 하며, 없으면
+ * FamilyRequestError(code 'login_required')를 던진다 — 코드는 쓰이지 않는다.
+ * 구성원이면 기기 토큰을 저장한다. 약 목록은 여기서 올리지 않는다 —
  * 다시 잇기면 서버 백업을 빈 목록으로 덮지 않도록, 부른 쪽이 `settleAfterJoin`으로 마무리한다.
  */
 export async function joinFamily(code: string): Promise<JoinResult> {
   const res = await request<{
-    token: string
+    token?: string
     role: FamilyRole
     displayName: string
     group: { id: string; name: string }
     meds: FamilyMed[]
-  }>('POST', '/join', { body: { code } })
+  }>('POST', '/join', { token: sessionToken(), body: { code } })
 
-  const store = loadStore()
-  if (res.role === 'member') {
+  if (res.role === 'member' && res.token) {
+    const store = loadStore()
     store.member = { token: res.token, groupName: res.group.name, displayName: res.displayName }
+    saveStore(store)
   } else {
-    const others = (store.viewers ?? []).filter((v) => v.groupId !== res.group.id)
-    store.viewers = [
-      ...others,
-      { token: res.token, groupId: res.group.id, groupName: res.group.name, displayName: res.displayName },
-    ]
+    notifyChanged()
   }
-  saveStore(store)
   return { role: res.role, displayName: res.displayName, groupName: res.group.name, meds: res.meds ?? [] }
 }
 
@@ -287,17 +389,13 @@ export async function leaveFamily(): Promise<void> {
 
 // ---------- 보기 (보는 사람·관리자) ----------
 
-/**
- * 가족 탭에 보여 줄 그룹들.
- * 관리자 키가 있으면 모든 그룹, 없으면 이 기기가 보는 사람으로 연결된 그룹만.
- */
+/** 가족 탭에 보여 줄 그룹들. 관리자 계정이면 모든 그룹, 아니면 내가 보는 사람인 그룹만 */
 export async function getFamilyView(): Promise<FamilyGroupView[]> {
-  const adminKey = getAdminKey()
-  if (adminKey) {
-    const res = await request<{ groups: { id: string; name: string; members: FamilyMemberView[] }[] }>(
+  const user = getSessionUser()
+  if (user?.role === 'admin') {
+    const res = await sessionRequest<{ groups: { id: string; name: string; members: FamilyMemberView[] }[] }>(
       'GET',
       '/admin/groups',
-      { adminKey },
     )
     return res.groups.map((g) => ({
       id: g.id,
@@ -307,57 +405,29 @@ export async function getFamilyView(): Promise<FamilyGroupView[]> {
     }))
   }
 
-  const links = getViewerLinks()
-  return Promise.all(
-    links.map(async (link): Promise<FamilyGroupView> => {
-      try {
-        const res = await request<{ group: { id: string; name: string }; members: FamilyMemberView[]; viewers: string[] }>(
-          'GET',
-          '/view',
-          { token: link.token },
-        )
-        return {
-          id: res.group.id,
-          name: res.group.name,
-          members: res.members,
-          viewers: res.viewers.map((name, i) => ({
-            id: `viewer-${i}`,
-            role: 'viewer' as const,
-            displayName: name,
-            connected: true,
-            lastSeenAt: null,
-            medsUpdatedAt: null,
-            meds: [],
-          })),
-        }
-      } catch (e) {
-        // 관리자가 이 기기를 뺐거나 그룹이 지워졌으면 연결 정보를 지운다
-        if (e instanceof FamilyRequestError && e.status === 401) removeViewerLink(link.groupId)
-        return { id: link.groupId, name: link.groupName, members: [], viewers: [], error: e }
-      }
-    }),
-  )
+  const res = await sessionRequest<{
+    groups: { id: string; name: string; members: FamilyMemberView[]; viewers: string[] }[]
+  }>('GET', '/view')
+  return res.groups.map((g) => ({
+    id: g.id,
+    name: g.name,
+    members: g.members,
+    viewers: g.viewers.map((name, i) => ({
+      id: `viewer-${i}`,
+      role: 'viewer' as const,
+      displayName: name,
+      connected: true,
+      lastSeenAt: null,
+      medsUpdatedAt: null,
+      meds: [],
+    })),
+  }))
 }
 
 // ---------- 관리자 ----------
 
-function requireAdminKey(): string {
-  const key = getAdminKey()
-  if (!key) throw new FamilyRequestError(401, 'bad_admin_key')
-  return key
-}
-
-/** 키가 맞는지 서버에 물어본 뒤 저장한다 */
-export async function saveAdminKey(key: string): Promise<void> {
-  const trimmed = key.trim()
-  await request('GET', '/admin/groups', { adminKey: trimmed })
-  const store = loadStore()
-  store.adminKey = trimmed
-  saveStore(store)
-}
-
 export async function adminCreateGroup(name: string): Promise<void> {
-  await request('POST', '/admin/groups', { adminKey: requireAdminKey(), body: { name } })
+  await sessionRequest('POST', '/admin/groups', { name })
 }
 
 /** 새 초대(역할·이름) 또는 다시 잇기 초대(memberId) */
@@ -367,16 +437,24 @@ export async function adminCreateInvite(input: {
   displayName?: string
   memberId?: string
 }): Promise<CreatedInvite> {
-  const res = await request<{ code: string; role: FamilyRole; displayName: string; expiresAt: number }>(
+  const res = await sessionRequest<{ code: string; role: FamilyRole; displayName: string; expiresAt: number }>(
     'POST',
     '/admin/invites',
-    { adminKey: requireAdminKey(), body: input },
+    input,
   )
   return { ...res, link: `${window.location.origin}/?join=${res.code}` }
 }
 
 export async function adminRemoveMember(memberId: string): Promise<void> {
-  await request('DELETE', `/admin/members/${encodeURIComponent(memberId)}`, { adminKey: requireAdminKey() })
+  await sessionRequest('DELETE', `/admin/members/${encodeURIComponent(memberId)}`)
+}
+
+export async function adminListUsers(): Promise<AuthUser[]> {
+  return (await sessionRequest<{ users: AuthUser[] }>('GET', '/admin/users')).users
+}
+
+export async function adminSetRole(userId: string, role: UserRole): Promise<void> {
+  await sessionRequest('PUT', `/admin/users/${encodeURIComponent(userId)}`, { role })
 }
 
 // ---------- 약 목록 올리기 ----------

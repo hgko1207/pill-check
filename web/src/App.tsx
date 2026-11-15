@@ -8,9 +8,9 @@ import { DetailModal, type DetailTarget } from './components/DetailModal'
 import { GuideModal } from './components/GuideModal'
 import { DialogProvider, useDialog } from './lib/dialog'
 import { initTheme } from './lib/theme'
-import { FAMILY_CHANGED_EVENT, hasFamilyTab, joinFamily, scheduleFamilySync } from './lib/family'
+import { FAMILY_CHANGED_EVENT, hasFamilyTab, savePendingJoin, scheduleFamilySync } from './lib/family'
 import { FamilyPage } from './components/FamilyPage'
-import { finishFamilyJoin } from './components/FamilySettings'
+import { joinWithConsent } from './components/FamilySettings'
 import { friendlyError } from './lib/errors'
 
 export default function App() {
@@ -29,10 +29,19 @@ function AppContent() {
   const [rootSignal, setRootSignal] = useState(0)
   const { confirm, toast } = useDialog()
   const [familyTab, setFamilyTab] = useState(() => hasFamilyTab())
-  // 관리자 키 입력은 `?admin` 주소로 열었을 때만 보인다
+  // 로그인 전 기기에서 가족 탭(로그인 화면)으로 들어가는 입구: `?admin` 주소
   const [adminEntry] = useState(() => new URLSearchParams(window.location.search).has('admin'))
+  // 로그인이 필요한 초대를 받았을 때 가족 탭을 새로 그리기 위한 값
+  const [familyNonce, setFamilyNonce] = useState(0)
 
-  // 연결·관리자 키가 바뀌면 가족 탭 표시를 다시 정한다
+  /** 보는 사람 초대인데 로그인 전: 코드를 보관하고 가족 탭 로그인 화면으로 */
+  function handleNeedLogin(code: string) {
+    savePendingJoin(code)
+    setFamilyNonce((n) => n + 1)
+    setView('family')
+  }
+
+  // 로그인·연결이 바뀌면 가족 탭 표시를 다시 정한다
   useEffect(() => {
     const update = () => setFamilyTab(hasFamilyTab())
     window.addEventListener(FAMILY_CHANGED_EVENT, update)
@@ -74,9 +83,12 @@ function AppContent() {
     params.delete('join')
     const rest = params.toString()
     window.history.replaceState(null, '', window.location.pathname + (rest ? `?${rest}` : '') + window.location.hash)
-    joinFamily(code)
-      .then((res) => finishFamilyJoin(res, confirm, toast, () => setRefreshSignal((n) => n + 1)))
-      .catch((e) => toast(friendlyError(e), 'error'))
+    joinWithConsent(code, {
+      confirm,
+      toast,
+      onMedicationsChanged: () => setRefreshSignal((n) => n + 1),
+      onNeedLogin: handleNeedLogin,
+    }).catch((e) => toast(friendlyError(e), 'error'))
   }, [confirm, toast])
 
   // 가족과 연결된 기기면 앱을 열 때와 등록약이 바뀔 때 목록을 올린다(연결 안 됐으면 아무것도 안 함)
@@ -119,12 +131,13 @@ function AppContent() {
           </>
         )}
 
-        {view === 'family' && <FamilyPage key={rootSignal} adminEntry={adminEntry} />}
+        {view === 'family' && <FamilyPage key={`${rootSignal}-${familyNonce}`} />}
 
         {view === 'settings' && (
           <SettingsPage
             onShowGuide={() => setGuideOpen(true)}
             onMedicationsChanged={() => setRefreshSignal((n) => n + 1)}
+            onNeedFamilyLogin={handleNeedLogin}
           />
         )}
       </main>

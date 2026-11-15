@@ -1,21 +1,29 @@
 /**
- * Cloudflare Pages Function — 가족 연결 (plan.md 41)
+ * Cloudflare Pages Function — 가족 연결 (plan.md 41, 45)
  *
- * 로그인 없이 초대 코드로 기기를 잇는다. 기기는 무작위 토큰을 받아 보관하고,
- * 서버(D1 FAMILY_DB)에는 토큰·코드의 SHA-256 해시만 둔다.
+ * 구성원(부모님)은 로그인 없이 초대 코드로 기기를 잇고 기기 토큰을 받는다.
+ * 관리자·보는 사람(자녀)은 Google 로그인 계정으로 들어온다. 관리자 여부는 계정 역할(role)로 정한다.
+ * 서버(D1 FAMILY_DB)에는 기기 토큰·세션 토큰·초대 코드의 SHA-256 해시만 둔다.
  *
- *   POST   /api/family/join              { code } → { token, role, displayName, group, meds }
- *   GET    /api/family/me                (토큰) 내 그룹과 볼 수 있는 사람
- *   PUT    /api/family/me/meds           (구성원 토큰) { meds } 등록약 목록 통째로 올리기
- *   DELETE /api/family/me                (토큰) 연결 끊기 = 서버의 내 정보 지우기
- *   GET    /api/family/view              (보는 사람 토큰) 내 그룹 구성원의 약
- *   GET    /api/family/admin/groups      (관리자 키) 모든 그룹·구성원·약
- *   POST   /api/family/admin/groups      (관리자 키) { name }
- *   DELETE /api/family/admin/groups/:id  (관리자 키)
- *   POST   /api/family/admin/invites     (관리자 키) { groupId, role, displayName, memberId? }
- *   DELETE /api/family/admin/members/:id (관리자 키)
+ *   GET    /api/family/auth/config        → { googleClientId }
+ *   POST   /api/family/auth/google        { credential } Google ID 토큰 검증 → { token, user }
+ *   GET    /api/family/auth/me            (세션) → { user }
+ *   POST   /api/family/auth/logout        (세션)
+ *   GET    /api/family/invite?code=       초대 미리보기(코드를 쓰지 않음) → { role, groupName, displayName }
+ *   POST   /api/family/join               { code } (보는 사람 초대는 세션 필요)
+ *   GET    /api/family/me                 (기기 토큰) 내 그룹과 볼 수 있는 사람
+ *   PUT    /api/family/me/meds            (기기 토큰) { meds } 등록약 목록 통째로 올리기
+ *   DELETE /api/family/me                 (기기 토큰) 연결 끊기 = 서버의 내 정보 지우기
+ *   GET    /api/family/view               (세션) 내가 보는 사람인 그룹들
+ *   GET    /api/family/admin/groups       (관리자 세션) 모든 그룹·구성원·약
+ *   POST   /api/family/admin/groups       (관리자) { name }
+ *   DELETE /api/family/admin/groups/:id   (관리자)
+ *   POST   /api/family/admin/invites      (관리자) { groupId, role, displayName, memberId? }
+ *   DELETE /api/family/admin/members/:id  (관리자)
+ *   GET    /api/family/admin/users        (관리자) 로그인한 계정 목록
+ *   PUT    /api/family/admin/users/:id    (관리자) { role } — 마지막 관리자는 못 뺀다
  *
- * 토큰은 Authorization: Bearer, 관리자 키(Pages Secret FAMILY_ADMIN_KEY)는 X-Admin-Key 헤더.
+ * 토큰은 모두 Authorization: Bearer. /me는 기기 토큰, 나머지는 세션 토큰.
  * 오류 본문은 { error: '<코드>' } — 클라이언트(src/lib/family.ts)가 코드로 안내 문구를 고른다.
  */
 
@@ -37,8 +45,11 @@ interface KVLike {
 
 interface Env {
   FAMILY_DB?: D1Like
-  FAMILY_ADMIN_KEY?: string
   LLM_LIMIT?: KVLike
+  /** Google OAuth 웹 클라이언트 ID (공개값, wrangler.toml [vars]) */
+  GOOGLE_CLIENT_ID?: string
+  /** 로컬 시험용 공개키 주소. 운영에는 두지 않는다(없으면 Google 주소) */
+  GOOGLE_JWKS_URL?: string
 }
 
 interface PagesContext {
@@ -47,6 +58,7 @@ interface PagesContext {
 }
 
 type Role = 'member' | 'viewer'
+type UserRole = 'admin' | 'user'
 
 interface MedPayload {
   kind: 'drug' | 'healthfood'
@@ -63,6 +75,7 @@ interface MemberRow {
   role: Role
   display_name: string
   token_hash: string | null
+  user_id: string | null
   meds_json: string | null
   meds_updated_at: number | null
   last_seen_at: number | null
@@ -75,17 +88,41 @@ interface GroupRow {
   created_at: number
 }
 
+interface UserRow {
+  id: string
+  google_sub: string
+  email: string | null
+  name: string | null
+  role: UserRole
+  created_at: number
+  last_login_at: number | null
+}
+
+interface InviteRow {
+  group_id: string
+  role: Role
+  display_name: string
+  member_id: string | null
+}
+
 const PREFIX = '/api/family/'
 const ALLOWED_ORIGINS = ['https://pill.hgko.dev', 'https://pill-check.pages.dev']
 /** 앱의 MAX_MEDICATIONS(src/lib/db.ts)와 같게 */
 const MAX_MEDS = 10
 const MAX_BODY_BYTES = 32 * 1024
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000
-/** 같은 IP에서 하루(한국 시간)에 받는 초대 코드 시도 수 */
+const SESSION_TTL_MS = 90 * 24 * 60 * 60 * 1000
+/** 세션은 쓸 때마다 연장하되, 하루에 한 번만 DB에 쓴다 */
+const SESSION_EXTEND_AFTER_MS = 24 * 60 * 60 * 1000
+/** 같은 IP에서 하루(한국 시간)에 받는 초대 코드 시도 수(미리보기 포함) */
 const JOIN_DAILY_LIMIT = 30
 /** 헷갈리는 글자(0 O 1 I L)를 뺀 31자 */
 const CODE_ALPHABET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ'
 const CODE_LENGTH = 8
+const GOOGLE_JWKS_URL = 'https://www.googleapis.com/oauth2/v3/certs'
+const GOOGLE_ISSUERS = ['accounts.google.com', 'https://accounts.google.com']
+/** 기기 시계 차이 허용(초) */
+const CLOCK_SKEW_SEC = 60
 
 function isAllowedOrigin(origin: string): boolean {
   if (ALLOWED_ORIGINS.includes(origin)) return true
@@ -141,14 +178,6 @@ function normalizeCode(raw: string): string {
   return raw.replace(/[\s-]/g, '').toUpperCase()
 }
 
-/** 길이가 달라도 시간 차이로 새지 않게 해시끼리 비교 */
-async function safeEqual(a: string, b: string): Promise<boolean> {
-  const [ha, hb] = await Promise.all([sha256Hex(a), sha256Hex(b)])
-  let diff = 0
-  for (let i = 0; i < ha.length; i++) diff |= ha.charCodeAt(i) ^ hb.charCodeAt(i)
-  return diff === 0
-}
-
 /** 한도를 넘었으면 true. KV가 없거나 오류면 막지 않는다 */
 async function overJoinLimit(kv: KVLike | undefined, ip: string): Promise<boolean> {
   if (!kv || !ip) return false
@@ -177,6 +206,11 @@ function str(v: unknown, max: number): string | undefined {
   if (typeof v !== 'string') return undefined
   const t = v.trim()
   return t ? t.slice(0, max) : undefined
+}
+
+function bearer(request: Request): string | null {
+  const m = /^Bearer\s+(\S+)$/.exec(request.headers.get('Authorization') ?? '')
+  return m ? m[1] : null
 }
 
 /** 받은 약 목록에서 정해진 필드만 골라낸다. 모양이 틀리면 null */
@@ -213,24 +247,22 @@ function parseMeds(text: string | null): MedPayload[] {
 }
 
 /** 보는 사람·관리자에게 보여 주는 구성원 모양 */
-function memberView(m: MemberRow) {
+function memberView(m: MemberRow & { account_email?: string | null }) {
   return {
     id: m.id,
     role: m.role,
     displayName: m.display_name,
-    connected: m.token_hash !== null,
+    connected: m.token_hash !== null || m.user_id !== null,
     lastSeenAt: m.last_seen_at,
     medsUpdatedAt: m.meds_updated_at,
     meds: m.role === 'member' ? parseMeds(m.meds_json) : [],
+    // 관리자 화면에서 보는 사람이 어느 계정인지 알아보게(관리자 조회에서만 채움)
+    accountEmail: m.account_email ?? null,
   }
 }
 
-async function findByToken(db: D1Like, request: Request): Promise<MemberRow | null> {
-  const auth = request.headers.get('Authorization') ?? ''
-  const m = /^Bearer\s+(\S+)$/.exec(auth)
-  if (!m) return null
-  const hash = await sha256Hex(m[1])
-  return db.prepare('SELECT * FROM family_members WHERE token_hash = ?').bind(hash).first<MemberRow>()
+function userView(u: UserRow) {
+  return { id: u.id, name: u.name, email: u.email, role: u.role, lastLoginAt: u.last_login_at }
 }
 
 async function getGroup(db: D1Like, id: string): Promise<GroupRow | null> {
@@ -240,14 +272,213 @@ async function getGroup(db: D1Like, id: string): Promise<GroupRow | null> {
 async function viewerNames(db: D1Like, groupId: string): Promise<string[]> {
   const { results } = await db
     .prepare(
-      "SELECT display_name FROM family_members WHERE group_id = ? AND role = 'viewer' AND token_hash IS NOT NULL ORDER BY created_at",
+      "SELECT display_name FROM family_members WHERE group_id = ? AND role = 'viewer' AND (user_id IS NOT NULL OR token_hash IS NOT NULL) ORDER BY created_at",
     )
     .bind(groupId)
     .all<{ display_name: string }>()
   return results.map((r) => r.display_name)
 }
 
+// ---------- Google ID 토큰 검증 ----------
+
+interface GoogleJwk {
+  kid: string
+  kty: string
+  n: string
+  e: string
+  alg?: string
+}
+
+interface GoogleClaims {
+  iss: string
+  aud: string
+  sub: string
+  exp: number
+  email?: string
+  name?: string
+}
+
+/** 공개키는 응답의 Cache-Control max-age만큼 이 isolate 메모리에 둔다 */
+let jwksCache: { url: string; keys: GoogleJwk[]; expiresAt: number } | null = null
+
+async function getJwks(url: string, force: boolean): Promise<GoogleJwk[]> {
+  const now = Date.now()
+  if (!force && jwksCache && jwksCache.url === url && jwksCache.expiresAt > now) return jwksCache.keys
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`jwks ${res.status}`)
+  const body = (await res.json()) as { keys?: GoogleJwk[] }
+  const maxAge = Number(/max-age=(\d+)/.exec(res.headers.get('Cache-Control') ?? '')?.[1] ?? '3600')
+  jwksCache = { url, keys: body.keys ?? [], expiresAt: now + Math.max(60, maxAge) * 1000 }
+  return jwksCache.keys
+}
+
+function b64urlToBytes(s: string): Uint8Array<ArrayBuffer> {
+  const b64 = s.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - (s.length % 4)) % 4)
+  const bin = atob(b64)
+  const out = new Uint8Array(new ArrayBuffer(bin.length))
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i)
+  return out
+}
+
+function b64urlJson<T>(s: string): T | null {
+  try {
+    return JSON.parse(new TextDecoder().decode(b64urlToBytes(s))) as T
+  } catch {
+    return null
+  }
+}
+
+/** 서명(RS256)·발급자·대상(클라이언트 ID)·만료를 확인한다. 틀리면 null */
+async function verifyGoogleIdToken(token: string, env: Env): Promise<GoogleClaims | null> {
+  const clientId = env.GOOGLE_CLIENT_ID ?? ''
+  const parts = token.split('.')
+  if (!clientId || parts.length !== 3) return null
+  const header = b64urlJson<{ alg?: string; kid?: string }>(parts[0])
+  const claims = b64urlJson<GoogleClaims>(parts[1])
+  if (!header || !claims || header.alg !== 'RS256' || !header.kid) return null
+
+  const url = env.GOOGLE_JWKS_URL || GOOGLE_JWKS_URL
+  let jwk = (await getJwks(url, false)).find((k) => k.kid === header.kid)
+  // 키가 바뀌었을 수 있어 한 번만 새로 받는다
+  if (!jwk) jwk = (await getJwks(url, true)).find((k) => k.kid === header.kid)
+  if (!jwk || jwk.kty !== 'RSA') return null
+
+  const key = await crypto.subtle.importKey(
+    'jwk',
+    { kty: 'RSA', n: jwk.n, e: jwk.e, alg: 'RS256', ext: true },
+    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+    false,
+    ['verify'],
+  )
+  const ok = await crypto.subtle.verify(
+    'RSASSA-PKCS1-v1_5',
+    key,
+    b64urlToBytes(parts[2]),
+    new TextEncoder().encode(`${parts[0]}.${parts[1]}`),
+  )
+  if (!ok) return null
+
+  const nowSec = Math.floor(Date.now() / 1000)
+  if (!GOOGLE_ISSUERS.includes(claims.iss)) return null
+  if (claims.aud !== clientId) return null
+  if (typeof claims.exp !== 'number' || claims.exp + CLOCK_SKEW_SEC < nowSec) return null
+  if (typeof claims.sub !== 'string' || !claims.sub) return null
+  return claims
+}
+
+// ---------- 세션 ----------
+
+async function findSessionUser(db: D1Like, request: Request): Promise<UserRow | null> {
+  const token = bearer(request)
+  if (!token) return null
+  const hash = await sha256Hex(token)
+  const now = Date.now()
+  const row = await db
+    .prepare(
+      'SELECT u.*, s.expires_at AS session_expires_at FROM auth_sessions s JOIN auth_users u ON u.id = s.user_id WHERE s.token_hash = ? AND s.expires_at > ?',
+    )
+    .bind(hash, now)
+    .first<UserRow & { session_expires_at: number }>()
+  if (!row) return null
+  // 쓸 때마다 연장 (하루에 한 번만 쓴다)
+  if (row.session_expires_at - now < SESSION_TTL_MS - SESSION_EXTEND_AFTER_MS) {
+    await db.prepare('UPDATE auth_sessions SET expires_at = ? WHERE token_hash = ?').bind(now + SESSION_TTL_MS, hash).run()
+  }
+  return row
+}
+
+async function findMemberByToken(db: D1Like, request: Request): Promise<MemberRow | null> {
+  const token = bearer(request)
+  if (!token) return null
+  const hash = await sha256Hex(token)
+  return db.prepare('SELECT * FROM family_members WHERE token_hash = ?').bind(hash).first<MemberRow>()
+}
+
 // ---------- 처리 ----------
+
+async function handleAuth(db: D1Like, env: Env, request: Request, method: string, sub: string): Promise<Response> {
+  if (sub === 'config' && method === 'GET') {
+    if (!env.GOOGLE_CLIENT_ID) return fail('not_configured', 500)
+    return json({ googleClientId: env.GOOGLE_CLIENT_ID })
+  }
+
+  if (sub === 'google' && method === 'POST') {
+    if (!env.GOOGLE_CLIENT_ID) return fail('not_configured', 500)
+    const body = await readBody<{ credential?: unknown }>(request)
+    const credential = typeof body?.credential === 'string' ? body.credential : ''
+    if (!credential || credential.length > 8192) return fail('bad_credential', 400)
+    let claims: GoogleClaims | null
+    try {
+      claims = await verifyGoogleIdToken(credential, env)
+    } catch {
+      return fail('auth_unavailable', 502)
+    }
+    if (!claims) return fail('bad_credential', 401)
+
+    const now = Date.now()
+    const email = str(claims.email, 200) ?? null
+    const name = str(claims.name, 100) ?? null
+    let user = await db.prepare('SELECT * FROM auth_users WHERE google_sub = ?').bind(claims.sub).first<UserRow>()
+    if (user) {
+      await db
+        .prepare('UPDATE auth_users SET email = ?, name = ?, last_login_at = ? WHERE id = ?')
+        .bind(email, name, now, user.id)
+        .run()
+      user = { ...user, email, name, last_login_at: now }
+    } else {
+      // 새 계정은 일반 계정. 첫 관리자는 운영 DB에서 1회 지정한다(plan.md 48)
+      const id = crypto.randomUUID()
+      await db
+        .prepare(
+          "INSERT INTO auth_users (id, google_sub, email, name, role, created_at, last_login_at) VALUES (?, ?, ?, ?, 'user', ?, ?)",
+        )
+        .bind(id, claims.sub, email, name, now, now)
+        .run()
+      user = { id, google_sub: claims.sub, email, name, role: 'user', created_at: now, last_login_at: now }
+    }
+
+    const token = newToken()
+    await db
+      .prepare('INSERT INTO auth_sessions (token_hash, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)')
+      .bind(await sha256Hex(token), user.id, now, now + SESSION_TTL_MS)
+      .run()
+    return json({ token, user: userView(user) })
+  }
+
+  if (sub === 'me' && method === 'GET') {
+    const user = await findSessionUser(db, request)
+    if (!user) return fail('bad_session', 401)
+    return json({ user: userView(user) })
+  }
+
+  if (sub === 'logout' && method === 'POST') {
+    const token = bearer(request)
+    if (token) await db.prepare('DELETE FROM auth_sessions WHERE token_hash = ?').bind(await sha256Hex(token)).run()
+    return json({ ok: true })
+  }
+
+  return fail('not_found', 404)
+}
+
+/** 아직 쓰지 않았고 기한이 남은 초대 */
+async function findOpenInvite(db: D1Like, codeHash: string, now: number): Promise<InviteRow | null> {
+  return db
+    .prepare('SELECT * FROM family_invites WHERE code_hash = ? AND used_at IS NULL AND expires_at > ?')
+    .bind(codeHash, now)
+    .first<InviteRow>()
+}
+
+async function handlePreview(db: D1Like, env: Env, request: Request, url: URL): Promise<Response> {
+  const ip = request.headers.get('CF-Connecting-IP') ?? ''
+  if (await overJoinLimit(env.LLM_LIMIT, ip)) return fail('too_many', 429)
+  const code = normalizeCode(url.searchParams.get('code') ?? '')
+  if (code.length !== CODE_LENGTH) return fail('invalid_code', 400)
+  const invite = await findOpenInvite(db, await sha256Hex(code), Date.now())
+  if (!invite) return fail('invalid_code', 400)
+  const group = await getGroup(db, invite.group_id)
+  if (!group) return fail('invalid_code', 400)
+  return json({ role: invite.role, groupName: group.name, displayName: invite.display_name })
+}
 
 async function handleJoin(db: D1Like, env: Env, request: Request): Promise<Response> {
   const ip = request.headers.get('CF-Connecting-IP') ?? ''
@@ -259,19 +490,23 @@ async function handleJoin(db: D1Like, env: Env, request: Request): Promise<Respo
 
   const now = Date.now()
   const codeHash = await sha256Hex(code)
-  const invite = await db
-    .prepare('SELECT * FROM family_invites WHERE code_hash = ? AND used_at IS NULL AND expires_at > ?')
-    .bind(codeHash, now)
-    .first<{ group_id: string; role: Role; display_name: string; member_id: string | null }>()
+  const invite = await findOpenInvite(db, codeHash, now)
   if (!invite) return fail('invalid_code', 400)
 
   const group = await getGroup(db, invite.group_id)
   if (!group) return fail('invalid_code', 400)
 
+  // 보는 사람은 계정으로 잇는다. 로그인 전이면 코드를 쓰지 않고 돌려보낸다
+  let user: UserRow | null = null
+  if (invite.role === 'viewer') {
+    user = await findSessionUser(db, request)
+    if (!user) return fail('login_required', 400)
+  }
+
   let existing: MemberRow | null = null
   if (invite.member_id) {
     existing = await db
-      .prepare('SELECT * FROM family_members WHERE id = ? AND group_id = ?')
+      .prepare("SELECT * FROM family_members WHERE id = ? AND group_id = ? AND role = 'member'")
       .bind(invite.member_id, invite.group_id)
       .first<MemberRow>()
     if (!existing) return fail('invalid_code', 400)
@@ -284,6 +519,22 @@ async function handleJoin(db: D1Like, env: Env, request: Request): Promise<Respo
     .run()
   if ((claim.meta?.changes ?? 0) !== 1) return fail('invalid_code', 400)
 
+  if (user) {
+    const already = await db
+      .prepare("SELECT id FROM family_members WHERE group_id = ? AND role = 'viewer' AND user_id = ?")
+      .bind(group.id, user.id)
+      .first<{ id: string }>()
+    if (!already) {
+      await db
+        .prepare(
+          "INSERT INTO family_members (id, group_id, role, display_name, user_id, last_seen_at, created_at) VALUES (?, ?, 'viewer', ?, ?, ?, ?)",
+        )
+        .bind(crypto.randomUUID(), group.id, invite.display_name, user.id, now, now)
+        .run()
+    }
+    return json({ role: 'viewer', displayName: invite.display_name, group: { id: group.id, name: group.name }, meds: [] })
+  }
+
   const token = newToken()
   const tokenHash = await sha256Hex(token)
 
@@ -295,22 +546,22 @@ async function handleJoin(db: D1Like, env: Env, request: Request): Promise<Respo
       .run()
     return json({
       token,
-      role: existing.role,
+      role: 'member',
       displayName: existing.display_name,
       group: { id: group.id, name: group.name },
-      meds: existing.role === 'member' ? parseMeds(existing.meds_json) : [],
+      meds: parseMeds(existing.meds_json),
     })
   }
 
   await db
     .prepare(
-      'INSERT INTO family_members (id, group_id, role, display_name, token_hash, last_seen_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      "INSERT INTO family_members (id, group_id, role, display_name, token_hash, last_seen_at, created_at) VALUES (?, ?, 'member', ?, ?, ?, ?)",
     )
-    .bind(crypto.randomUUID(), group.id, invite.role, invite.display_name, tokenHash, now, now)
+    .bind(crypto.randomUUID(), group.id, invite.display_name, tokenHash, now, now)
     .run()
   return json({
     token,
-    role: invite.role,
+    role: 'member',
     displayName: invite.display_name,
     group: { id: group.id, name: group.name },
     meds: [],
@@ -318,8 +569,9 @@ async function handleJoin(db: D1Like, env: Env, request: Request): Promise<Respo
 }
 
 async function handleMe(db: D1Like, request: Request, method: string, sub: string): Promise<Response> {
-  const me = await findByToken(db, request)
+  const me = await findMemberByToken(db, request)
   if (!me) return fail('bad_token', 401)
+  if (me.role !== 'member') return fail('forbidden', 403)
   const now = Date.now()
 
   if (sub === '' && method === 'GET') {
@@ -342,7 +594,6 @@ async function handleMe(db: D1Like, request: Request, method: string, sub: strin
   }
 
   if (sub === 'meds' && method === 'PUT') {
-    if (me.role !== 'member') return fail('forbidden', 403)
     const body = await readBody<{ meds?: unknown }>(request)
     const meds = sanitizeMeds(body?.meds)
     if (!meds) return fail('bad_request', 400)
@@ -357,41 +608,54 @@ async function handleMe(db: D1Like, request: Request, method: string, sub: strin
 }
 
 async function handleView(db: D1Like, request: Request): Promise<Response> {
-  const me = await findByToken(db, request)
-  if (!me) return fail('bad_token', 401)
-  if (me.role !== 'viewer') return fail('forbidden', 403)
-  const group = await getGroup(db, me.group_id)
-  if (!group) return fail('not_found', 404)
-  await db.prepare('UPDATE family_members SET last_seen_at = ? WHERE id = ?').bind(Date.now(), me.id).run()
-  const { results } = await db
-    .prepare("SELECT * FROM family_members WHERE group_id = ? AND role = 'member' ORDER BY created_at")
-    .bind(group.id)
+  const user = await findSessionUser(db, request)
+  if (!user) return fail('bad_session', 401)
+  const now = Date.now()
+  const { results: mine } = await db
+    .prepare("SELECT * FROM family_members WHERE role = 'viewer' AND user_id = ? ORDER BY created_at")
+    .bind(user.id)
     .all<MemberRow>()
-  return json({
-    group: { id: group.id, name: group.name },
-    members: results.map(memberView),
-    viewers: await viewerNames(db, group.id),
-  })
+  const groups = []
+  for (const v of mine) {
+    const group = await getGroup(db, v.group_id)
+    if (!group) continue
+    await db.prepare('UPDATE family_members SET last_seen_at = ? WHERE id = ?').bind(now, v.id).run()
+    const { results } = await db
+      .prepare("SELECT * FROM family_members WHERE group_id = ? AND role = 'member' ORDER BY created_at")
+      .bind(group.id)
+      .all<MemberRow>()
+    groups.push({
+      id: group.id,
+      name: group.name,
+      members: results.map(memberView),
+      viewers: await viewerNames(db, group.id),
+    })
+  }
+  return json({ groups })
 }
 
 async function handleAdmin(
   db: D1Like,
-  env: Env,
   request: Request,
   method: string,
   parts: string[],
 ): Promise<Response> {
-  const adminKey = env.FAMILY_ADMIN_KEY ?? ''
-  if (!adminKey) return fail('not_configured', 500)
-  const given = request.headers.get('X-Admin-Key') ?? ''
-  if (!given || !(await safeEqual(given, adminKey))) return fail('bad_admin_key', 401)
+  const user = await findSessionUser(db, request)
+  if (!user) return fail('bad_session', 401)
+  if (user.role !== 'admin') return fail('forbidden', 403)
 
   const [resource, id] = parts
   const now = Date.now()
 
   if (resource === 'groups' && !id && method === 'GET') {
     const groups = (await db.prepare('SELECT * FROM family_groups ORDER BY created_at').all<GroupRow>()).results
-    const members = (await db.prepare('SELECT * FROM family_members ORDER BY created_at').all<MemberRow>()).results
+    const members = (
+      await db
+        .prepare(
+          'SELECT m.*, u.email AS account_email FROM family_members m LEFT JOIN auth_users u ON u.id = m.user_id ORDER BY m.created_at',
+        )
+        .all<MemberRow & { account_email: string | null }>()
+    ).results
     const invites = (
       await db
         .prepare(
@@ -444,12 +708,13 @@ async function handleAdmin(
     let role: Role
     let displayName: string | undefined
     if (memberId) {
+      // 다시 잇기는 구성원(기기 토큰)만. 보는 사람은 계정이라 다시 이을 필요가 없다
       const m = await db
-        .prepare('SELECT * FROM family_members WHERE id = ? AND group_id = ?')
+        .prepare("SELECT * FROM family_members WHERE id = ? AND group_id = ? AND role = 'member'")
         .bind(memberId, groupId)
         .first<MemberRow>()
       if (!m) return fail('not_found', 404)
-      role = m.role
+      role = 'member'
       displayName = m.display_name
     } else {
       if (body?.role !== 'member' && body?.role !== 'viewer') return fail('bad_request', 400)
@@ -477,6 +742,25 @@ async function handleAdmin(
     return json({ ok: true })
   }
 
+  if (resource === 'users' && !id && method === 'GET') {
+    const { results } = await db.prepare('SELECT * FROM auth_users ORDER BY created_at').all<UserRow>()
+    return json({ users: results.map(userView) })
+  }
+
+  if (resource === 'users' && id && method === 'PUT') {
+    const body = await readBody<{ role?: unknown }>(request)
+    const role = body?.role === 'admin' || body?.role === 'user' ? body.role : null
+    if (!role) return fail('bad_request', 400)
+    const target = await db.prepare('SELECT * FROM auth_users WHERE id = ?').bind(id).first<UserRow>()
+    if (!target) return fail('not_found', 404)
+    if (target.role === 'admin' && role === 'user') {
+      const admins = await db.prepare("SELECT COUNT(*) AS n FROM auth_users WHERE role = 'admin'").first<{ n: number }>()
+      if ((admins?.n ?? 0) <= 1) return fail('last_admin', 400)
+    }
+    await db.prepare('UPDATE auth_users SET role = ? WHERE id = ?').bind(role, id).run()
+    return json({ user: userView({ ...target, role }) })
+  }
+
   return fail('not_found', 404)
 }
 
@@ -493,11 +777,13 @@ export async function onRequest(context: PagesContext): Promise<Response> {
   const method = request.method
 
   try {
+    if (parts[0] === 'auth' && parts.length === 2) return await handleAuth(db, env, request, method, parts[1])
+    if (parts[0] === 'invite' && parts.length === 1 && method === 'GET') return await handlePreview(db, env, request, url)
     if (parts[0] === 'join' && parts.length === 1 && method === 'POST') return await handleJoin(db, env, request)
     if (parts[0] === 'me' && parts.length <= 2) return await handleMe(db, request, method, parts[1] ?? '')
     if (parts[0] === 'view' && parts.length === 1 && method === 'GET') return await handleView(db, request)
     if (parts[0] === 'admin' && parts.length >= 2 && parts.length <= 3) {
-      return await handleAdmin(db, env, request, method, parts.slice(1))
+      return await handleAdmin(db, request, method, parts.slice(1))
     }
     return fail('not_found', 404)
   } catch {
