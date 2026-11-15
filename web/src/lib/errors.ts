@@ -34,8 +34,12 @@ export function friendlyError(e: unknown): string {
     if (e.code === 'login_required') return '가족의 약을 보는 초대예요. Google로 로그인하면 연결돼요.'
     if (e.code === 'bad_session') return '로그인이 끝났어요. 다시 로그인해 주세요.'
     if (e.code === 'bad_credential') return 'Google 로그인을 확인하지 못했어요. 다시 해 보세요.'
-    if (e.code === 'forbidden') return '관리자만 할 수 있어요. 관리자에게 부탁해 주세요.'
-    if (e.code === 'last_admin') return '관리자가 한 명뿐이라 뺄 수 없어요. 다른 분께 먼저 관리자를 주세요.'
+    if (e.code === 'forbidden') return '이 그룹의 관리자만 할 수 있어요. 그룹 관리자에게 부탁해 주세요.'
+    if (e.code === 'last_manager') {
+      return '이 그룹의 관리자가 한 명뿐이라 할 수 없어요. 다른 가족에게 먼저 관리 권한을 주거나, 그룹을 지워 주세요.'
+    }
+    if (e.code === 'group_full') return '이 그룹은 가족이 꽉 찼어요(20명). 연결하지 않는 분을 뺀 뒤 다시 해 보세요.'
+    if (e.code === 'too_many_groups') return '그룹은 10개까지 만들 수 있어요. 쓰지 않는 그룹을 지운 뒤 다시 해 보세요.'
     if (e.status >= 500) return '가족 연결 서버가 잠시 응답하지 않아요. 조금 뒤에 다시 해 보세요.'
     return '가족 연결 중 문제가 생겼어요. 조금 뒤에 다시 해 보시고, 계속되면 자녀에게 알려 주세요.'
   }

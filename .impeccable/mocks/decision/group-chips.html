@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=390">
+<title>가족 탭 · 그룹 칩 + 한 그룹씩</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; width: 390px; height: 844px; overflow: hidden; }
+  body { background: #F8F4EE; color: #28221D; font-family: 'Pretendard Variable', 'Noto Sans KR', system-ui, sans-serif; word-break: keep-all; position: relative; }
+  .head { display: flex; align-items: flex-start; padding: 28px 20px 4px; }
+  .head h1 { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.02em; flex: 1; }
+  .refresh { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; color: #5A5047; margin-top: -4px; }
+  .chips { display: flex; gap: 8px; padding: 14px 16px 0; overflow: hidden; }
+  .chip { height: 52px; padding: 0 20px; border-radius: 999px; border: 1px solid #EAE2D5; background: #fff; display: grid; place-items: center; font-size: 17px; font-weight: 600; white-space: nowrap; }
+  .chip.on { background: #28221D; border-color: #28221D; color: #F8F4EE; }
+  .chip.add { color: #3A3EB0; }
+  .role { margin: 18px 32px 8px; display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; color: #5A5047; }
+  .tag { font-size: 13px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: #EEECFB; color: #3A3EB0; }
+  .tag.food { background: #F7F2EA; color: #5A5047; }
+  .group { margin: 0 16px; background: #fff; border-radius: 22px; box-shadow: 0 1px 2px rgba(70,48,24,.05), 0 6px 18px rgba(70,48,24,.06); overflow: hidden; }
+  .person { padding: 16px 18px 4px; }
+  .person + .person { border-top: 1px solid #F1EBE2; }
+  .ph { display: flex; align-items: center; gap: 12px; }
+  .tile { width: 44px; height: 44px; border-radius: 14px; background: #EEECFB; color: #3A3EB0; display: grid; place-items: center; font-weight: 800; flex: none; }
+  .t { font-size: 18px; font-weight: 700; }
+  .s { font-size: 15px; color: #66594E; margin-top: 2px; }
+  .meds { list-style: none; margin: 6px 0 8px 56px; padding: 0; }
+  .meds li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 0; font-size: 17px; border-top: 1px solid #F1EBE2; }
+  .meds li:first-child { border-top: 0; }
+  .rows { margin: 10px 16px 0; }
+  .row { display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 10px 18px; }
+  .row + .row { border-top: 1px solid #F1EBE2; }
+  .row .tile { width: 40px; height: 40px; border-radius: 12px; font-size: 20px; font-weight: 400; }
+  .row .t { font-size: 17px; }
+  .chev { margin-left: auto; color: #BCB1A3; font-size: 22px; }
+  .tabbar { position: absolute; left: 0; right: 0; bottom: 0; height: 64px; background: #fff; border-top: 1px solid #EAE2D5; display: flex; }
+  .tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 13px; font-weight: 600; color: #66594E; }
+  .tab i { width: 24px; height: 24px; border-radius: 7px; border: 2px solid currentColor; display: block; }
+  .tab.on { color: #28221D; }
+  .tab.on i { border-color: #4A4FD0; }
+</style>
+</head>
+<body>
+  <div class="head">
+    <h1>가족</h1>
+    <div class="refresh">↻</div>
+  </div>
+  <div class="chips">
+    <div class="chip on">우리집</div>
+    <div class="chip">처가</div>
+    <div class="chip add">+ 새 그룹</div>
+  </div>
+
+  <div class="role">내가 관리하는 그룹 <span class="tag">관리자</span></div>
+  <div class="group">
+    <div class="person">
+      <div class="ph">
+        <div class="tile">아</div>
+        <div><div class="t">아버지</div><div class="s">약 드시는 분 · 2시간 전</div></div>
+      </div>
+      <ul class="meds">
+        <li>노바스크정5밀리그램<span class="tag">의약품</span></li>
+        <li>오메가3 플러스<span class="tag food">영양제</span></li>
+      </ul>
+    </div>
+    <div class="person">
+      <div class="ph">
+        <div class="tile">아</div>
+        <div><div class="t">아내</div><div class="s">함께 보는 가족</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="group rows">
+    <div class="row"><div class="tile">+</div><div class="t">약 드시는 분 초대</div><div class="chev">›</div></div>
+    <div class="row"><div class="tile">◎</div><div class="t">함께 볼 가족 초대</div><div class="chev">›</div></div>
+    <div class="row"><div class="tile">⚙</div><div class="t">그룹 관리</div><div class="chev">›</div></div>
+  </div>
+
+  <div class="tabbar">
+    <div class="tab"><i></i>확인</div>
+    <div class="tab"><i></i>내 약</div>
+    <div class="tab on"><i></i>가족</div>
+    <div class="tab"><i></i>설정</div>
+  </div>
+</body>
+</html>

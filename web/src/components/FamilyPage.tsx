@@ -1,28 +1,29 @@
 import { useCallback, useEffect, useState } from 'react'
-import { AlertCircle, ChevronRight, Eye, Pill, Plus, RefreshCw, User, UserPlus, Users } from 'lucide-react'
+import { AlertCircle, ChevronRight, Eye, LogOut, Plus, RefreshCw, Settings2, User, UserPlus, Users } from 'lucide-react'
 import { useDialog } from '../lib/dialog'
 import { friendlyError } from '../lib/errors'
 import { disableGoogleAutoSelect } from '../lib/auth'
 import {
-  adminCreateInvite,
-  adminRemoveMember,
   clearPendingJoin,
   getFamilyView,
   getPendingJoin,
   getSessionUser,
   joinFamily,
+  leaveGroup,
   previewInvite,
   refreshSessionUser,
   signOut,
   type AuthUser,
   type CreatedInvite,
   type FamilyGroupView,
-  type FamilyMemberView,
   type FamilyRole,
   type InvitePreview,
 } from '../lib/family'
-import { AdminUsers, InviteForm, InviteResult, NewGroupForm, ROLE_TEXT } from './FamilyAdmin'
+import { InviteForm, InviteResult, NewGroupForm, ROLE_TEXT, keepHyphen } from './FamilyAdmin'
 import { GoogleSignInButton } from './GoogleSignInButton'
+import { GroupManageSheet } from './GroupManageSheet'
+
+const SELECTED_KEY = 'pillcheck.familyGroup'
 
 /** "3일 전" 같은 마지막 사용 시각 */
 function lastSeenText(at: number | null): string {
@@ -34,7 +35,39 @@ function lastSeenText(at: number | null): string {
   return `${Math.floor(hours / 24)}일 전`
 }
 
-/** 가족 탭 (plan.md 43, 46, 49): 관리자·함께 보는 가족이 Google 로그인으로 쓴다 */
+function initial(name: string): string {
+  return name.trim().slice(0, 1) || '?'
+}
+
+/** 함께 보는 가족에게 "누구에게 부탁하면 되는지" 보여 줄 그룹 관리자 이름 */
+function managerNames(g: FamilyGroupView): string {
+  return g.viewers
+    .filter((v) => v.isManager && !v.isMe)
+    .map((v) => v.displayName)
+    .join(', ')
+}
+
+function loadSelected(): string | null {
+  try {
+    return localStorage.getItem(SELECTED_KEY)
+  } catch {
+    return null
+  }
+}
+
+function saveSelected(id: string): void {
+  try {
+    localStorage.setItem(SELECTED_KEY, id)
+  } catch {
+    /* 무시 */
+  }
+}
+
+/**
+ * 가족 탭 (plan.md 52, 시안 ③ "그룹 칩 + 한 그룹씩")
+ * 위쪽 칩으로 그룹을 고르면 그 그룹의 "누가 무슨 약을 드시나"가 바로 보인다.
+ * 초대·그룹 관리는 내가 관리자인 그룹에만, 함께 보는 가족으로만 속한 그룹에는 "그룹 나가기"만.
+ */
 export function FamilyPage() {
   const { confirm, toast } = useDialog()
   const [user, setUser] = useState<AuthUser | null>(() => getSessionUser())
@@ -43,9 +76,12 @@ export function FamilyPage() {
   const [groups, setGroups] = useState<FamilyGroupView[] | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<unknown>(null)
-  const [inviteForm, setInviteForm] = useState<{ groupId: string; role: FamilyRole } | null>(null)
-  const [invite, setInvite] = useState<{ groupId: string; data: CreatedInvite } | null>(null)
-  const [creatingGroup, setCreatingGroup] = useState(false)
+  const [selectedId, setSelectedId] = useState<string | null>(() => loadSelected())
+  const [slide, setSlide] = useState<'left' | 'right' | null>(null)
+  const [creating, setCreating] = useState(false)
+  const [inviteRole, setInviteRole] = useState<FamilyRole | null>(null)
+  const [invite, setInvite] = useState<CreatedInvite | null>(null)
+  const [manageOpen, setManageOpen] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -83,7 +119,7 @@ export function FamilyPage() {
     }
   }, [pending, toast])
 
-  // 로그인돼 있으면: 역할을 서버와 맞추고 → 들고 있던 초대를 잇고 → 목록을 불러온다
+  // 로그인돼 있으면: 계정을 서버와 맞추고 → 들고 있던 초대를 잇고 → 그룹을 불러온다
   useEffect(() => {
     if (!user) {
       setGroups(null)
@@ -91,20 +127,15 @@ export function FamilyPage() {
     }
     let cancelled = false
     ;(async () => {
-      let fresh: AuthUser | null = user
       try {
-        fresh = await refreshSessionUser()
+        const fresh = await refreshSessionUser()
+        if (cancelled) return
+        if (!fresh) {
+          setUser(null)
+          return
+        }
       } catch {
         // 서버에 못 닿으면 저장된 정보로 계속
-      }
-      if (cancelled) return
-      if (!fresh) {
-        setUser(null)
-        return
-      }
-      if (fresh.role !== user.role) {
-        setUser(fresh)
-        return
       }
       const code = getPendingJoin()
       if (code) {
@@ -122,57 +153,50 @@ export function FamilyPage() {
     return () => {
       cancelled = true
     }
-    // 계정이 바뀌거나 역할이 바뀔 때만 다시 돈다(user 객체 전체가 아니라 id·role만 본다)
-  }, [user?.id, user?.role, load, toast])
+  }, [user?.id, load, toast])
 
-  const isAdmin = user?.role === 'admin'
+  const selected = groups?.find((g) => g.id === selectedId) ?? groups?.[0] ?? null
 
-  async function removeMember(m: FamilyMemberView) {
+  function resetPanels() {
+    setCreating(false)
+    setInviteRole(null)
+    setInvite(null)
+  }
+
+  function selectGroup(id: string) {
+    if (!groups || id === selected?.id) return
+    const from = groups.findIndex((g) => g.id === selected?.id)
+    const to = groups.findIndex((g) => g.id === id)
+    setSlide(to > from ? 'right' : 'left')
+    setSelectedId(id)
+    saveSelected(id)
+    resetPanels()
+  }
+
+  async function handleLeave(g: FamilyGroupView) {
     const ok = await confirm({
-      title: `${m.displayName}을(를) 그룹에서 뺄까요?`,
-      message: (
-        <>
-          그 기기에서는 더 이상 가족 연결이 되지 않고, 서버에 있는 정보도 지워져요. 그 휴대폰의 내 약은
-          그대로&nbsp;있어요.
-        </>
-      ),
-      confirmLabel: '빼기',
+      title: `${g.name}에서 나갈까요?`,
+      message: <>이 그룹 가족의 약을 더 이상 볼 수 없어요. 다시 보려면 관리자에게 초대를 받아야&nbsp;해요.</>,
+      confirmLabel: '나가기',
       cancelLabel: '취소',
       variant: 'danger',
     })
     if (!ok) return
     try {
-      await adminRemoveMember(m.id)
-      toast(`${m.displayName}을(를) 뺐어요.`, 'success')
+      await leaveGroup(g.id)
+      toast(`${g.name}에서 나왔어요.`, 'success')
+      setSelectedId(null)
       void load()
     } catch (e) {
       toast(friendlyError(e), 'error')
     }
   }
 
-  /** 폰을 바꾼 분: 같은 자리로 다시 잇는 초대. 새 폰에서 연결하면 이전 폰은 끊긴다 (plan.md 44) */
-  async function relinkMember(groupId: string, m: FamilyMemberView) {
-    try {
-      const data = await adminCreateInvite({ groupId, memberId: m.id })
-      setInviteForm(null)
-      setInvite({ groupId, data })
-    } catch (e) {
-      toast(friendlyError(e), 'error')
-    }
-  }
-
-  function openInvite(groupId: string, role: FamilyRole) {
-    setInvite(null)
-    setCreatingGroup(false)
-    setInviteForm({ groupId, role })
-  }
-
   async function handleSignOut() {
     await signOut()
     disableGoogleAutoSelect()
     setUser(null)
-    setInvite(null)
-    setInviteForm(null)
+    resetPanels()
     toast('로그아웃했어요.', 'success')
   }
 
@@ -198,8 +222,8 @@ export function FamilyPage() {
           </p>
           <p className="family-login__desc">
             {pendingInfo
-              ? `'${pendingInfo.displayName}'(으)로 연결돼요. 처음 한 번만 로그인하면 돼요.`
-              : '가족 그룹을 관리하거나, 가족의 약을 함께 보는 분이 쓰는 화면이에요. 약을 등록하시는 분은 로그인하지 않아도 돼요.'}
+              ? `'${pendingInfo.displayName}' 이름으로 연결돼요. 처음 한 번만 로그인하면 돼요.`
+              : '가족 그룹을 만들거나 가족의 약을 함께 볼 때 써요. 약을 등록하시는 분은 로그인하지 않아도 돼요.'}
           </p>
           <GoogleSignInButton onSignedIn={(u) => setUser(u)} />
         </div>
@@ -222,11 +246,7 @@ export function FamilyPage() {
       <header className="screen-head family-head">
         <div className="family-head__text">
           <h1 className="screen-head__title">가족</h1>
-          <p className="screen-head__desc">
-            {isAdmin
-              ? '가족 그룹을 만들고 초대해요. 가족이 등록한 약이 여기 보여요.'
-              : '가족이 등록한 약과 영양제예요.'}
-          </p>
+          <p className="screen-head__desc">가족이 등록한 약과 영양제예요.</p>
         </div>
         <button
           type="button"
@@ -252,14 +272,14 @@ export function FamilyPage() {
         </div>
       )}
 
-      {/* 처음: 그룹이 없을 때 */}
-      {noGroups && isAdmin && !creatingGroup && (
+      {/* 처음: 속한 그룹이 없을 때 */}
+      {noGroups && !creating && (
         <>
           <div className="group empty-box">
             <p className="empty-box__title">세 단계면 시작할 수 있어요</p>
             <ol className="steps">
               <li>
-                <b>그룹</b>을 만들어요. 집마다 하나씩이면 돼요.
+                <b>그룹</b>을 만들어요. 만든 분이 그 그룹의 관리자가&nbsp;돼요.
               </li>
               <li>
                 <b>가족을 초대</b>해요. 초대 코드를 카톡으로 보내면, 받은 분이 앱에 넣어요.
@@ -270,215 +290,251 @@ export function FamilyPage() {
             </ol>
           </div>
           <div className="block-actions">
-            <button type="button" className="btn btn--primary" onClick={() => setCreatingGroup(true)}>
+            <button type="button" className="btn btn--primary" onClick={() => setCreating(true)}>
               <Plus aria-hidden="true" /> 그룹 만들기
             </button>
           </div>
+          <p className="family-note">초대 링크를 받으셨나요? 그 링크를 열면 바로 연결돼요.</p>
         </>
       )}
-      {noGroups && !isAdmin && (
-        <div className="group empty-box">
-          <p className="empty-box__title">아직 연결된 가족이 없어요</p>
-          <p className="family-empty__desc">관리자에게 함께 볼 가족 초대를 받아 주세요.</p>
+
+      {/* 그룹 칩 */}
+      {groups && groups.length > 0 && (
+        <div className="family-chips" role="group" aria-label="가족 그룹 고르기">
+          {groups.map((g) => (
+            <button
+              key={g.id}
+              type="button"
+              className="chip family-chip"
+              aria-pressed={g.id === selected?.id}
+              onClick={() => selectGroup(g.id)}
+            >
+              {g.name}
+            </button>
+          ))}
+          <button
+            type="button"
+            className="chip family-chip family-chip--add"
+            onClick={() => {
+              resetPanels()
+              setCreating(true)
+            }}
+          >
+            <Plus aria-hidden="true" /> 새 그룹
+          </button>
         </div>
       )}
 
-      {groups?.map((g) => {
-        const empty = g.members.length === 0 && g.viewers.length === 0
-        return (
-          <section key={g.id} className="family-group" aria-label={g.name}>
-            <h2 className="group-label">{g.name}</h2>
+      {creating && (
+        <NewGroupForm
+          onCancel={() => setCreating(false)}
+          onCreated={(id) => {
+            setCreating(false)
+            setSelectedId(id)
+            saveSelected(id)
+            void load()
+          }}
+        />
+      )}
 
-            <ul className="group">
-              {empty && (
+      {/* 고른 그룹 하나 */}
+      {selected && !creating && (
+        <section
+          key={selected.id}
+          className={`family-group${slide ? ` family-group--from-${slide}` : ''}`}
+          aria-label={selected.name}
+        >
+          <p className="family-role">
+            {selected.isManager ? (
+              <>
+                내가 관리하는 그룹 <span className="tag tag--primary">관리자</span>
+              </>
+            ) : (
+              <>
+                함께 보는 그룹
+                {managerNames(selected) && <span className="family-role__who">관리자 {managerNames(selected)}</span>}
+              </>
+            )}
+          </p>
+
+          <ul className="group">
+            {selected.members.length === 0 && (
+              <li>
+                <div className="row family-row--top">
+                  <span className="row__icon" aria-hidden="true">
+                    <Users />
+                  </span>
+                  <span className="row__body">
+                    <span className="row__title">아직 약 드시는 분이 없어요</span>
+                    <span className="row__sub row__sub--guide">
+                      {selected.isManager
+                        ? "아래 '약 드시는 분 초대'로 시작해 보세요."
+                        : '그룹 관리자가 초대하면 여기 보여요.'}
+                    </span>
+                  </span>
+                </div>
+              </li>
+            )}
+
+            {selected.members.map((m) => (
+              <li key={m.id} className="family-member">
+                <div className="row family-member__head">
+                  <span className="row__icon family-initial" aria-hidden="true">
+                    {initial(m.displayName)}
+                  </span>
+                  <div className="row__body">
+                    <div className="row__title">{m.displayName}</div>
+                    <div className="row__sub">
+                      {!m.connected
+                        ? `${ROLE_TEXT.member}, 새 휴대폰 연결을 기다리는 중`
+                        : m.lastSeenAt
+                          ? `${ROLE_TEXT.member}, ${lastSeenText(m.lastSeenAt)} 사용`
+                          : `${ROLE_TEXT.member}, 아직 쓰지 않음`}
+                    </div>
+                  </div>
+                </div>
+                {m.meds.length === 0 ? (
+                  <p className="family-meds__empty">등록한 약이 아직 없어요.</p>
+                ) : (
+                  <ul className="family-meds" aria-label={`${m.displayName}의 약 ${m.meds.length}개`}>
+                    {m.meds.map((med) => (
+                      <li key={med.itemSeq} className="family-meds__item">
+                        <span className="family-meds__name">{med.itemName}</span>
+                        <span className={`tag ${med.kind === 'healthfood' ? '' : 'tag--primary'}`}>
+                          {med.kind === 'healthfood' ? '영양제' : '의약품'}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            ))}
+
+            {selected.viewers.map((v) => (
+              <li key={v.id}>
+                <div className="row">
+                  <span className="row__icon" aria-hidden="true">
+                    <Eye />
+                  </span>
+                  <div className="row__body">
+                    <div className="row__title">
+                      {v.displayName}
+                      {v.isMe && <span className="family-me"> (나)</span>}
+                    </div>
+                    <div className="row__sub">{v.isManager ? '관리자' : ROLE_TEXT.viewer}</div>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          {selected.isManager ? (
+            inviteRole ? (
+              <InviteForm
+                groupId={selected.id}
+                groupName={selected.name}
+                role={inviteRole}
+                onCancel={() => setInviteRole(null)}
+                onCreated={(data) => {
+                  setInviteRole(null)
+                  setInvite(data)
+                  void load()
+                }}
+              />
+            ) : invite ? (
+              <InviteResult invite={invite} onClose={() => setInvite(null)} />
+            ) : (
+              <ul className="group family-actions-list" aria-label={`${selected.name} 관리`}>
                 <li>
-                  <div className="row family-row--top">
+                  <button type="button" className="row" onClick={() => setInviteRole('member')}>
                     <span className="row__icon" aria-hidden="true">
-                      <Users />
+                      <UserPlus />
                     </span>
                     <span className="row__body">
-                      <span className="row__title">아직 초대한 가족이 없어요</span>
-                      <span className="row__sub row__sub--guide">
-                        {isAdmin ? '아래에서 초대 코드를 만들어 보내 주세요.' : '관리자가 초대하면 여기 보여요.'}
-                      </span>
+                      <span className="row__title">약 드시는 분 초대</span>
+                      <span className="row__sub">로그인&nbsp;없이 코드로&nbsp;연결</span>
                     </span>
-                  </div>
+                    <ChevronRight className="row__chev" aria-hidden="true" />
+                  </button>
                 </li>
-              )}
-
-              {g.members.map((m) => (
-                <li key={m.id} className="family-member">
-                  <div className="row family-member__head">
-                    <span className="row__icon" aria-hidden="true">
-                      <Pill />
-                    </span>
-                    <div className="row__body">
-                      <div className="row__title">{m.displayName}</div>
-                      <div className="row__sub">
-                        {ROLE_TEXT.member}
-                        {' · '}
-                        {m.connected ? `마지막 사용 ${lastSeenText(m.lastSeenAt)}` : '새 휴대폰 연결을 기다리는 중'}
-                      </div>
-                    </div>
-                  </div>
-                  {m.meds.length === 0 ? (
-                    <p className="family-meds__empty">등록한 약이 아직 없어요.</p>
-                  ) : (
-                    <ul className="family-meds" aria-label={`${m.displayName}의 약 ${m.meds.length}개`}>
-                      {m.meds.map((med) => (
-                        <li key={med.itemSeq} className="family-meds__item">
-                          <span className="family-meds__name">{med.itemName}</span>
-                          <span className={`tag ${med.kind === 'healthfood' ? '' : 'tag--primary'}`}>
-                            {med.kind === 'healthfood' ? '영양제' : '의약품'}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  {isAdmin && (
-                    <div className="family-member__actions">
-                      <button
-                        type="button"
-                        className="text-btn"
-                        onClick={() => void relinkMember(g.id, m)}
-                        aria-label={`${m.displayName} 폰 바꿨을 때 다시 연결`}
-                      >
-                        폰 바꿨을 때 다시 연결
-                      </button>
-                      <button
-                        type="button"
-                        className="text-btn text-btn--danger"
-                        onClick={() => void removeMember(m)}
-                        aria-label={`${m.displayName} 빼기`}
-                      >
-                        빼기
-                      </button>
-                    </div>
-                  )}
-                </li>
-              ))}
-
-              {g.viewers.map((v) => (
-                <li key={v.id}>
-                  <div className="row">
+                <li>
+                  <button type="button" className="row" onClick={() => setInviteRole('viewer')}>
                     <span className="row__icon" aria-hidden="true">
                       <Eye />
                     </span>
-                    <div className="row__body">
-                      <div className="row__title">{v.displayName}</div>
-                      <div className="row__sub">{ROLE_TEXT.viewer}</div>
-                      {isAdmin && v.accountEmail && <div className="row__sub family-email">{v.accountEmail}</div>}
-                    </div>
-                    {isAdmin && (
-                      <button
-                        type="button"
-                        className="text-btn text-btn--danger"
-                        onClick={() => void removeMember(v)}
-                        aria-label={`${v.displayName} 빼기`}
-                      >
-                        빼기
-                      </button>
-                    )}
-                  </div>
+                    <span className="row__body">
+                      <span className="row__title">함께 볼 가족 초대</span>
+                      <span className="row__sub">Google&nbsp;로그인&nbsp;필요</span>
+                    </span>
+                    <ChevronRight className="row__chev" aria-hidden="true" />
+                  </button>
                 </li>
-              ))}
+                <li>
+                  <button type="button" className="row" onClick={() => setManageOpen(true)}>
+                    <span className="row__icon" aria-hidden="true">
+                      <Settings2 />
+                    </span>
+                    <span className="row__body">
+                      <span className="row__title">그룹 관리</span>
+                    </span>
+                    <ChevronRight className="row__chev" aria-hidden="true" />
+                  </button>
+                </li>
+              </ul>
+            )
+          ) : (
+            <ul className="group family-actions-list">
+              <li>
+                <button type="button" className="row" onClick={() => void handleLeave(selected)}>
+                  <span className="row__icon" aria-hidden="true">
+                    <LogOut />
+                  </span>
+                  <span className="row__body">
+                    <span className="row__title">그룹 나가기</span>
+                  </span>
+                </button>
+              </li>
             </ul>
-
-            {isAdmin &&
-              (invite?.groupId === g.id ? (
-                <InviteResult invite={invite.data} onClose={() => setInvite(null)} />
-              ) : inviteForm?.groupId === g.id ? (
-                <InviteForm
-                  groupId={g.id}
-                  groupName={g.name}
-                  role={inviteForm.role}
-                  onCancel={() => setInviteForm(null)}
-                  onCreated={(data) => {
-                    setInviteForm(null)
-                    setInvite({ groupId: g.id, data })
-                    void load()
-                  }}
-                />
-              ) : (
-                <ul className="group family-invite-rows" aria-label={`${g.name}에 초대하기`}>
-                  <li>
-                    <button type="button" className="row" onClick={() => openInvite(g.id, 'member')}>
-                      <span className="row__icon" aria-hidden="true">
-                        <UserPlus />
-                      </span>
-                      <span className="row__body">
-                        <span className="row__title">약 드시는 분 초대</span>
-                        <span className="row__sub">부모님처럼 약을 등록하는 분. 로그인&nbsp;없이 코드만&nbsp;넣어요.</span>
-                      </span>
-                      <ChevronRight className="row__chev" aria-hidden="true" />
-                    </button>
-                  </li>
-                  <li>
-                    <button type="button" className="row" onClick={() => openInvite(g.id, 'viewer')}>
-                      <span className="row__icon" aria-hidden="true">
-                        <Eye />
-                      </span>
-                      <span className="row__body">
-                        <span className="row__title">함께 볼 가족 초대</span>
-                        <span className="row__sub">이 그룹의 약을 같이 볼 분. Google&nbsp;로그인이&nbsp;필요해요.</span>
-                      </span>
-                      <ChevronRight className="row__chev" aria-hidden="true" />
-                    </button>
-                  </li>
-                </ul>
-              ))}
-          </section>
-        )
-      })}
-
-      {isAdmin &&
-        (creatingGroup ? (
-          <NewGroupForm
-            onCancel={() => setCreatingGroup(false)}
-            onCreated={() => {
-              setCreatingGroup(false)
-              void load()
-            }}
-          />
-        ) : (
-          groups &&
-          groups.length > 0 && (
-            <div className="block-actions">
-              <button
-                type="button"
-                className="btn btn--plain"
-                onClick={() => {
-                  setInviteForm(null)
-                  setInvite(null)
-                  setCreatingGroup(true)
-                }}
-              >
-                <Plus aria-hidden="true" /> 그룹 더 만들기
-              </button>
-            </div>
-          )
-        ))}
-
-      {isAdmin && <AdminUsers currentUserId={user.id} />}
+          )}
+        </section>
+      )}
 
       <h2 className="group-label">내 계정</h2>
-      <div className="group">
-        <div className="row">
-          <span className="row__icon" aria-hidden="true">
-            <User />
-          </span>
-          <div className="row__body">
-            <div className="row__title">
-              {user.name ?? user.email ?? 'Google 계정'}{' '}
-              <span className={`tag ${isAdmin ? 'tag--primary' : ''}`}>{isAdmin ? '관리자' : ROLE_TEXT.viewer}</span>
+      <ul className="group">
+        <li>
+          <div className="row">
+            <span className="row__icon" aria-hidden="true">
+              <User />
+            </span>
+            <div className="row__body">
+              <div className="row__title">{user.name ?? user.email ?? 'Google 계정'}</div>
+              {user.email && <div className="row__sub family-email">{keepHyphen(user.email)}</div>}
             </div>
-            {user.email && <div className="row__sub family-email">{user.email}</div>}
           </div>
-          <button type="button" className="text-btn" onClick={() => void handleSignOut()}>
-            로그아웃
+        </li>
+        <li>
+          <button type="button" className="row" onClick={() => void handleSignOut()}>
+            <span className="row__icon" aria-hidden="true">
+              <LogOut />
+            </span>
+            <span className="row__body">
+              <span className="row__title">로그아웃</span>
+            </span>
           </button>
-        </div>
-      </div>
+        </li>
+      </ul>
+
+      <GroupManageSheet
+        open={manageOpen}
+        group={selected}
+        onClose={() => setManageOpen(false)}
+        onChanged={() => void load()}
+        onGone={() => {
+          setManageOpen(false)
+          setSelectedId(null)
+          void load()
+        }}
+      />
     </>
   )
 }

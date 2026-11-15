@@ -1,0 +1,49 @@
+{
+  "title": "가족 탭 구성 고르기",
+  "question": "그룹별 관리자 구조에 맞춘 가족 탭 구성 세 가지예요. 색·글꼴·버튼은 지금 앱(DESIGN.md) 그대로이고, 화면을 나누는 방식만 달라요. 부모님 기기의 입구는 세 안 모두 '설정 → 가족 연결' 아래 '가족 약 함께 보기' 줄로 둡니다. 하나를 골라 주세요.",
+  "options": [
+    {
+      "id": "group-list-drill",
+      "kind": "assigned",
+      "label": "그룹 목록 → 그룹 화면",
+      "kicker": "THE ROLL",
+      "lineage": "휴대폰 설정 앱·카카오톡 채팅 목록처럼 목록에서 눌러 들어가는 구성",
+      "thesis": "가족 탭은 내 그룹 목록만 보이고, 그룹을 누르면 그 그룹 화면이 덮어 열린다.",
+      "palette": ["#F8F4EE", "#FFFFFF", "#4A4FD0", "#EEECFB", "#28221D"],
+      "materials": ["흰 묶음 목록", "덮는 화면(오른쪽에서 밀려옴)"],
+      "viewport": "큰 제목 '가족' 아래 그룹 줄(이름·내 역할·인원·최근 바뀐 약)과 '새 그룹 만들기' 줄. 그룹 화면 안에 사람별 약, 초대 줄, 맨 아래 '그룹 관리'(관리 권한·나가기·지우기).",
+      "risk": "약을 보려면 한 번 더 눌러야 해서, 그룹이 하나뿐인 집에는 한 단계가 늘어난다.",
+      "html": ".impeccable/mocks/decision/group-list-drill.html",
+      "htmlFrame": "390x844"
+    },
+    {
+      "id": "view-manage-split",
+      "kind": "dealt",
+      "label": "가족 약 | 관리 두 칸",
+      "lineage": "토스·은행 앱의 '내역 | 관리' 세그먼트 구성",
+      "thesis": "위쪽 세그먼트로 '가족 약 보기'와 '관리'를 나눠, 보는 화면에는 약만 남긴다.",
+      "palette": ["#F8F4EE", "#FFFFFF", "#4A4FD0", "#F7F2EA", "#28221D"],
+      "materials": ["세그먼트 컨트롤", "사람별 묶음 목록"],
+      "viewport": "제목 아래 [가족 약 | 관리] 세그먼트. '가족 약'은 사람마다 약 목록(어느 그룹인지 작은 표시). '관리'에는 그룹·초대·관리 권한·나가기가 모인다. 함께 보는 가족만인 계정은 '관리' 칸에 나가기만 보인다.",
+      "risk": "관리할 게 없는 계정에도 '관리' 칸이 보여 빈 칸처럼 느껴질 수 있다.",
+      "html": ".impeccable/mocks/decision/view-manage-split.html",
+      "htmlFrame": "390x844"
+    },
+    {
+      "id": "group-chips",
+      "kind": "dealt",
+      "label": "그룹 칩 + 한 그룹씩",
+      "lineage": "애플 건강·네이버 앱의 위쪽 칩으로 범위 고르기",
+      "thesis": "위쪽 칩으로 그룹을 고르면 그 그룹 하나만 크게 보이고, 관리 버튼은 내가 관리자인 그룹에만 생긴다.",
+      "palette": ["#F8F4EE", "#FFFFFF", "#28221D", "#4A4FD0", "#EEECFB"],
+      "materials": ["선택 칩(Ink 반전)", "흰 묶음 목록"],
+      "viewport": "제목 아래 가로 칩 [우리집][처가][+ 새 그룹]. 고른 그룹의 사람별 약, 초대 줄 두 개, '그룹 관리' 줄. 그룹이 하나면 칩 없이 바로 그 그룹.",
+      "risk": "그룹이 많아지면 칩이 가로로 넘쳐 옆으로 밀어야 한다.",
+      "html": ".impeccable/mocks/decision/group-chips.html",
+      "htmlFrame": "390x844"
+    }
+  ],
+  "reroll": true,
+  "steer": true,
+  "buildPath": { "value": "code" }
+}

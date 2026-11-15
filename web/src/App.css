@@ -1188,10 +1188,59 @@ html[data-theme='dark'] .segmented__btn[aria-checked='true'] { background: var(-
 }
 .family-meds__item + .family-meds__item { border-top: 1px solid var(--pc-divider); }
 .family-meds__name { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
-.family-meds__empty { margin: 0 18px 0 70px; padding: 0 0 14px; font-size: var(--fs-sub); color: var(--pc-text-subtle); }
+.family-meds__empty { margin: 0 18px 0 70px; padding: 0 0 14px; font-size: var(--fs-body); line-height: 1.55; color: var(--pc-text-subtle); }
 .family-member__actions { display: flex; justify-content: flex-end; flex-wrap: wrap; padding: 0 6px 6px; }
 .family-member__actions .text-btn { margin-left: 0; }
-.family-invite-rows { margin-top: 10px; }
+.family-actions-list { margin-top: 10px; }
+/* 묶음 아래 읽는 문장: 18px 바닥선 (group-note는 15px 라벨용) */
+.family-note {
+  margin: 12px 0 0;
+  padding: 0 calc(var(--pc-gutter) + 12px);
+  font-size: var(--fs-body);
+  line-height: 1.55;
+  color: var(--pc-text-muted);
+}
+/* 누를 수 없는 줄: 아이콘과 제목만 흐리게, 이유 문장은 그대로 */
+.family-off { opacity: 0.45; }
+.family-off__title { color: var(--pc-text-subtle); }
+.family-entry { margin-top: 10px; }
+.family-empty__desc--gap { margin-top: 14px; }
+
+/* 그룹 칩 (시안 ③): 가로로 넘치면 옆으로 밀어서 본다 */
+.family-chips {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 4px var(--pc-gutter) 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.family-chips::-webkit-scrollbar { display: none; }
+.family-chip { flex: none; display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-body); white-space: nowrap; }
+.family-chip--add { color: var(--pc-primary-deep); }
+.family-chip--add svg { width: 20px; height: 20px; }
+.family-role {
+  margin: 18px calc(var(--pc-gutter) + 12px) 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  color: var(--pc-text-muted);
+}
+.family-role__who { margin-left: 4px; font-weight: 400; color: var(--pc-text-subtle); }
+.family-initial { font-size: 18px; font-weight: 800; }
+.family-me { font-weight: 400; color: var(--pc-text-subtle); }
+
+/* 서명 동작: 칩을 바꾸면 그룹 내용이 그 방향에서 짧게 밀려 들어온다 */
+.family-group--from-right { animation: family-in-right 180ms var(--pc-ease-out); }
+.family-group--from-left { animation: family-in-left 180ms var(--pc-ease-out); }
+@keyframes family-in-right { from { opacity: 0.4; transform: translateX(16px); } }
+@keyframes family-in-left { from { opacity: 0.4; transform: translateX(-16px); } }
+@media (prefers-reduced-motion: reduce) {
+  .family-group--from-right, .family-group--from-left { animation: none; }
+}
 .family-notice { margin: 0 var(--pc-gutter); }
 /* 메일 주소는 하이픈에서 끊지 않고, 너무 길 때만 아무 곳에서나 줄을 바꾼다 */
 .family-email { margin-top: 0; word-break: normal; overflow-wrap: anywhere; hyphens: none; }

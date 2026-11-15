@@ -9,7 +9,7 @@
 - `web/src/components/` — 화면·UI 컴포넌트 (`SearchScreen.tsx`, `InteractionResultCard.tsx` 등)
 - `web/src/lib/` — API 클라이언트(`nedrug-api.ts`, `healthfood-api.ts`, `dur.ts`, `llm.ts`), DB(`db.ts`), 에러 변환(`errors.ts`), 타입(`types.ts`)
 - `web/src/App.css` — 디자인 토큰(`--pc-*`, 다크 모드 `html[data-theme='dark']`) + 컴포넌트 스타일
-- `web/functions/` — Cloudflare Pages Function (서버 측 키 사용, `functions/api/llm.ts` → `/api/llm`, IP별 하루 횟수 제한). `functions/api/nedrug`·`functions/api/foodsafety`는 배포본의 식약처·식품안전나라 호출 중계(dev는 Vite 프록시가 같은 경로를 받음). `functions/api/family`는 가족 연결(D1 `FAMILY_DB`) — 관리자·보는 사람은 Google 로그인 계정(역할 `admin`/`user`), 부모님(구성원)은 로그인 없이 초대 코드 → 기기 토큰. Google 클라이언트 ID는 공개값이라 `wrangler.toml` `[vars] GOOGLE_CLIENT_ID`
+- `web/functions/` — Cloudflare Pages Function (서버 측 키 사용, `functions/api/llm.ts` → `/api/llm`, IP별 하루 횟수 제한). `functions/api/nedrug`·`functions/api/foodsafety`는 배포본의 식약처·식품안전나라 호출 중계(dev는 Vite 프록시가 같은 경로를 받음). `functions/api/family`는 가족 연결(D1 `FAMILY_DB`) — 보는 사람은 Google 로그인 계정, 부모님(구성원)은 로그인 없이 초대 코드 → 기기 토큰. 로그인한 누구나 그룹을 만들고, 그룹 관리자(`family_members.is_manager`)가 그 그룹만 관리한다. 운영자 계정(`auth_users.role = 'admin'`)도 자기가 속하지 않은 그룹은 못 본다. Google 클라이언트 ID는 공개값이라 `wrangler.toml` `[vars] GOOGLE_CLIENT_ID`
 - `web/migrations/` — D1 테이블 정의. 로컬 적용 `npx wrangler d1 migrations apply pill-check-family --local`(`web/`에서), 로컬 함수 실행 `npx wrangler pages dev dist`(로컬 시험용 `GOOGLE_CLIENT_ID`·`GOOGLE_JWKS_URL`은 `web/.dev.vars`. `GOOGLE_JWKS_URL`은 운영에 두지 않는다)
 - `web/wrangler.toml` — Pages 배포 설정(KV 바인딩 `LLM_LIMIT`, D1 바인딩 `FAMILY_DB`). 이 파일이 배포 설정의 기준
 - `scripts/week0/` — Week 0 GATE 1 데이터 검증용 Python 스크립트 (앱 빌드와 무관)
