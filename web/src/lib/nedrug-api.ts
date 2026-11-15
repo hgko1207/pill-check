@@ -1,19 +1,8 @@
 import type { NedrugItem, NedrugSearchResponse } from './types'
 
-const NEDRUG_KEY = import.meta.env.VITE_NEDRUG_API_KEY ?? ''
-
 // 2026-05 fact-check: Service06 → Service07 (구버전 90일 후 중지). 검증된 endpoint.
-const isDev = import.meta.env.DEV
-const NEDRUG_BASE = isDev
-  ? '/api/nedrug/1471000/DrugPrdtPrmsnInfoService07'
-  : 'https://apis.data.go.kr/1471000/DrugPrdtPrmsnInfoService07'
-
-export class MissingApiKeyError extends Error {
-  constructor() {
-    super('식약처 API 키가 설정되지 않았습니다. .env 파일에 VITE_NEDRUG_API_KEY를 추가하고 dev 서버를 재시작하세요.')
-    this.name = 'MissingApiKeyError'
-  }
-}
+// dev는 Vite 프록시, 배포본은 Cloudflare Pages Function(functions/api/nedrug)이 같은 경로를 받아 키를 붙인다
+const NEDRUG_BASE = '/api/nedrug/1471000/DrugPrdtPrmsnInfoService07'
 
 export class NedrugRequestError extends Error {
   constructor(public status: number, message: string) {
@@ -36,11 +25,9 @@ export async function searchDrugByBarcode(code: string): Promise<NedrugItem[]> {
 }
 
 async function fetchDrugs(filter: string, rows: number): Promise<NedrugItem[]> {
-  if (!NEDRUG_KEY) throw new MissingApiKeyError()
   const url =
     `${NEDRUG_BASE}/getDrugPrdtPrmsnDtlInq06` +
-    `?serviceKey=${NEDRUG_KEY}` +
-    `&type=json` +
+    `?type=json` +
     `&${filter}` +
     `&numOfRows=${rows}` +
     `&pageNo=1`

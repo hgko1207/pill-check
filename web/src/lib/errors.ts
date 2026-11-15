@@ -1,6 +1,8 @@
-import { MissingApiKeyError, NedrugRequestError } from './nedrug-api'
+import { NedrugRequestError } from './nedrug-api'
 import { QuotaExceededError } from './llm'
-import { FoodSafetyKeyMissingError, FoodSafetyAuthError } from './healthfood-api'
+import { FoodSafetyAuthError } from './healthfood-api'
+import { FamilyRequestError } from './family'
+import { GoogleSignInError } from './auth'
 import {
   MedicationLimitError,
   DuplicateMedicationError,
@@ -14,12 +16,6 @@ import {
  * - 자녀 도움이 필요한 시스템 오류는 명시
  */
 export function friendlyError(e: unknown): string {
-  if (e instanceof MissingApiKeyError) {
-    return '앱 설정이 덜 됐어요. 이 화면을 자녀에게 보여 주세요.'
-  }
-  if (e instanceof FoodSafetyKeyMissingError) {
-    return '영양제는 아직 찾을 수 없어요. 약 검색은 그대로 쓸 수 있어요. 자녀에게 알려 주세요.'
-  }
   if (e instanceof FoodSafetyAuthError) {
     return '영양제 정보를 받아 오지 못했어요. 자녀에게 알려 주세요.'
   }
@@ -28,6 +24,23 @@ export function friendlyError(e: unknown): string {
     if (e.status === 429) return '잠깐 사이에 너무 많이 찾았어요. 1분 뒤에 다시 해 보세요.'
     if (e.status >= 500) return '식약처 서버가 잠시 응답하지 않아요. 조금 뒤에 다시 해 보세요.'
     return `정보를 받아 오지 못했어요. 조금 뒤에 다시 해 보세요. (오류 ${e.status})`
+  }
+  if (e instanceof FamilyRequestError) {
+    if (e.code === 'invalid_code') {
+      return '초대 코드가 맞지 않거나 기한이 지났어요. 코드를 다시 보시고, 계속 안 되면 자녀에게 새 코드를 받아 주세요.'
+    }
+    if (e.code === 'too_many') return '오늘은 코드를 너무 많이 넣으셨어요. 내일 다시 해 보세요.'
+    if (e.code === 'bad_token') return '가족 연결이 끊어졌어요. 자녀에게 새 초대 코드를 받아 주세요.'
+    if (e.code === 'login_required') return '가족의 약을 보는 초대예요. Google로 로그인하면 연결돼요.'
+    if (e.code === 'bad_session') return '로그인이 끝났어요. 다시 로그인해 주세요.'
+    if (e.code === 'bad_credential') return 'Google 로그인을 확인하지 못했어요. 다시 해 보세요.'
+    if (e.code === 'forbidden') return '관리자만 할 수 있어요. 관리자에게 부탁해 주세요.'
+    if (e.code === 'last_admin') return '관리자가 한 명뿐이라 뺄 수 없어요. 다른 분께 먼저 관리자를 주세요.'
+    if (e.status >= 500) return '가족 연결 서버가 잠시 응답하지 않아요. 조금 뒤에 다시 해 보세요.'
+    return '가족 연결 중 문제가 생겼어요. 조금 뒤에 다시 해 보시고, 계속되면 자녀에게 알려 주세요.'
+  }
+  if (e instanceof GoogleSignInError) {
+    return 'Google 로그인 화면을 불러오지 못했어요. 인터넷 연결을 확인하고 다시 해 보세요.'
   }
   if (e instanceof MedicationLimitError) {
     return `내 약은 ${MAX_MEDICATIONS}개까지 등록할 수 있어요. 더 드시지 않는 약을 지운 뒤 추가해 주세요.`

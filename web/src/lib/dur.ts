@@ -11,11 +11,8 @@ import {
   type MedCoverage,
 } from './dur-match'
 
-const NEDRUG_KEY = import.meta.env.VITE_NEDRUG_API_KEY ?? ''
-const isDev = import.meta.env.DEV
-const DUR_BASE = isDev
-  ? '/api/nedrug/1471000/DURPrdlstInfoService03'
-  : 'https://apis.data.go.kr/1471000/DURPrdlstInfoService03'
+// dev는 Vite 프록시, 배포본은 Cloudflare Pages Function(functions/api/nedrug)이 같은 경로를 받아 키를 붙인다
+const DUR_BASE = '/api/nedrug/1471000/DURPrdlstInfoService03'
 
 interface DurResponseBody {
   body?: {
@@ -71,8 +68,7 @@ function pick(r: DurRow): DurRow {
 async function fetchDurPage(itemSeq: string, pageNo: number): Promise<{ items: DurRow[]; total: number }> {
   const url =
     `${DUR_BASE}/getUsjntTabooInfoList03` +
-    `?serviceKey=${NEDRUG_KEY}` +
-    `&type=json` +
+    `?type=json` +
     `&itemSeq=${encodeURIComponent(itemSeq)}` +
     `&numOfRows=${DUR_PAGE_SIZE}` +
     `&pageNo=${pageNo}`
@@ -86,7 +82,6 @@ async function fetchDurPage(itemSeq: string, pageNo: number): Promise<{ items: D
 
 /** 모든 쪽을 받는다: 첫 쪽의 totalCount로 나머지 쪽을 병렬로 */
 async function fetchDurFromApi(itemSeq: string): Promise<DurRow[]> {
-  if (!NEDRUG_KEY) throw new Error('식약처 API 키가 없습니다.')
 
   const first = await fetchDurPage(itemSeq, 1)
   const rest: Promise<{ items: DurRow[] }>[] = []

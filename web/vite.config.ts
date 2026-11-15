@@ -1,6 +1,13 @@
-import { defineConfig } from 'vite'
+import { fileURLToPath } from 'node:url'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+
+// dev 프록시가 붙일 식약처·식품안전나라 키. Node 쪽에서만 읽어 클라이언트 번들에는 들어가지 않는다
+// (클라이언트 코드는 이 값을 참조하지 않음). 배포본은 Pages Function이 Secret으로 붙인다.
+const env = loadEnv('development', fileURLToPath(new URL('.', import.meta.url)), '')
+const NEDRUG_KEY = env.VITE_NEDRUG_API_KEY ?? ''
+const FOODSAFETY_KEY = env.VITE_FOODSAFETY_API_KEY ?? ''
 
 export default defineConfig({
   plugins: [
@@ -11,13 +18,18 @@ export default defineConfig({
         name: '약똑똑',
         short_name: '약똑똑',
         description: '드시는 약과 새로 산 영양제나 일반약을 함께 먹어도 되는지 식약처 자료로 알려 드려요.',
-        theme_color: '#F2F4F6',
-        background_color: '#F2F4F6',
+        theme_color: '#F8F4EE',
+        background_color: '#F8F4EE',
         display: 'standalone',
         start_url: '/',
         lang: 'ko-KR',
+        // PNG는 npm run generate-pwa-assets로 public/icon.svg에서 만든다(pwa-assets.config.ts)
         icons: [
-          { src: '/icon.svg', sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' },
+          { src: '/pwa-64x64.png', sizes: '64x64', type: 'image/png' },
+          { src: '/pwa-192x192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/pwa-512x512.png', sizes: '512x512', type: 'image/png' },
+          { src: '/icon.svg', sizes: 'any', type: 'image/svg+xml' },
+          { src: '/maskable-icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
       workbox: {
@@ -43,12 +55,24 @@ export default defineConfig({
       '/api/nedrug': {
         target: 'http://apis.data.go.kr',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/nedrug/, ''),
+        rewrite: (path) => {
+          const [pathname, query = ''] = path.replace(/^\/api\/nedrug/, '').split('?')
+          return `${pathname}?serviceKey=${NEDRUG_KEY}${query ? `&${query}` : ''}`
+        },
       },
       '/api/foodsafety': {
         target: 'http://openapi.foodsafetykorea.go.kr',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/foodsafety/, ''),
+        // /api/foodsafety/api/<서비스>/... → /api/<키>/<서비스>/...
+        rewrite: (path) => path.replace(/^\/api\/foodsafety\/api\//, `/api/${FOODSAFETY_KEY}/`),
+      },
+      // 가족 연결은 D1이 필요해 로컬 함수 서버(web/에서 `npx wrangler pages dev dist`, :8788)로 넘긴다.
+      // 그 서버가 안 떠 있으면 가족 기능만 실패하고 나머지 앱은 그대로 동작한다.
+      // 폰(LAN 주소)에서 열어도 함수의 출처 확인을 통과하도록 Origin을 로컬 주소로 바꾼다
+      '/api/family': {
+        target: 'http://127.0.0.1:8788',
+        changeOrigin: true,
+        headers: { Origin: 'http://localhost:8788' },
       },
     },
   },

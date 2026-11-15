@@ -1,0 +1,55 @@
+# Cloudflare Pages 설정 (직접 올리기). 이 파일이 배포 설정의 기준이다.
+# `wrangler pages download config pill-check`로 받은 값에 KV 바인딩을 더했다.
+# GEMINI_API_KEY는 Secret이라 여기 없다(대시보드 Variables and Secrets).
+name = "pill-check"
+pages_build_output_dir = "dist"
+compatibility_date = "2026-11-13"
+
+[placement]
+mode = "off"
+
+# AI 해설 호출 횟수(IP별 하루) 저장소. functions/api/llm.ts에서 씀
+[[kv_namespaces]]
+binding = "LLM_LIMIT"
+id = "54d760db573647a4aed53e114625e6c8"
+
+# 가족 연결 저장소(plan.md 41). functions/api/family에서 씀.
+# 테이블은 migrations/ — 로컬: npx wrangler d1 migrations apply pill-check-family --local
+# 운영 DB는 2026-11-15 `npx wrangler d1 create pill-check-family --location apac`로 만들었다.
+# 운영 테이블 적용: npx wrangler d1 migrations apply pill-check-family --remote
+# preview_database_id는 Pages 로컬 개발에 필요(binding 이름과 같게)
+[[d1_databases]]
+binding = "FAMILY_DB"
+database_name = "pill-check-family"
+database_id = "5cb944ce-4715-470c-8ffa-f592f4650e69"
+preview_database_id = "FAMILY_DB"
+migrations_dir = "migrations"
+
+# Google 로그인(plan.md 45). OAuth 웹 클라이언트 ID는 공개값이라 여기 둔다(비밀번호 아님).
+# 로컬은 web/.dev.vars의 값이 이걸 덮는다
+[vars]
+GOOGLE_CLIENT_ID = "1044080888987-0gcgdoib1n9ms8difgtaj9eppr480j7n.apps.googleusercontent.com"
+
+[env.production]
+compatibility_date = "2026-06-01"
+
+# vars도 환경으로 상속되지 않는다고 보고 production에도 적는다
+[env.production.vars]
+GOOGLE_CLIENT_ID = "1044080888987-0gcgdoib1n9ms8difgtaj9eppr480j7n.apps.googleusercontent.com"
+
+# 함수는 사용자 가까이(서울)에서 돈다. 미국(gcp:us-central1)으로 두면 식품안전나라가
+# 해외 요청을 받지 않아 영양제 검색이 522로 실패한다(2026-11-14 확인)
+[env.production.placement]
+mode = "off"
+
+# kv_namespaces는 환경으로 상속되지 않아 production에도 적는다
+[[env.production.kv_namespaces]]
+binding = "LLM_LIMIT"
+id = "54d760db573647a4aed53e114625e6c8"
+
+# d1_databases도 KV처럼 환경으로 상속되지 않는다고 보고 production에도 적는다
+[[env.production.d1_databases]]
+binding = "FAMILY_DB"
+database_name = "pill-check-family"
+database_id = "5cb944ce-4715-470c-8ffa-f592f4650e69"
+migrations_dir = "migrations"

@@ -23,6 +23,7 @@ import {
   type ParsedDoc,
   type DocNode,
 } from '../lib/xmlDoc'
+import { useBackClose } from '../lib/back-close'
 
 /** 검색 결과에서 연 상세의 아래 버튼. 누르면 상세를 닫고 검색 화면의 같은 동작을 한다 */
 export interface DetailActions {
@@ -43,6 +44,7 @@ interface Props {
 
 /** 제품 상세: 화면 전체를 덮는 화면 (위에 뒤로 버튼) */
 export function DetailModal({ target, onClose }: Props) {
+  useBackClose(target !== null, onClose)
   useEffect(() => {
     if (!target) return
     const onKey = (e: KeyboardEvent) => {

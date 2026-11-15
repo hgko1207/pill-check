@@ -1,7 +1,7 @@
 # 약똑똑 (PillCheck)
 
 60대 부모님과 그 자녀가 쓰는 약·영양제 상호작용 체크 PWA. 바코드·검색으로 제품을 찾아 등록한 약과의 DUR 충돌을 빨강/노랑/회색/초록으로 보여 준다.
-- 스택: Vite 6 + React 19 + TypeScript(strict), Dexie(IndexedDB), vite-plugin-pwa, html5-qrcode. AI 해설은 Vercel Edge Function(`web/api/llm.ts`) → Gemini.
+- 스택: Vite 6 + React 19 + TypeScript(strict), Dexie(IndexedDB), vite-plugin-pwa, html5-qrcode. AI 해설은 Cloudflare Pages Function(`web/functions/api/llm.ts`) → Gemini. 배포는 Cloudflare Pages(`https://pill.hgko.dev`).
 - 답변은 한국어로, 코드 식별자는 영문으로 쓴다.
 
 ## 구조
@@ -9,7 +9,9 @@
 - `web/src/components/` — 화면·UI 컴포넌트 (`SearchScreen.tsx`, `InteractionResultCard.tsx` 등)
 - `web/src/lib/` — API 클라이언트(`nedrug-api.ts`, `healthfood-api.ts`, `dur.ts`, `llm.ts`), DB(`db.ts`), 에러 변환(`errors.ts`), 타입(`types.ts`)
 - `web/src/App.css` — 디자인 토큰(`--pc-*`, 다크 모드 `html[data-theme='dark']`) + 컴포넌트 스타일
-- `web/api/` — Vercel Edge Function (서버 측 키 사용)
+- `web/functions/` — Cloudflare Pages Function (서버 측 키 사용, `functions/api/llm.ts` → `/api/llm`, IP별 하루 횟수 제한). `functions/api/nedrug`·`functions/api/foodsafety`는 배포본의 식약처·식품안전나라 호출 중계(dev는 Vite 프록시가 같은 경로를 받음). `functions/api/family`는 가족 연결(D1 `FAMILY_DB`) — 관리자·보는 사람은 Google 로그인 계정(역할 `admin`/`user`), 부모님(구성원)은 로그인 없이 초대 코드 → 기기 토큰. Google 클라이언트 ID는 공개값이라 `wrangler.toml` `[vars] GOOGLE_CLIENT_ID`
+- `web/migrations/` — D1 테이블 정의. 로컬 적용 `npx wrangler d1 migrations apply pill-check-family --local`(`web/`에서), 로컬 함수 실행 `npx wrangler pages dev dist`(로컬 시험용 `GOOGLE_CLIENT_ID`·`GOOGLE_JWKS_URL`은 `web/.dev.vars`. `GOOGLE_JWKS_URL`은 운영에 두지 않는다)
+- `web/wrangler.toml` — Pages 배포 설정(KV 바인딩 `LLM_LIMIT`, D1 바인딩 `FAMILY_DB`). 이 파일이 배포 설정의 기준
 - `scripts/week0/` — Week 0 GATE 1 데이터 검증용 Python 스크립트 (앱 빌드와 무관)
 - `docs/product-design.md` — 제품 설계 문서(소스 오브 트루스), `docs/api-key-guide.md` — 식약처 API 키 발급
 - `PRODUCT.md`·`DESIGN.md` — `/impeccable` 디자인 스킬용 제품 정의와 디자인 시스템(색·글꼴·컴포넌트). 화면 디자인 결정은 `DESIGN.md`를 따른다
@@ -22,12 +24,13 @@
 | 설치 | `npm --prefix web install` |
 | 실행 | `npm --prefix web run dev` (LAN 노출, 폰 접속용) |
 | 빌드 | `npm --prefix web run build` |
+| 배포 | `cd web && npm run build && npx wrangler pages deploy dist --project-name pill-check --branch main` (push로 자동 배포 안 됨, `web/`에서 실행해야 `functions/`가 같이 올라감) |
 
 ## 검증 명령
 
 `verify` 스킬이 이 순서로 실행한다. 실제로 실행해 확인한 명령만 적는다.
 
-1. 타입체크: `npm --prefix web run typecheck` (`tsc --noEmit`, `web/src`만 대상 — `web/api/`는 검사 안 됨)
+1. 타입체크: `npm --prefix web run typecheck` (`tsc --noEmit`, `web/src`만 대상 — `web/functions/`는 검사 안 됨)
 2. 빌드: `npm --prefix web run build`
 - 린트·테스트는 아직 없다. 동작 확인은 `npm --prefix web run dev` 후 브라우저/폰에서 한다.
 
@@ -66,7 +69,7 @@
 ## 하지 말 것
 
 - `web/src/lib/db.ts`의 기존 `this.version(N)` 블록을 고치지 않는다 — 스키마 변경은 새 버전 + `upgrade()`로 추가한다 (사용자 기기에 이미 저장된 데이터).
-- 서버 전용 키(`GEMINI_API_KEY`)를 `VITE_` 변수나 클라이언트 코드로 옮기지 않는다 — `VITE_*`는 번들에 그대로 들어간다. 운영 호출은 `/api/llm` 경유.
+- 서버 전용 키(`GEMINI_API_KEY`, `NEDRUG_API_KEY`, `FOODSAFETY_API_KEY` — Pages Secret)를 클라이언트 코드로 옮기지 않는다. `src/`에서 `import.meta.env.VITE_*`로 키를 참조하면 번들에 그대로 들어간다. 운영 호출은 `/api/llm`·`/api/nedrug`·`/api/foodsafety` 경유.
 - 결과 문구에서 "안전하다"고 단정하지 않는다 — 초록도 "충돌이 확인되지 않음(참고용)"이다. 면책 문구(`Disclaimer.tsx`)를 빼지 않는다.
 - 테스트를 통과시키려고 테스트를 지우거나 건너뛰게 바꾸지 않는다.
 - 비밀값(.env, 키)을 읽거나 코드에 넣지 않는다.

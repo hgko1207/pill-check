@@ -33,10 +33,14 @@
 
 > 24~27은 사용자 확인(2026-11-13)에서 나온 것이다: "신고 정보와 기준규격 보기 위에 여백이 많다", "한눈에 보기가 딱딱해서 어르신이 안 읽을 것 같다", "'내 약과 확인'이 음식 '약과'처럼 읽힌다, 전체를 쉬운 말로", "영양제끼리 '비교할 수 없어요'면 어떻게 하나". 대부분 50대 이상이 쓸 것으로 본다. 결정은 아래 각 항목에 적는다.
 
+> 29~31은 배포를 Vercel에서 Cloudflare Pages로 옮기고 `pill.hgko.dev`를 붙이는 작업이다(2026-11-13 사용자 결정). 이유: 광고 계획이 있는데 Vercel Hobby는 비상업용만 허용(https://vercel.com/docs/limits/fair-use-guidelines), 아직 쓰는 사람이 없어 주소가 바뀌어도 등록약 데이터 이전이 필요 없음, 부모님께는 옮기고 도메인까지 붙인 뒤 드린다. `hgko.dev` DNS는 이미 Cloudflare에 있다. 방법 비교: (A) Cloudflare Pages + GitHub 연결 — 지금처럼 push하면 자동 배포, 브랜치 미리보기 있음 **(추천)** / (B) Pages 직접 올리기(wrangler) — 배포를 손으로 해야 하고 wrangler 설치 필요 / (C) Vercel Pro 유지 — 코드 그대로지만 유료. 29 → 30 → 31 순서로, 각각 따로 검증한다.
+
+> 32~33은 AI 해설 서버 함수 `/api/llm`에 서버 쪽 호출 제한을 넣는 작업이다(2026-11-14 사용자 승인 "추천대로"). 이유: 지금은 기기 브라우저 안 하루 5회 제한(`web/src/lib/llm.ts:15`)뿐이라 주소를 아는 사람이 직접 계속 부르면 모두가 함께 쓰는 Gemini 무료 한도를 혼자 다 쓸 수 있다. 조사: Cloudflare Rate Limiting 바인딩은 Workers 전용이고 Pages는 지원 안 함(cloudflare-docs `workers/static-assets/migration-guides/migrate-from-pages.mdx` 호환표 ❌, Pages 설정 키 목록에도 `ratelimits` 없음). `pill.hgko.dev`가 DNS only라 zone WAF 속도 제한 규칙도 못 쓴다. 방법 비교: (A) Pages KV에 IP별 하루 횟수 저장 + 출처(Origin) 확인 — 설정 파일 하나와 함수 수정으로 끝, KV 무료 등급 안(쓰기 하루 1,000, 읽기 10만), 다만 KV는 반영이 최대 60초 늦어 한꺼번에 몰아 부르면 몇 번 더 통과할 수 있음 **(추천)** / (B) Durable Object로 정확히 세기 — 정확하지만 Worker를 따로 만들어 묶어야 해서 이 규모엔 과함 / (C) 출처 확인만 — 가장 단순하지만 curl처럼 헤더를 꾸미면 그대로 뚫림 / (D) Turnstile 사람 확인 — 60대에게 단계가 늘어 제외. 32 → 33 순서로, 각각 따로 검증한다.
+
 #### 전체 점검에서 남은 것 (이번 범위 밖, 다음 계획 후보)
 - P1 검색: 종류별 10건에서 말없이 잘림(`nedrug-api.ts:26`, `healthfood-api.ts:157`), 실패와 "검색 결과가 없어요"가 함께 뜸(`SearchScreen.tsx:186-190`), 요청 시간 제한 없음, 검색 중 X나 새 검색어가 이전 검색을 취소하지 않음.
 - P1 등록과 판정: 등록할 때 내 약끼리 금기를 알리지 않음. 약 0개일 때 진한 버튼이 "내 약과 확인". 새 동작이라 설계부터.
-- P1 뒤로 가기: 기기 뒤로 가기가 덮는 화면을 닫지 않고 앱을 벗어남. 탭을 오가면 검색이 사라짐(`App.tsx:47`).
+- P1 뒤로 가기: ~~기기 뒤로 가기가 덮는 화면을 닫지 않고 앱을 벗어남~~ (40에서 해결). 탭을 오가면 검색이 사라짐(`App.tsx:47`).
 - 기술 점검 P1: 덮는 화면 초점 관리, 목록 줄 초점 테두리 잘림(`App.css:415-422`), 다크 주 버튼 hover 1.86:1(`App.css:353`).
 - 대비 부족 3건: `.dont-box__title` 4.35:1, `.recall__title` 4.35:1, 성분 입력칸 안내 글씨 4.34:1.
 - 그 밖: 읽는 문장 15~16px 여러 곳, 앱 아이콘이 초록 체크, AI 해설 답이 버튼 줄 아래 화면 밖에 생김, 등록 한도 안내가 화면 밖에 뜸, 검색어의 `/`와 `%`로 영양제 검색 실패, AI 하루 횟수가 UTC 기준, 바코드 라이브러리가 첫 화면 묶음의 48%.
@@ -54,7 +58,311 @@
 #### 따로 발견한 것
 - 1~4번 중 발견한 4건은 위 5·6번 작업으로 옮겼다.
 
+> 45~48은 가족 연결의 관리자 키를 **Google 로그인 계정**으로 바꾸는 작업이다(2026-11-15 사용자 결정: "관리자 키 말고 계정으로, 내 계정으로 들어가면 관리자로 보이게, 다른 계정에 관리자 권한도 주게"). 결정: Google 로그인만(아이디·비밀번호·카카오 없음), **부모님(구성원)은 로그인 없이 초대 코드 그대로**, 관리자·보는 사람(자녀·아내)만 로그인, 아내와의 첫 테스트는 이 작업 뒤. 관리자 키 방식(41~44, 커밋 `7571afb`)은 운영 배포 전이라 없앤다. 운영 D1 `pill-check-family`(APAC)에는 0001만 적용돼 있고 데이터는 없다.
+> 조사: Google Identity Services(GIS) 버튼을 누르면 브라우저 콜백으로 ID 토큰(JWT, `credential`)이 오고, 서버는 Google 공개키(JWKS)로 서명을 확인하고 `iss`가 `accounts.google.com`/`https://accounts.google.com`, `aud`가 우리 클라이언트 ID, `exp`가 지나지 않았는지 본다. 사용자 식별은 이메일이 아니라 `sub`로 한다(developers.google.com/identity/gsi/web/reference/js-reference, /identity/openid-connect/openid-connect). ID 토큰 수명은 1시간이라 세션은 우리가 따로 만든다. 리다이렉트 방식(`ux_mode: redirect`, `login_uri` POST + `g_csrf_token` 쿠키 확인)도 있다. **iOS 홈 화면 앱에서 GIS 팝업이 제대로 돌아오는지는 확인 안 함** — 46의 멈춤 조건.
+> 방법 비교: (A) GIS 버튼(팝업·콜백) + Pages Function에서 직접 ID 토큰 검증(WebCrypto RS256) + 우리 세션 토큰(지금처럼 `Authorization: Bearer`, `localStorage`) — 새 서비스 없음, 기존 토큰 방식과 같음 **(추천)** / (B) GIS 리다이렉트 방식 + 쿠키 세션 — 인앱 브라우저·iOS에 더 강할 수 있으나 CSRF 쿠키 처리와 쿠키·Bearer 두 방식이 섞임. (A)에서 iOS가 안 되면 그때 검토 / (C) Firebase Auth·Supabase·Clerk 같은 인증 서비스 — 검증 코드는 줄지만 서비스·SDK가 늘고 사용자 정보가 또 다른 해외 서비스에 저장됨 / (D) 아이디·비밀번호 직접 가입 — 사용자 결정으로 제외.
+> 첫 관리자 정하기: 배포 후 사용자가 `pill.hgko.dev/?admin`에서 Google로 한 번 로그인 → 운영 DB의 계정 목록을 조회해 사용자 본인임을 확인받은 뒤 그 행의 역할을 `admin`으로 바꾸는 명령을 1회 실행. 다른 안(이메일을 Pages 변수로 두기)은 사용자가 설정할 값이 하나 더 늘어 제외. 그 뒤로는 관리자가 화면에서 다른 계정에 관리자를 준다.
+> 리서치 보고서(`reports/약똑똑 다음 개선 아이디어.md`)의 공개 전 보완점 중 **연결 전 안내·동의**(무엇이·어디에·누가·마지막 사용 시각·관리자 열람·끊는 법)는 부모님 설치 전에 필요해 47로 넣는다. 부모의 특정 자녀 내보내기, 마지막 사용 시각 끄기, 자동 삭제 기간, 처리방침 페이지는 공개 출시 전 과제로 미룬다.
+> 45 → 46 → 47 → 48 순서로, 각각 따로 검증한다. 실제 Google 로그인은 자동화 브라우저로 할 수 없어(구글이 막음) 서버 검증은 로컬 테스트 키로, 실제 로그인은 사용자가 폰·PC에서 확인한다.
+
+### [x] 45. 가족 서버: Google 로그인·세션·계정 역할, 관리자 키 없애기
+- 완료(2026-11-15, 로컬): 함수 임시 tsconfig 타입체크 통과. 로컬 D1에 0002 적용 후 `wrangler pages dev dist` + scratchpad 시험용 JWKS 서버(:8799, 테스트 RSA 키)로 시나리오 47개 통과 — 정상 토큰 로그인, 위조 서명·aud·iss·만료·없는 kid·HS256·서명 없음·모양 틀림 거절, 일반 계정 관리자 경로 403·세션 없음 401·예전 `X-Admin-Key` 안 통함, 관리자 지정(DB 1회) 후 200, 관리자 주기·빼기·마지막 관리자 보호, 초대 미리보기(코드 안 씀), 보는 사람 초대 로그인 없음 → `login_required`(코드 그대로) → 로그인 후 연결, 같은 계정 중복 없음, 그룹 격리, 구성원은 로그인 없이 기기 토큰, 기기 토큰·세션 토큰 섞어 쓰기 거절, 다시 잇기(구성원만), 로그아웃·세션 만료 401, 관리자가 뺀 보는 사람. 실제 Google 공개키 주소에서 받는 것은 48에서 운영으로 확인. 계획과 달라진 점: 응답 오류 코드 `bad_session`(세션)·`bad_credential`(ID 토큰)·`last_admin` 추가, 관리자 그룹 목록의 보는 사람 행에 계정 메일(`accountEmail`)을 붙임, 다시 잇기 초대는 구성원만 허용. 로컬 `.dev.vars`에서 `FAMILY_ADMIN_KEY`를 지우고 시험용 Google 값으로 바꿈.
+- 목표: 로컬(`wrangler pages dev`)에서 시나리오 스크립트가 모두 통과한다 — 테스트 키로 서명한 ID 토큰으로 로그인하면 세션 토큰을 받는다 → 서명·`aud`·`iss`·`exp`가 틀린 토큰은 401 → 일반 계정은 관리자 경로 403, 관리자 계정은 그룹·초대·빼기 가능 → 관리자가 다른 계정에 관리자를 주고 뺄 수 있고 마지막 관리자는 못 뺀다 → 보는 사람 초대 코드는 로그인 없이 쓰면 `login_required`(코드는 쓰이지 않음), 로그인하고 쓰면 그 계정이 그룹의 보는 사람이 된다 → 보는 사람 계정은 자기 그룹들만 본다 → 구성원(부모님) 초대는 지금처럼 로그인 없이 된다 → 초대 미리보기(역할·그룹 이름)는 코드를 쓰지 않고 볼 수 있다 → 로그아웃한 세션은 401 → `X-Admin-Key`는 더 이상 통하지 않는다.
+- 맥락: 위 메모. 관리자 키 대신 계정 역할로 권한을 정한다.
+- 변경할 파일:
+  - `web/migrations/0002_auth.sql` (새 파일) — `auth_users`(id, google_sub UNIQUE, email, name, role `admin`|`user`, created_at, last_login_at), `auth_sessions`(token_hash PK, user_id, created_at, expires_at), `family_members`에 `user_id` 열 추가(보는 사람은 계정으로, 구성원은 지금처럼 기기 토큰). 0001은 고치지 않는다
+  - `web/functions/api/family/[[path]].ts` — 같은 파일에 `auth/config`(클라이언트 ID 돌려줌), `auth/google`(ID 토큰 검증 → 계정 만들기·갱신 → 세션), `auth/me`, `auth/logout` 추가. 관리자 경로를 `X-Admin-Key` 대신 세션의 `role = 'admin'`으로 확인. `admin/users`(목록)·`admin/users/:id`(역할 바꾸기, 마지막 관리자 보호) 추가. `join`: 보는 사람 초대는 세션 필수(없으면 400 `login_required`, 코드 사용 처리 안 함), 같은 계정이 이미 그 그룹 보는 사람이면 다시 만들지 않음. `view`: 세션으로 내가 보는 사람인 그룹 전부. `invite`(GET, 코드 미리보기: 역할·그룹 이름·표시 이름, 연결 시도 횟수 제한에 같이 셈). Google 공개키는 응답의 `Cache-Control`만큼 메모리에 보관. 세션 90일, 쓸 때마다 연장
+  - `web/wrangler.toml` — `[vars] GOOGLE_CLIENT_ID`(공개값이라 파일에 둠, 최상위와 `env.production` 둘 다). 값은 48에서 사용자가 만든 뒤 넣고, 그 전엔 비워 둔다
+  - `CLAUDE.md` — 서버 전용 키 목록에서 `FAMILY_ADMIN_KEY` 빼기, 가족 연결 설명을 "Google 로그인(관리자·보는 사람) + 초대 코드(구성원)"로
+- 참조: 지금 함수의 `findByToken`·`sha256Hex`·`safeEqual`·KV 횟수 제한(`[[path]].ts`), Google 문서의 ID 토큰 검증 절차(위 메모)
+- 검증: typecheck, build, 함수 임시 tsconfig 타입체크. 로컬 마이그레이션 0002 적용 후 `wrangler pages dev dist` + scratchpad의 작은 JWKS 서버(테스트 RSA 키) — `web/.dev.vars`에 `GOOGLE_JWKS_URL`(로컬 테스트용, 운영엔 없음 → Google 주소 사용)과 테스트 `GOOGLE_CLIENT_ID`. 위 목표 시나리오를 Node 스크립트로.
+- 안 하는 것: 화면(46), 연결 전 동의(47), 운영 배포(48), 카카오·아이디 로그인, 부모님 로그인, 리다이렉트 방식
+- 멈춤 조건: Pages Functions에서 WebCrypto RS256 검증이나 Google 공개키 받기가 안 되면 멈추고 방법을 묻는다. 0002가 기존 0001 테이블을 고쳐야만 하는 상황이 되면 알린다.
+
+### [x] 46. 가족 화면: Google 로그인, 보는 사람 초대 로그인 연결, 관리자 권한 주기
+- 완료(2026-11-15, 로컬): typecheck·build 통과. 헤드리스 Chromium(412px) 시나리오 24개 통과(세션은 45의 시험용 키로 받아 `localStorage`에 넣음) — `?admin` 로그인 카드, 로컬 클라이언트 ID로 **Google 버튼이 실제로 그려짐**, 저장된 역할이 낡아도 서버 역할로 맞춰 관리 화면, 관리자 묶음(나 표시)·계정 줄, 관리자 키 입력칸 없음, UI로 그룹·초대 3개, 부모님 기기 탭 3개·로그인 화면 없음, 보는 사람 링크 → 가족 탭 로그인 화면(그룹 이름) → 로그인 후 자동 연결, 설정 코드 입력도 로그인 화면으로·"연결 그만두기", 관리자 화면 보는 사람 줄에 계정 메일, 관리자 주기 → 상대 화면이 관리 화면 → 관리자 빼기, 로그아웃(저장 세션 삭제, 서버도 401), 페이지 오류 0. 스크린샷 라이트·다크 확인. 계획과 달라진 점: 세션 저장·로그인 요청은 순환 import를 피하려고 `auth.ts`가 아니라 `family.ts`에 두고, `auth.ts`는 Google 스크립트 로딩·버튼 그리기만 맡음. 로그인 전 화면 구분용 `adminEntry` prop은 없앰(세션이 없으면 늘 로그인 카드). 실제 Google 계정 로그인은 48에서 확인.
+- 목표: `?admin` 또는 가족 탭에서 "Google로 로그인" 버튼이 보이고, 로그인하면 관리자 계정은 지금의 관리 화면(그룹·초대·빼기·다시 연결)을, 일반 계정은 자기가 보는 그룹만 본다. 관리 화면에 "관리자" 묶음이 생겨 로그인한 계정 목록과 "관리자 주기/빼기"가 있다. 보는 사람 초대 링크·코드를 로그인 없이 열면 "Google로 로그인하면 연결돼요" 화면이 뜨고, 로그인하면 자동으로 연결된다. 가족 탭에 "OO(메일)로 로그인됨 · 로그아웃"이 있다. 부모님 기기는 지금처럼 탭 3개, 로그인 화면이 전혀 안 보인다. 관리자 키 입력 화면은 없다.
+- 맥락: 위 메모.
+- 변경할 파일:
+  - `web/src/lib/auth.ts` (새 파일) — GIS 스크립트를 필요할 때만 불러오기(`https://accounts.google.com/gsi/client`), `/api/family/auth/config`로 클라이언트 ID 받기, 로그인(받은 `credential`을 서버에 보내 세션 받기), 세션 저장(`localStorage` `pillcheck.auth`), `getMe()`, 로그아웃. 스크립트를 못 불러오면 전용 `GoogleSignInError`
+  - `web/src/lib/family.ts` — 관리자 키·보는 사람 기기 토큰 제거, 보기·관리자 요청은 세션 토큰으로, `previewInvite(code)`, `adminListUsers()`·`adminSetRole()`, 가족 탭 표시 조건은 "로그인돼 있음"
+  - `web/src/lib/errors.ts` — `GoogleSignInError`, `login_required`·`forbidden` 문구 연결
+  - `web/src/components/GoogleSignInButton.tsx` (새 파일) — GIS 버튼 그리기(`renderButton`), 콜백 처리
+  - `web/src/components/FamilyPage.tsx`·`web/src/components/FamilyAdmin.tsx` — `AdminKeyForm` 제거, 로그인 카드, 계정 줄·로그아웃, 관리자 묶음(계정 목록·역할 바꾸기)
+  - `web/src/components/FamilySettings.tsx`·`web/src/App.tsx` — 보는 사람 초대면 코드를 잠시 보관하고 가족 탭 로그인 화면으로 보냄, 로그인 후 이어서 연결. `?admin`은 가족 탭 로그인 화면으로 가는 입구로 유지
+  - `web/src/App.css` — 로그인 카드 등 필요한 만큼만
+- 참조: 지금의 `FamilyPage.tsx`·`FamilyAdmin.tsx`·`FamilySettings.tsx`(`finishFamilyJoin`), `web/src/lib/family.ts`의 요청 함수, `DESIGN.md`
+- 검증: typecheck, build. 헤드리스 Chromium(412px): GIS 버튼은 실제 구글 로그인을 자동화할 수 없으므로, 45의 테스트 키로 받은 세션을 `localStorage`에 넣어 로그인 상태를 만든 뒤 — 관리자 화면·역할 바꾸기·로그아웃, 일반 계정은 자기 그룹만, 보는 사람 링크를 로그인 없이 열면 로그인 화면 → 세션 넣고 새로 열면 자동 연결, 부모님 기기에 로그인 화면이 없는지, 스크린샷(라이트·다크). 로그인 전 화면에 GIS 버튼 자리가 그려지는지는 로컬 클라이언트 ID로 확인(확인 안 되면 그렇게 적음). 실제 Google 로그인은 48에서 사용자가 확인.
+- 안 하는 것: 연결 전 동의(47), 운영 배포(48), 프로필 사진, 계정 탈퇴 화면
+- 멈춤 조건: 48에서 iOS 홈 화면 앱의 GIS 로그인이 안 되면 (가) 자녀·관리자는 Safari 탭으로 쓰기 (나) 리다이렉트 방식 추가 중에서 묻는다.
+
+### [x] 47. 부모님 연결 전 안내·동의
+- 완료(2026-11-15, 로컬): typecheck·build 통과. 헤드리스 시나리오 16개 통과 — 설정 코드 입력 시 동의 창(제목 "OO에 '아버지'(으)로 연결할까요?", 보이는 것·보는 사람·저장하는 곳(해외 클라우드 Cloudflare)·그만두는 법), 글자 크게에서도 창이 화면 안, 취소하면 연결 안 되고 코드는 그대로 쓸 수 있음, 동의하면 연결, 링크(`?join=`)도 같은 창, 보는 사람 초대는 창 없이 로그인 화면, 서버에 두 분 연결 확인. 스크린샷 라이트·다크·글자 크게 확인. 46 시나리오를 다시 돌려 24개 통과(부모님 링크에 동의 단계 추가). 구현: 연결 흐름을 `FamilySettings.tsx`의 `joinWithConsent`(미리보기 → 구성원이면 동의 → 연결 → 보는 사람이면 로그인 화면) 하나로 모아 App과 설정이 같이 씀. 참고: 이제 한 번 연결에 미리보기+연결로 연결 시도 횟수가 2회씩 쌓인다(같은 IP 하루 30회) — 로컬 시험을 많이 돌리다 한도에 걸려 카운터를 지우고 다시 돌림. 가족 설치 규모에서는 문제없을 것으로 봄.
+- 목표: 부모님이 초대 코드나 링크로 연결할 때 바로 연결되지 않고, 먼저 "OO 그룹에 '아버지'로 연결할까요?" 확인 창이 뜬다. 창에 공유되는 것(내 약 이름·성분·제조사, 마지막 사용 시각), 볼 수 있는 사람(그 그룹 가족과 관리자), 저장 위치(해외 클라우드 서버), 그만두는 법(설정 → 가족 연결 끊기)이 쉬운 말로 있고, "동의하고 연결"을 눌러야 연결된다. "취소"면 코드는 쓰이지 않는다. 보는 사람 초대에는 이 창이 안 뜬다.
+- 맥락: 리서치에서 복용 약 목록은 민감정보로 보는 게 안전하고 해외 보관 고지가 필요하다고 나왔다(`reports/약똑똑 다음 개선 아이디어.md` "가족 연결은 공개 전에…"). 가족이라도 부모님께 미리 보여 드린다. 법률 검토는 아님.
+- 변경할 파일:
+  - `web/src/components/FamilySettings.tsx` — `finishFamilyJoin` 앞에 미리보기(45의 `invite`) → 구성원이면 동의 창 → 연결
+  - `web/src/App.tsx` — 링크(`?join=`)도 같은 흐름
+  - `web/src/App.css` — 동의 창 안 목록 모양이 필요하면
+- 참조: `web/src/lib/dialog.tsx`의 `confirm`(본문에 목록 넣기), `FamilySettings.tsx`의 기존 연결 안내 문구
+- 검증: typecheck, build. 헤드리스: 코드 입력 → 동의 창 문구 확인 → 취소하면 코드가 그대로 쓸 수 있음(다시 넣으면 다시 창) → 동의하면 연결, 링크도 같음, 보는 사람 초대는 창 없이 로그인 흐름. 스크린샷(라이트·다크, 글자 크게).
+- 안 하는 것: 처리방침 페이지, 부모의 특정 자녀 내보내기, 마지막 사용 시각 끄기, 자동 삭제 기간(공개 출시 전 과제)
+- 멈춤 조건: 동의 문구가 화면 한 번에 안 들어가 확인 창으로 부족하면 덮는 화면으로 바꿀지 묻는다.
+
+### [ ] 48. 운영 준비와 배포, 첫 관리자 정하기
+- 진행(2026-11-15): 1 완료 — 사용자가 Google Cloud 프로젝트 `moabom`에 웹 클라이언트 생성, 클라이언트 ID를 `web/wrangler.toml` `[vars]`(최상위·production)에 넣음. 2 완료 — 운영 D1에 0002 적용. 3 완료 — 빌드·배포(`https://2fe629c1.pill-check.pages.dev`), 운영 스모크: `auth/config`가 클라이언트 ID 반환, 세션 없이 `admin/groups`·`view` 401 `bad_session`, 모양 틀린 ID 토큰 401 `bad_credential`, 다른 출처 403, 홈 200. 실제 Google 공개키로 검증하는 경로는 4(사용자 로그인)에서 확인. 4 완료 — 사용자가 PC에서 실제 Google 로그인 성공(운영 `auth_users`에 계정 1건 생성 = 실제 Google ID 토큰 검증 통과). 5 완료 — 유일한 계정(방금 생성)을 `admin`으로 1회 변경(changes 1). 남은 것: 6 사용자가 새로 고침해 관리 화면 확인, iPhone 홈 화면 앱·Safari 탭 로그인 시험.
+- 목표: 운영 `https://pill.hgko.dev`에서 사용자가 Google로 로그인하고 관리자가 된 뒤, 그룹을 만들고 초대를 만들 수 있다. 아내 테스트를 시작할 수 있는 상태.
+- 맥락: 위 메모. 사용자 손이 필요한 단계가 있다.
+- 순서:
+  1. (사용자) Google Cloud 콘솔에서 프로젝트 → OAuth 동의 화면(외부, 앱 이름 "약똑똑", 범위 openid·email·profile) → OAuth 클라이언트 ID(웹 애플리케이션), 승인된 JavaScript 원본 `https://pill.hgko.dev`, `https://pill-check.pages.dev`, `http://localhost:5173`, `http://localhost:8788`. 테스트 모드면 아내 등 로그인할 계정을 테스트 사용자로 추가(테스트 모드 사용자 수 한도와 게시 시 검증 필요 여부는 확인 안 함 — 이때 콘솔 화면 보고 확인). 클라이언트 ID는 공개값이라 알려 주면 된다(클라이언트 보안 비밀번호는 필요 없음)
+  2. `web/wrangler.toml`에 `GOOGLE_CLIENT_ID` 넣기, `npx wrangler d1 migrations apply pill-check-family --remote`(0002)
+  3. 빌드·배포(CLAUDE.md 배포 명령), 운영 스모크: `auth/config`가 클라이언트 ID를 주는지, 로그인 없이 관리자 경로 401
+  4. (사용자) 폰이나 PC에서 `pill.hgko.dev/?admin` → Google 로그인
+  5. 운영 DB 계정 목록 조회 → 사용자 본인 확인 → 그 계정 역할을 `admin`으로 바꾸는 명령 1회
+  6. (사용자) 새로 고침 → 관리 화면 확인. iPhone이면 홈 화면 앱과 Safari 탭 둘 다 로그인 시험
+- 검증: 위 3·5·6의 실제 결과를 plan에 적는다.
+- 안 하는 것: 부모님 설치, 공개 출시 준비
+- 멈춤 조건: 1에서 콘솔 화면이 안내와 다르거나 게시 검증이 필요하다고 나오면 화면을 보고 다시 정한다. 6에서 iOS 홈 화면 앱 로그인이 안 되면 46의 멈춤 조건대로 묻는다.
+
+### [x] 49. 가족 탭 다시 디자인 (처음 쓰는 사람도 따라 하게)
+- 맥락: 사용자 확인(2026-11-15, 운영 화면 캡처 2장 "왜 디자인을 안 해 주는 거야", "예시 우리 집·처가 빼 줘", "어떻게 사용하는지 모르겠다"). 문제: 빈 상태가 회색 한 줄, 그룹 이름 칸 예시 placeholder, 초대 폼이 무엇을 하는지 설명 없음, "부모님 초대/보는 사람 초대" 차이가 안 보임, 큰 "새로 고침" 버튼, 관리자 칸과 계정 칸에 같은 사람이 두 번, 내 계정에 빨간 "관리자 빼기"가 바로 보임.
+- 변경: `DESIGN.md` 패턴(흰 묶음 목록, 아이콘 타일 줄, 단계 목록 `steps`, 빈 상태 `empty-box`)으로 `FamilyPage.tsx`·`FamilyAdmin.tsx`·`App.css` 가족 블록을 다시 짬. 처음 화면 "세 단계면 시작할 수 있어요" + "그룹 만들기" 주 버튼, 그룹 이름은 라벨("그룹 이름")만 두고 예시 없음, 그룹마다 초대 줄 두 개("약 드시는 분 초대 — 로그인 없이 코드만" / "함께 볼 가족 초대 — Google 로그인 필요"), 초대 패널에 3단계 안내와 "가족에게 보일 이름" 라벨, 공유 버튼 "카톡 등으로 보내기", 구성원 줄은 역할·마지막 사용·약 목록, 관리 버튼은 "폰 바꿨을 때 다시 연결"·"빼기"로 설명형, 새로 고침은 머리의 원형 아이콘 버튼, "관리자 권한"에는 내 계정을 빼고 다른 계정만(없으면 안내), "내 계정" 칸 하나로 합침, 메일은 따로 한 줄. 역할 이름을 화면에서 "약 드시는 분"·"함께 보는 가족"으로 통일(`ROLE_TEXT`).
+- 검증(로컬, 시험 DB 가족 데이터 비우고 처음부터): typecheck·build 통과, 헤드리스 시나리오 22개 통과 — 세 단계 안내, 계정 칸 하나·(나) 없음, 다른 계정 없을 때 안내, 예시 placeholder 0개, 새로 고침 아이콘 버튼, 그룹 만들기 패널, 빈 그룹 안내와 초대 줄, 초대 패널 단계·라벨, 함께 볼 가족 패널 Google 안내, 로그인 화면 그룹 이름, 로그인 후 연결, 함께 보는 가족 화면에 관리 줄 없음, 관리자 화면 줄 문구, 내 계정은 관리자 권한 목록에 없음, 412px·글자 크게 가로 넘침 없음, 화면 안 버튼 모두 56px 이상, 그룹 더 만들기·취소, 페이지 오류 0. 스크린샷 라이트·다크·글자 크게 확인. 운영 배포(2026-11-15, `https://a51dd044.pill-check.pages.dev`, 사용자 "배포해"), 홈 200·`auth/config` 정상.
+
 ## 완료
+
+> 39~40은 사용자 확인(2026-11-15 "바코드로 찾기나 TV에서 들은 성분 찾기를 누르고 닫으면 깜빡이는 느낌")에서 나왔다. 운영 주소를 헤드리스 Chrome(412×915)으로 재 보니, TV 성분 상자를 열면 아래 "내 약" 칸이 한 프레임에 428px → 947px로 이동해 화면 밖으로 나가고, 닫으면 한 번에 돌아온다(애니메이션 없이 조건부 렌더, `web/src/components/SearchScreen.tsx:388-406`). 바코드는 빈 상자(67px) → 카메라 영상 크기로 두 번 밀린다(두 번째는 실제 폰에서만, 확인 안 함). 카메라를 못 켰을 때 "카메라를 켜지 못했어요"가 홈 알림으로 떠서 바코드를 닫아도 남는다(`SearchScreen.tsx:390`). 방법 비교: (A) 제자리 펼침에 높이 애니메이션 — 범위 작지만 성분 상자가 519px라 열면 "내 약"이 여전히 화면 밖 / (B1) 새 바텀시트 — 앱에 없는 새 패턴(배경 어둡게, 끌어내리기), DESIGN.md "덮는 화면도 탭바 위에서 끝난다"와 맞추는 결정이 따로 필요 / (B2) 이미 있는 덮는 화면(`.sheet`, 오른쪽에서 들어오고 왼쪽 위 뒤로 버튼 — `GuideModal.tsx`·`DetailModal.tsx`·`ResultSheet.tsx`와 같은 방식)으로 띄우기 — 홈은 전혀 안 밀리고 새 패턴이 없으며 카메라를 넓게 씀 **(추천, 사용자 승인 "추천대로")**. 참고: 대화 중 "아래에서 올라오는 창"이라고 설명했으나, 앱의 기존 덮는 화면은 오른쪽에서 들어오는 전체 화면이다 — B2가 그 기존 방식이다. 뒤로 가기는 B2와 함께 걸려(덮는 화면이 늘어남) 40으로 같이 한다. 39 → 40 순서로, 각각 따로 검증한다.
+
+### [x] 39. 바코드·TV 성분 찾기를 덮는 화면으로 띄우기
+- 목표: 홈에서 두 타일을 누르면 홈은 그대로 두고 덮는 화면(`.sheet`)이 열린다. 열고 닫을 때 홈의 "내 약" 칸 위치가 바뀌지 않는다(헤드리스 측정으로 열기 전·연 뒤·닫은 뒤 같은 값). 카메라를 못 켰다는 안내는 바코드 화면 안에 뜨고, 닫으면 홈에 남지 않는다. 바코드를 인식하거나 성분을 고르면 화면이 닫히고 지금처럼 검색 결과가 나온다.
+- 맥락: 위 메모. 제자리 펼침이 화면을 크게 밀어 깜빡이는 느낌을 준다.
+- 변경할 파일:
+  - `web/src/components/ScanSheet.tsx` (새 파일) — 덮는 화면 + 뒤로 버튼 + 제목 "바코드로 찾기" + `BarcodeScanner` + 안내 문구. 카메라 오류는 이 화면 안 알림(`notice notice--error`)으로. Esc로 닫기·본문 스크롤 잠금은 `GuideModal`과 같게
+  - `web/src/components/TvIngredientSheet.tsx` (새 파일) — 덮는 화면 + 뒤로 버튼 + 제목 "TV에서 들은 성분 찾기" + 성분 칩(`INGREDIENTS`)
+  - `web/src/components/SearchScreen.tsx` — 제자리 상자 두 개(`scanner-box`, `tv-box`) 제거, 두 시트를 렌더. 타일은 `aria-expanded` 대신 `aria-haspopup="dialog"`, 라벨 "바코드 닫기" 전환 제거. `onError`로 홈 `setError`를 부르던 것 제거
+  - `web/src/App.css` — `.scanner-box`·`.tv-box` 규칙을 시트 안 배치에 맞게 바꾸고, 타일 선택 테두리(`.quick__tile[aria-expanded='true']`)는 더 쓰지 않으므로 지움. 누를 때 회색(`:active`)은 누름 피드백이라 남김
+- 참조: `web/src/components/GuideModal.tsx`(덮는 화면 뼈대·Esc·스크롤 잠금), `web/src/components/DetailModal.tsx`(topbar 뒤로 버튼)
+- 검증: typecheck, build. dev 서버를 헤드리스 Chrome으로 열어 두 타일 열기·닫기 때 "내 약" 칸 위치 측정(세 값 같음), 시트 스크린샷(라이트·다크·412px), 성분 칩을 누르면 시트가 닫히고 검색이 도는지(결과는 집 회선 사정으로 오류여도 시트가 닫히는 것까지), 카메라 없는 헤드리스에서 오류 안내가 시트 안에만 뜨고 닫으면 홈에 없는지. 실제 폰 카메라는 사용자 확인.
+- 안 하는 것: 기기 뒤로 가기(40), 바코드 인식 로직·`BarcodeScanner.tsx` 수정, 성분 목록 바꾸기, 탭 화면 전환 애니메이션
+- 멈춤 조건: 덮는 화면에서 카메라가 홈 상자일 때와 다르게 동작하면(예: 시트 열림 애니메이션 중 `html5-qrcode`가 크기를 잘못 잡음) 멈추고 알린다
+- 결과(2026-11-15): `ScanSheet.tsx`·`TvIngredientSheet.tsx`를 `GuideModal`과 같은 덮는 화면으로 만들고 홈의 제자리 상자 제거. 카메라를 못 켜면 빈 상자 대신 시트 안에 오류 안내 + "다시 켜기" 버튼(`BarcodeScanner`를 `key`로 새로 붙임) — 계획에 없던 버튼이라 알림. 타일 선택 테두리 CSS 제거, `:active` 회색은 유지. typecheck·build 통과. 헤드리스 Chrome(412×915)으로 dev와 빌드본(`vite preview`) 모두: 홈 "내 약" 칸 위치가 처음·TV 열기·뒤로 버튼·Esc·바코드 열기·닫기 내내 428px(전에는 열면 947px), 카메라 오류는 시트 안에만 있고 닫으면 없음, 성분 칩(루테인)을 누르면 시트가 닫히고 검색으로 넘어감, 콘솔 오류 0. 스크린샷 라이트(TV·바코드)·다크(바코드) 눈으로 확인. 실제 폰 카메라는 확인 안 함(사용자 확인).
+
+### [x] 40. 기기 뒤로 가기로 덮는 화면 닫기
+- 목표: 덮는 화면(상세, 사용법, 결과, 바코드, TV 성분)과 확인 창이 열려 있을 때 안드로이드 뒤로 가기(브라우저 뒤로)를 누르면 맨 위 화면 하나만 닫히고 앱은 그대로 있다. 화면을 뒤로 버튼·Esc·탭 누르기로 닫았을 때는 방문 기록에 빈 칸이 남지 않아, 그다음 뒤로 가기가 헛돌지 않는다. 확인 창을 뒤로 가기로 닫으면 "취소"와 같다.
+- 맥락: 지금은 `history`를 전혀 쓰지 않아(코드 검색 결과 `popstate`·`pushState` 0건) 뒤로 가기가 덮는 화면이 아니라 앱을 벗어난다(전체 점검 2026-11-13 P1 "뒤로 가기", 아래 "전체 점검에서 남은 것"의 그 항목을 이 작업이 맡는다). 39로 덮는 화면이 둘 늘어난다.
+- 방법: `web/src/lib/back-close.ts`에 훅 `useBackClose(open, onClose)`. 열릴 때 `history.pushState`로 칸을 하나 넣고 모듈 안 스택에 쌓는다. `popstate`가 오면 스택 맨 위만 닫는다. 화면 버튼으로 닫힐 때는 스택에서 빼고 넣었던 칸을 되돌린다 — 탭 누르기처럼 여러 개가 한꺼번에 닫힐 수 있어, 같은 순간 닫힌 개수를 모아 `history.go(-n)` 한 번으로 되돌리고 그때 오는 `popstate`는 무시한다. 다른 안: 주소에 `#detail` 같은 해시를 붙이는 방식은 주소가 바뀌고 새로고침 때 처리가 늘어 제외. Navigation API는 iOS Safari 지원 여부를 확인 안 해서 제외.
+- 변경할 파일:
+  - `web/src/lib/back-close.ts` (새 파일) — 위 훅
+  - `web/src/components/DetailModal.tsx`, `web/src/components/GuideModal.tsx`, `web/src/components/ResultSheet.tsx`, `web/src/components/ScanSheet.tsx`, `web/src/components/TvIngredientSheet.tsx` — 훅 연결
+  - `web/src/lib/dialog.tsx` — 확인 창이 열려 있을 때 훅 연결(뒤로 가기 = 취소)
+- 참조: 각 파일의 기존 Esc 닫기 `useEffect`(같은 자리에 붙인다)
+- 검증: typecheck, build. dev 서버를 헤드리스 Chrome으로 열어 화면마다 열기 → `history.back()` → 닫혔는지·주소가 앱 그대로인지·`history.length` 변화, 뒤로 버튼으로 닫은 뒤 `history.back()` 한 번에 앱 밖(about:blank)으로 나가는지(빈 칸 없음), 상세가 열린 채 탭을 눌렀을 때 기록이 맞는지, 결과 화면 위에서 확인 창을 연 뒤 뒤로 가기 두 번. 실제 안드로이드 뒤로 가기와 iOS 쓸어 넘기기는 사용자 확인.
+- 안 하는 것: 탭 사이 이동을 방문 기록에 넣기(탭은 뒤로 가기 대상 아님), 탭을 오가면 검색이 사라지는 문제(`App.tsx`), 덮는 화면 초점 관리
+- 멈춤 조건: iOS 홈 화면 앱에서 쓸어 넘기기 동작이 브라우저와 달라 화면이 두 번 닫히는 등 기기에서만 재현되는 문제가 나오면 멈추고 알린다. `history.go(-n)`이 기대와 다르게 동작해 단순한 방법으로 안 되면 방법을 다시 묻는다.
+- 결과(2026-11-15): `lib/back-close.ts`의 `useBackClose`(모듈 스택 + `pushState`, 화면 버튼으로 닫히면 같은 순간 닫힌 개수를 마이크로태스크로 모아 `history.go(-n)`, 그 popstate는 무시)를 상세·사용법·결과·바코드·TV 성분과 확인 창에 연결. 계획과 다른 점: 확인 창은 `dialog.tsx` 대신 `ConfirmDialog.tsx` 안에 붙임(창이 떠 있을 때만 렌더되는 컴포넌트라 더 단순). typecheck·build 통과. 헤드리스 Chrome으로 dev(StrictMode)와 빌드본 모두 통과: TV 뒤로 가기로 닫힘 → 다음 뒤로 가기는 앱 밖, 바코드 뒤로 버튼·TV Esc로 닫은 뒤 뒤로 가기 한 번에 앱 밖(빈 칸 없음), 사용법 뒤로 가기로 닫히고 설정 탭 유지, 사용법 열린 채 탭 누르기 뒤 뒤로 가기 한 번에 앱 밖. 확인 창(약 1개 넣고 "모두 지우기")은 dev에서만: 뒤로 가기 = 취소(약 그대로), 취소 버튼 뒤 뒤로 가기 한 번에 앱 밖. 테스트 약은 지움. 확인 안 함: 상세·결과 화면(검색 API가 필요해 자동 확인 못 함, 같은 훅), 결과 위 확인 창 겹침, 실제 안드로이드 뒤로 버튼과 iOS 쓸어 넘기기(사용자 확인). 알려진 한계: 덮는 화면이 열린 채 새로고침하면 기록 칸 하나가 남아 뒤로 가기가 한 번 헛돎.
+
+> 41~44는 가족 연결 작업이다(2026-11-15 사용자 요청: "부모님과 장인·장모님께 설치해 드리고, 어떤 약을 드시는지 알고 싶다. 가족이 더 늘어날 수도 있다"). 지금은 등록약이 각 폰의 IndexedDB에만 있어(`web/src/lib/db.ts:30-70`) 다른 사람이 볼 방법이 없고, 설계 문서도 V1을 "인증 없음, 로컬 only, 백업 없음"으로 정했다(`docs/product-design.md:120`, `:176`). 가족 공유는 "인증 필요"라며 미뤄 둔 항목이다(`:298`). 이 작업으로 그 결정을 바꾼다.
+> 사용자 결정(대화에서 승인): 로그인 계정은 만들지 않고 **초대 링크·초대 코드**로 기기를 잇는다. 그룹을 여러 개 둘 수 있고(예: 우리 집, 처가), 그룹마다 **구성원**(약을 등록하는 부모님)과 **보는 사람**(자녀)이 있다. 앱은 지금처럼 로컬 우선으로 돌고, 서버에는 등록약 목록 사본과 마지막 사용 시각만 올린다. 검색 기록은 이번 범위 밖. 모르는 사람이 쓰는 공개(정식 계정, 개인정보처리방침)도 이번 범위 밖.
+> 저장소 비교: (A) Cloudflare D1 — 그룹·구성원처럼 서로 묶인 자료에 맞고, 이미 쓰는 Pages Functions에 바인딩 하나로 붙음. Pages에서는 로컬 D1로만 개발 가능(cloudflare-docs `d1/best-practices/local-development.mdx`) **(추천)** / (B) 이미 있는 KV — 새 저장소가 없지만 반영이 최대 60초 늦고 목록 조회가 안 돼 "그룹의 구성원 목록"을 키로 따로 관리해야 함 / (C) Supabase — 계정 기능까지 있지만 쓰지 않을 기능이고 서비스가 하나 늘어남.
+> 신원 방식: 기기마다 무작위 토큰(256비트)을 받아 `localStorage`에 두고, 서버에는 SHA-256 해시만 저장한다. 그룹·초대를 만드는 것은 **관리자 키**(Pages Secret `FAMILY_ADMIN_KEY`)를 가진 기기만 한다 — 아무나 그룹을 만들지 못하게. Cloudflare Access는 `pill.hgko.dev`가 DNS only라 적용 가능한지 확인 안 해서 제외.
+> 알려진 위험(실제 폰에서 확인 필요): 카카오톡 안 브라우저나 iOS 홈 화면 앱은 일반 브라우저와 저장소가 따로라, 초대 링크를 연 곳과 설치한 앱이 다를 수 있다(확인 안 함). 그래서 링크와 함께 **앱 안에서 입력하는 8자리 코드**도 둔다.
+> 41 → 42 → 43 → 44 순서로, 각각 따로 검증한다. 운영 D1 만들기·Secret 설정·배포는 사용자 확인 뒤에 한다.
+
+### [x] 41. 가족 서버: D1 테이블과 `/api/family` 함수
+- 완료(2026-11-15, 로컬): 함수 타입체크(임시 tsconfig) 통과, `npm run typecheck`·`build` 통과. 로컬 D1 마이그레이션 적용 후 `wrangler pages dev dist`에서 시나리오 스크립트 37개 통과(그룹·초대·연결·약 올리기·그룹 격리·다시 잇기·연결 끊기·관리자 지우기·출처·경로), 만료 코드 400, 같은 IP 31번째 시도 429(다른 IP는 통과). 운영 D1은 아직 없음 — `wrangler.toml`의 `database_id`는 임시값(00000000-…)이라 운영 DB를 만든 뒤 바꿔야 배포할 수 있다. 계획과 달라진 점: 로컬 개발용으로 `http://localhost`·`127.0.0.1` 출처를 허용(토큰 방식이라 쿠키 위조 걱정 없음), `web/.gitignore`에 `.dev.vars`·`.wrangler/` 추가, 44의 서버 부분(다시 잇기 초대)도 여기서 만들고 검증함.
+- 목표: 로컬(`wrangler pages dev`)에서 curl 시나리오가 모두 기대대로 나온다 — 관리자 키로 그룹을 만들고 구성원·보는 사람 초대 코드를 받는다 → 코드로 연결해 토큰을 받는다 → 구성원 토큰으로 약 목록을 올린다 → 보는 사람 토큰으로 그 그룹 구성원의 약과 마지막 사용 시각을 본다 → 다른 그룹의 보는 사람은 못 본다(403) → 쓴 코드·만료 코드·틀린 키·틀린 토큰은 거절된다 → 구성원이 "연결 끊기"를 하면 서버에서 그 사람 행과 약이 사라진다.
+- 맥락: 위 메모. 화면 작업(42~44)이 기댈 서버를 먼저 만든다.
+- 변경할 파일:
+  - `web/migrations/0001_family.sql` (새 파일) — `family_groups`(id, name, created_at), `family_members`(id, group_id, role `member`|`viewer`, display_name, token_hash UNIQUE, meds_json, meds_updated_at, last_seen_at, created_at), `family_invites`(code_hash, group_id, role, display_name, member_id NULL — 폰을 바꾼 구성원 다시 잇기용, expires_at, used_at). 지울 때 연결된 행은 코드에서 직접 지운다(D1 외래키 연쇄 동작은 확인 안 함)
+  - `web/functions/api/family/[[path]].ts` (새 파일) — 한 파일에서 경로별 처리. `POST join`(코드 → 토큰, 역할, 그룹 이름, 구성원이면 서버에 있던 약), `GET me`(내 그룹 이름, 그 그룹의 보는 사람 이름 — 부모님께 "누가 보는지" 보여 주려고), `PUT me/meds`(구성원만, 최대 `MAX_MEDICATIONS` 10개 + 크기 제한, 마지막 사용 시각 함께 갱신), `DELETE me`(연결 끊기 = 서버의 내 행과 약 지우기), `GET view`(보는 사람만, 자기 그룹 구성원의 이름·약·마지막 사용 시각), 관리자 `GET/POST admin/groups`, `DELETE admin/groups/:id`, `POST admin/invites`(그룹, 역할, 표시 이름, 다시 잇기면 member_id), `DELETE admin/members/:id`. 토큰은 `Authorization: Bearer`, 관리자 키는 `X-Admin-Key` 헤더(상수 시간 비교). 출처 확인은 `llm.ts`와 같게. 초대 코드는 헷갈리는 글자(0/O, 1/I/L)를 뺀 8자, 7일 만료, 한 번만 사용. 코드 연결 시도는 IP별 하루 30회로 제한(KV `LLM_LIMIT`에 `family-join:` 접두사)
+  - `web/wrangler.toml` — `[[d1_databases]]`(binding `FAMILY_DB`, `preview_database_id`)를 최상위와 `env.production` 둘 다에 추가(KV처럼 상속 안 될 것으로 보고 둘 다 적음)
+  - `CLAUDE.md` — 구조에 `functions/api/family`·`migrations/`, 하지 말 것의 서버 전용 키 목록에 `FAMILY_ADMIN_KEY` 추가
+- 참조: `web/functions/api/llm.ts`(Env 최소 인터페이스, 출처 확인, KV 횟수 제한, `jsonResponse`), `web/functions/api/nedrug/[[path]].ts`(경로 나누기)
+- 검증: `npm --prefix web run typecheck`, `npm --prefix web run build`(둘 다 `functions/`는 검사하지 않으므로) + 함수 타입은 scratchpad의 임시 tsconfig로 `tsc --noEmit` 한 번. `npx wrangler d1 migrations apply <이름> --local` 후 `npx wrangler pages dev dist`로 띄워 위 목표의 curl 시나리오를 스크립트로 돌린다. 로컬 관리자 키는 테스트용 값을 `web/.dev.vars`에 둔다(`.gitignore`에 들어 있는지 먼저 확인, 없으면 추가).
+- 안 하는 것: 화면(42~44), 검색 기록 저장, 운영 D1 만들기·운영 Secret·배포(사용자 확인 뒤 따로), 계정·로그인
+- 멈춤 조건: `wrangler d1 create`(사용자 Cloudflare 계정에 실제 DB를 만듦)는 실행 전에 묻는다. Pages에서 D1 바인딩이 위 방식으로 안 붙거나 `[[path]]` 한 파일로 경로 처리가 안 되면 멈추고 방법을 다시 묻는다.
+
+### [x] 42. 부모님 기기: 초대 코드로 연결, 약 목록 자동 올리기, 연결 끊기
+- 완료(2026-11-15, 로컬): typecheck·build 통과. `wrangler pages dev dist` + 헤드리스 Chromium(412px) 시나리오 17개 통과 — 소문자·공백 섞인 코드로 연결, 설정에 그룹·볼 수 있는 사람 표시, 앱을 열 때 올리기(2개), 내 약에서 지우기 → 1개, 인터넷 끊고 모두 지우기 → 앱 정상·서버 그대로 → 다시 열면 0개, 연결 끊기 → 서버에서 사라지고 입력칸 복귀, 링크(`?join=`) 연결 후 주소에서 지워짐, 쓴 링크·틀린 코드는 쉬운 안내 문구, 페이지 오류 0. 등록(추가)은 로컬에 식약처 키가 없어 화면으로 못 해 보고 IndexedDB에 직접 넣었다 — 추가 경로도 같은 `refreshSignal`을 올리는 것은 코드로 확인(`SearchScreen.tsx:253`). 계획과 달라진 점: dev에서도 쓸 수 있게 `vite.config.ts`에 `/api/family` → `:8788` 프록시를 추가, 설정 문구에 "앱을 관리하는 가족도 볼 수 있어요"를 넣음(관리자 키 기기는 모든 그룹을 봄). 카카오톡 링크·iOS 홈 화면 앱 연결은 실제 폰 확인 필요.
+- 목표: 설정의 "가족 연결"에서 8자리 코드를 넣거나 `https://pill.hgko.dev/?join=코드` 링크로 열면 연결되고 "가족과 연결됐어요" 안내가 뜬다(주소의 `join`은 바로 지워짐). 연결된 기기에서 약을 등록·삭제·모두 지우기 하면 몇 초 안에 서버 목록이 같아진다(41의 `GET view`로 확인). 앱을 열 때도 한 번 올린다. 인터넷이 끊겨도 앱의 다른 기능은 그대로 되고, 올리기 실패는 사용자에게 알리지 않고 다음 열 때 다시 한다. 설정에 "OO에 연결돼 있어요. 볼 수 있는 사람: 철수, 영희"가 보이고, "연결 끊기"를 확인 창으로 누르면 서버의 내 정보가 지워지고 기기는 연결 전 상태가 된다(기기의 약은 그대로).
+- 맥락: 부모님이 따로 할 일 없이 자녀가 약 목록을 보게. 누가 보는지 부모님 화면에 드러나야 한다.
+- 변경할 파일:
+  - `web/src/lib/family.ts` (새 파일) — 토큰 저장(`localStorage` `pillcheck.family`), `joinFamily(code)`, `syncMyMedications()`(짧게 모았다가 한 번 보냄, 동시에 두 번 안 보냄), `getMyFamily()`, `leaveFamily()`, 전용 `FamilyRequestError`
+  - `web/src/lib/errors.ts` — `FamilyRequestError`를 `friendlyError`에 연결(코드 틀림·만료: "초대 코드가 맞지 않거나 기한이 지났어요. 자녀에게 새 코드를 받아 주세요." 등)
+  - `web/src/App.tsx` — 처음 열 때 `?join=` 처리 후 `history.replaceState`로 지우기, 열 때 한 번 올리기, `refreshSignal`이 바뀔 때 올리기
+  - `web/src/components/FamilySettings.tsx` (새 파일) — 설정 안 "가족 연결" 묶음: 연결 전(코드 입력칸 + 연결 버튼), 연결 후(그룹 이름, 볼 수 있는 사람, 연결 끊기)
+  - `web/src/components/SettingsPage.tsx` — "데이터" 위에 `FamilySettings` 렌더
+  - `web/src/App.css` — 코드 입력칸 등 필요한 만큼만, `--pc-*` 토큰 사용
+- 참조: `web/src/components/SettingsPage.tsx`(`group`·`row`·`setting` 구성, `useDialog`의 confirm·toast), `web/src/lib/healthfood-api.ts`(전용 Error + `friendlyError` 연결 방식), `web/src/lib/llm.ts`(`localStorage` 읽기·쓰기 try/catch)
+- 검증: typecheck, build. `wrangler pages dev dist`(41의 로컬 D1)를 헤드리스 Chrome(412px)으로 열어: 코드로 연결 → 약 2개 등록 → curl `GET view`에 2개 → 1개 삭제 → 1개 → 모두 지우기 → 0개, 링크 연결 후 주소에 `join` 없음, 서버를 끈 상태에서 등록해도 앱 오류 없음, 연결 끊기 후 `GET view`에서 사라짐, 설정 화면 스크린샷(라이트·다크). 등록·삭제·모두 지우기 세 곳이 모두 `refreshSignal`을 올리는지 먼저 코드로 확인한다. 카카오톡 링크·iOS 홈 화면 앱에서의 연결은 사용자가 실제 폰으로 확인.
+- 안 하는 것: 자녀 화면(43), 폰 바꾼 뒤 되찾기(44), `db.ts` 수정, 검색 기록
+- 멈춤 조건: `refreshSignal`을 안 올리는 곳이 있어 `db.ts`나 다른 컴포넌트를 고쳐야 하면 알리고 진행한다. 카카오톡·iOS 저장소 분리로 링크 연결이 실제로 안 되는 것이 확인되면 코드 입력만 남길지 묻는다.
+
+### [x] 43. 자녀·관리자 화면: 가족 탭과 초대 만들기
+- 완료(2026-11-15, 로컬): typecheck·build 통과. 헤드리스 Chromium(412px), 저장소가 다른 컨텍스트 4개(관리자·부모님 2·보는 사람)로 시나리오 통과 — `?admin`으로 가족 탭 열림·주소 정리, 틀린 키 안내, 그룹 2개 만들기, 초대 만들기(코드 크게·공유·복사), 부모님 기기는 탭 3개 그대로, 보는 사람은 연결 후 가족 탭 생김·자기 그룹 약만 보임·관리자 버튼 없음, 글자 크게에서 탭 4개 안 넘침, 관리자 구성원 빼기 → 그 기기 연결 풀림, 페이지 오류 0. 스크린샷 라이트·다크 확인. 계획과 달라진 점: 연결·관리자 키가 바뀌면 `window` 이벤트(`pillcheck:family-changed`)로 App이 가족 탭 표시를 다시 정함, 관리자 초대 버튼 이름은 "부모님 초대"·"보는 사람 초대".
+- 목표: 보는 사람 토큰이나 관리자 키가 있는 기기에만 아래 탭에 "가족"이 생긴다(부모님 기기는 탭 3개 그대로). 가족 탭에서 그룹별로 구성원 이름, 마지막 사용("3일 전"), 등록약 목록(약·영양제 구분)이 보인다. 관리자 기기는 `?admin` 주소로 연 뒤 키를 한 번 넣으면 그룹 만들기, 구성원·보는 사람 초대(표시 이름 입력 → 링크와 8자리 코드, 공유·복사 버튼), 구성원 빼기(확인 창)를 할 수 있다. 보는 사람 초대 링크로 연결한 기기는 그 그룹만 본다.
+- 맥락: 친척이 늘어도 관리자가 그룹·초대만 늘리면 되게. 처남은 처가 그룹만, 형제는 우리 집 그룹만 본다.
+- 변경할 파일:
+  - `web/src/components/FamilyPage.tsx` (새 파일) — 그룹 → 구성원 카드 → 약 목록. 서버에 못 닿으면 `friendlyError` 안내와 다시 시도 버튼
+  - `web/src/components/FamilyAdmin.tsx` (새 파일) — 관리자 키 입력, 그룹 만들기, 초대 만들기(`navigator.share`가 있으면 공유, 없으면 복사), 구성원 빼기
+  - `web/src/components/BottomNav.tsx` — `ViewKey`에 `'family'` 추가, 보일 때만 항목을 넣도록 prop 추가
+  - `web/src/App.tsx` — 가족 탭 화면 렌더, `?admin` 처리
+  - `web/src/lib/family.ts` — 보는 사람 토큰 여러 개(그룹마다), 관리자 키 저장, `getFamilyView()`, 관리자 함수들
+  - `web/src/App.css` — 구성원 카드 등 필요한 만큼만
+- 참조: `web/src/components/RegisteredList.tsx`(약 목록 줄 모양), `web/src/components/SettingsPage.tsx`(묶음·줄), `DESIGN.md`(색·글꼴·컴포넌트)
+- 검증: typecheck, build. 로컬에서 헤드리스 Chrome으로: 관리자 키 입력 → 그룹 두 개 만들기 → 각 그룹에 구성원 초대 → 다른 브라우저 컨텍스트(저장소가 따로)에서 구성원으로 연결해 약 등록 → 보는 사람 초대 링크로 세 번째 컨텍스트 연결 → 자기 그룹만 보이는지, 부모님 컨텍스트에는 가족 탭이 없는지, 구성원 빼기 후 목록에서 사라지는지. 스크린샷(라이트·다크·412px).
+- 안 하는 것: 보는 사람이 직접 초대 만들기(관리자만), 가족 화면에서 구성원 약끼리 충돌 확인, 알림·푸시, 폰 바꾼 뒤 되찾기(44)
+- 멈춤 조건: 탭 4개가 412px에서 글자 크게(`data-font-scale='large'`) 설정일 때 넘치면 배치를 묻는다.
+
+### [x] 44. 폰을 바꾼 부모님 약 목록 되찾기
+- 완료(2026-11-15, 로컬): typecheck·build 통과. 같은 브라우저 시나리오에 이어서 통과 — "다시 연결" 초대 → 빈 새 폰에서 "저장돼 있던 약 2개를 불러올까요?" → 불러오기 후 내 약 2개, 옛 폰은 연결이 풀려 입력칸 표시, 약이 있는 폰으로 다시 이으면 묻지 않고 그 폰 목록이 서버에 올라감. 구현 중 발견해 고친 것: 처음엔 `joinFamily`가 연결 즉시 기기 목록을 올려 빈 새 폰이 서버 백업을 덮어쓸 수 있었다 → 올리기를 `settleAfterJoin`(불러올지 물은 뒤 올림)으로 옮김. 42 시나리오(17개)와 API 시나리오(37개)를 다시 돌려 통과. 참고: 로컬에서 시험을 여러 번 돌리다 같은 IP 하루 30회 연결 제한(429)에 걸렸다 — 제한이 동작한다는 확인이기도 하다.
+- 목표: 관리자가 가족 탭에서 구성원의 "다시 연결" 초대를 만들어 새 폰에서 연결하면, 같은 구성원으로 이어지고(이전 토큰은 더 못 씀) 새 폰에 약이 없을 때 "저장돼 있던 약 N개를 불러올까요?"가 뜬다. "불러오기"를 누르면 내 약에 들어간다. 새 폰에 이미 약이 있으면 묻지 않고 새 폰 목록이 서버로 올라간다.
+- 맥락: 지금은 폰을 잃거나 바꾸면 등록약이 모두 사라진다(`docs/product-design.md:120`). 서버 사본이 생기니 백업으로 쓴다.
+- 변경할 파일:
+  - `web/src/components/FamilyAdmin.tsx` — 구성원마다 "다시 연결" 초대 버튼(41의 `member_id` 초대)
+  - `web/src/lib/family.ts` — `joinFamily` 응답의 서버 약을 돌려줌
+  - `web/src/components/FamilySettings.tsx`·`web/src/App.tsx` — 연결 직후 불러오기 확인 창, `addMedication`으로 넣기(중복·10개 한도 오류는 건너뛰고 들어간 개수를 안내)
+- 참조: `web/src/lib/db.ts`의 `addMedication`, `web/src/lib/dialog.tsx`
+- 검증: typecheck, build. 로컬에서 컨텍스트 A(구성원, 약 3개) → 관리자가 다시 연결 초대 → 빈 컨텍스트 B로 연결 → 확인 창 → 불러오기 후 B에 3개, A의 토큰으로 올리기가 401, 약이 있는 컨텍스트 C로 연결하면 확인 창 없이 C 목록이 서버에 올라감.
+- 안 하는 것: 자동 복원(묻지 않고 넣기), 여러 기기 동시 사용 시 합치기(마지막에 올린 기기 기준)
+- 멈춤 조건: 없음(41~43이 끝나 있으면 범위가 작음)
+
+> 36~38은 홈 화면에 설치했을 때 앱처럼 보이게 하는 작업이다(2026-11-15 사용자 요청 "앱처럼 보이게"). 화면 디자인은 재디자인(7~11)으로 끝났고, 남은 차이는 설치 껍데기(상태바 색·아이콘·시작 화면)다. 방법 비교(아이콘·시작 화면): (A) `@vite-pwa/assets-generator`를 devDependency로 넣고 설정 파일 + `npm run` 명령으로 PNG를 만들어 `public/`에 커밋, manifest·`<head>`는 손으로 적음 — 다시 만들기 쉽고 빌드와 분리됨 **(추천)** / (B) `vite-plugin-pwa`의 `pwaAssets` 통합 모드 — 빌드 때 자동 생성·주입되지만 지금 쓰는 `vite-plugin-pwa` 0.21과 맞는 버전 확인이 필요하고 동작이 숨겨짐 / (C) 이미지 편집기로 손으로 만들기 — 크기 수십 개라 다시 만들기 어려움. 36 → 37 → 38 순서로, 각각 따로 검증한다.
+
+### [x] 36. 상태바 색을 실제 바탕색에 맞추기
+- 목표: 설치한 앱과 브라우저 주소창의 상단 색이 앱 바탕(`--pc-bg` 라이트 `#F8F4EE`, 다크 `#1A1815`)과 같다. 앱 안 설정에서 다크를 고르면 상태바도 바로 어두워지고, 기기가 다크여도 앱이 라이트면 상태바는 밝다.
+- 맥락: manifest와 `index.html`이 예전 색 `#F2F4F6`/`#17171C`로 남아 있다(`web/vite.config.ts:21-22`, `web/index.html:6-7`). 게다가 `theme-color`가 기기 다크 설정(`prefers-color-scheme`)을 따르는데, 앱 테마는 기본이 라이트이고 설정에서 따로 바꾼다(`web/src/lib/theme.ts:26-29`). 그래서 기기가 다크면 밝은 앱 위에 검은 띠가 생긴다.
+- 변경할 파일:
+  - `web/vite.config.ts` — manifest `theme_color`·`background_color`를 `#F8F4EE`로
+  - `web/index.html` — `media` 붙은 `theme-color` 두 줄을 `#F8F4EE` 한 줄로
+  - `web/src/lib/theme.ts` — `applyEffectiveTheme`에서 `meta[name="theme-color"]`의 `content`를 라이트·다크 바탕색으로 바꿈
+- 참조: `web/src/lib/theme.ts`의 `applyEffectiveTheme` (`data-theme`을 바꾸는 바로 그 자리)
+- 검증: `npm --prefix web run typecheck`, `npm --prefix web run build`, `web/dist/manifest.webmanifest`의 색 확인. dev에서 설정 라이트/다크/기기 설정을 바꾸며 `<meta name="theme-color">` 값이 바뀌는지 개발자 도구로 확인. 실제 폰 상태바는 사용자 확인.
+- 안 하는 것: 색 토큰 값 바꾸기, `apple-mobile-web-app-status-bar-style` 바꾸기(`default` 유지)
+- 멈춤 조건: iOS 설치 앱에서 `theme-color`가 안 먹어 상태바 처리를 바꿔야 할 때(`black-translucent` 등은 화면 위 여백이 바뀌므로 묻는다)
+- 결과(2026-11-15): manifest·`index.html` 색을 `#F8F4EE`로, `index.html`의 media 붙은 두 줄을 한 줄로 합침. `theme.ts`의 `applyEffectiveTheme`이 `meta[name="theme-color"]`를 앱 테마 바탕색(라이트 `#F8F4EE`, 다크 `#1A1815`)으로 바꿈. typecheck·build 통과, `dist/manifest.webmanifest`·`dist/index.html` 색 확인. dev에서 테마를 바꿔 가며 meta 값이 바뀌는지와 실제 폰 상태바는 확인 안 함(사용자 확인).
+
+### [x] 37. 홈 화면 아이콘 PNG 만들기
+- 목표: `web/public/`에 `apple-touch-icon-180x180.png`, `pwa-192x192.png`, `pwa-512x512.png`, `maskable-icon-512x512.png`가 있고, manifest에 any 3개(SVG·192·512)와 maskable 1개가 따로 적혀 있으며, `index.html`의 `apple-touch-icon`이 PNG를 가리킨다. 아이폰 홈 화면에 아이콘이 화면 캡처가 아닌 아이콘으로 보인다.
+- 맥락: 지금은 `icon.svg` 한 장뿐이다(`web/index.html:12`, `web/vite.config.ts:26`). iOS는 홈 화면 아이콘에 SVG를 쓰지 않는다. `purpose: 'any maskable'`을 한 파일에 같이 쓰면 안드로이드에서 가장자리가 잘린다. iOS 아이콘은 모서리가 투명하면 검게 채워지므로 꽉 찬 배경이어야 한다.
+- 변경할 파일:
+  - `web/package.json` — devDependency `@vite-pwa/assets-generator`, 스크립트 `generate-pwa-assets`
+  - `web/public/icon.svg` — 시안 A 그림으로 교체
+  - `web/pwa-assets.config.ts` (새 파일) — 원본 `public/icon.svg`, apple·maskable은 배경색을 채우고 안쪽 여백을 줌
+  - `web/public/*.png` (생성물, 커밋)
+  - `web/vite.config.ts` — manifest `icons`
+  - `web/index.html` — `apple-touch-icon` PNG로, favicon은 SVG 유지
+- 참조: 없음(이 저장소에 처음). 생성기 문서는 구현 때 context7로 확인한다.
+- 검증: `npm --prefix web run generate-pwa-assets`, typecheck, build, `web/dist/`에 PNG가 들어갔는지와 `manifest.webmanifest` 확인, 생성된 PNG를 열어 잘림 확인. 실제 폰 설치는 사용자 확인(미리보기 배포 `npx wrangler pages deploy dist --project-name pill-check --branch preview`로 https 주소에서).
+- 아이콘 그림: 2026-11-15 사용자 결정으로 시안 A(인디고 `#4A4FD0` 바탕 + 45° 캡슐 한 알, `.impeccable/mocks/app-icon.html`의 `ic-a`)로 바꾼다. 이유: 작게 봐도 알아보고, 체크처럼 "안전"으로 읽히지 않으며, 앱 안 주 버튼 색과 같다. `web/public/icon.svg`를 꽉 찬 배경(모서리 없음)으로 바꾸고 이것을 원본으로 PNG를 만든다.
+- 안 하는 것: 시작 화면(38번), 앱 안 화면 바꾸기
+- 멈춤 조건: 생성기가 Windows에서 안 돌거나(`sharp` 설치 실패), `vite-plugin-pwa` 0.21과 의존성이 부딪힐 때
+- 결과(2026-11-15): 계획과 다른 점 — 생성기 2.0.0이 `vite-plugin-pwa` 0.21의 peer(`^0.2.6`)와 부딪혀 0.2.6을 씀(강제 설치 안 함). npm이 설치 스크립트를 막았지만 `sharp` 0.32.6은 그대로 불러와짐. 원본 `icon.svg`는 둥근 인디고 사각형 + 캡슐(연한 캡슐 위에 흰 반쪽을 얹어 두 색 사이 틈을 없앰), apple·maskable은 여백 0 + 인디고로 꽉 채움. 64·192·512·maskable 512·apple 180·favicon.ico 생성, 눈으로 확인(잘림 없음). manifest 아이콘 5개(PNG 3 + SVG any + maskable), `index.html`은 favicon.ico + SVG + apple PNG. typecheck·build 통과, PNG가 precache에 들어감. 실제 폰 설치는 확인 안 함(사용자 확인).
+
+### [x] 38. iOS 시작 화면 넣기
+- 목표: 아이폰 홈 화면에서 앱을 열 때 하얀 화면 대신 바탕색(`#F8F4EE`) + 가운데 아이콘이 보인다. `index.html`에 기기 크기별 `apple-touch-startup-image` 링크가 있다.
+- 맥락: iOS는 manifest `background_color`로 시작 화면을 만들지 않고 `apple-touch-startup-image`만 쓴다. 지금은 없다.
+- 변경할 파일:
+  - `web/pwa-assets.config.ts` — apple 시작 화면 생성 설정(세로만, 라이트 바탕 `#F8F4EE`)
+  - `web/public/apple-splash-*.png` (생성물, 커밋)
+  - `web/index.html` — 생성기가 출력한 `<link rel="apple-touch-startup-image">` 줄
+- 참조: 37번의 `web/pwa-assets.config.ts`
+- 검증: 생성 명령, typecheck, build, `dist/` 크기 증가량 기록, PWA 미리 받기(precache) 목록에 시작 화면 PNG가 다 들어가는지 확인(`globPatterns`에 png 포함). 실제 아이폰 확인은 사용자.
+- 안 하는 것: 다크 시작 화면(앱 기본 테마가 라이트라서), 가로 화면, 안드로이드 시작 화면(manifest 색·아이콘으로 자동 생성)
+- 멈춤 조건: 시작 화면 PNG 합계가 1MB를 넘어 첫 설치 때 미리 받기 부담이 커질 때. 그때는 precache에서 빼는 방안을 묻는다.
+- 결과(2026-11-15): 계획과 다른 점 — 생성기가 가로 화면을 항상 같이 만들어 세로 13장 + 가로 13장(합계 184KB, 1MB 기준 안). 생성기 0.2.6 목록이 iPhone 14까지라 iPhone 16 Pro·17·17 Pro(1206×2622), 16 Pro Max·17 Pro Max(1320×2868), Air(1260×2736)를 더하고 같은 크기는 합침. 아이패드는 넣지 않음. 0.2.6은 파일 이름과 출력 링크 이름이 달라(`light-`) `name`을 직접 정함. 링크 26줄 모두 실제 파일과 대조해 일치, `index.html`에 옮김. 시작 화면 PNG 1장 눈으로 확인. build 후 precache 18 → 44개(804 → 937KiB). 실제 아이폰 확인은 안 함(사용자 확인).
+
+### [x] 35. 식약처·식품안전나라 키를 서버에만 두기
+- 목표: 배포 번들에 식약처·식품안전나라 키가 없고(빌드 결과에서 키 문자열 0건), 배포본의 약 검색·DUR·영양제 검색이 34번 때와 같은 결과를 내며, dev(`npm run dev`)에서도 검색이 된다.
+- 맥락: 34번으로 호출이 서버 함수를 거치게 되어, 키를 클라이언트에 둘 이유가 없어졌다. 지금은 `VITE_NEDRUG_API_KEY`·`VITE_FOODSAFETY_API_KEY`가 번들에 들어가 누구나 꺼낼 수 있다(`nedrug-api.ts:3`, `dur.ts:14`, `healthfood-api.ts:14`).
+- 변경할 파일:
+  - Cloudflare Pages Secret — `NEDRUG_API_KEY`, `FOODSAFETY_API_KEY` 추가(production). 값 넣는 방법은 사용자 결정
+  - `web/functions/api/nedrug/[[path]].ts` — 요청에 `serviceKey`를 서버에서 붙임(클라이언트가 보낸 `serviceKey`는 지움). 다른 사이트 Origin은 403(`llm.ts`와 같은 규칙). 키 없으면 500
+  - `web/functions/api/foodsafety/[[path]].ts` — `/api/foodsafety/api/<서비스>/...`를 `/api/<키>/<서비스>/...`로 바꿔 넘김. Origin 403, 키 없으면 500
+  - `web/vite.config.ts` — dev 프록시도 같은 방식으로 키를 붙임(`loadEnv`로 `web/.env`의 기존 `VITE_*` 값을 Node 쪽에서만 읽음 — `.env`는 고치지 않음)
+  - `web/src/lib/nedrug-api.ts`, `web/src/lib/dur.ts`, `web/src/lib/healthfood-api.ts` — 키 상수·URL의 키 제거. 키 없음 검사(`MissingApiKeyError`, `FoodSafetyKeyMissingError`, `isFoodSafetyConfigured`)는 클라이언트가 더 알 수 없으므로 지우고 `web/src/lib/errors.ts`·`web/src/components/SearchScreen.tsx:152` 호출부도 맞춤(서버 500은 기존 `NedrugRequestError` 5xx 문구로 보임)
+  - `web/.env.example`, `web/README.md`, `CLAUDE.md` — 키 위치 설명 고치기
+- 참조: `web/functions/api/llm.ts`의 `isAllowedOrigin`·키 없음 500 처리
+- 검증: typecheck·build, 함수 파일 스크래치 tsconfig, 빌드 결과에서 Secret 값과 같은 문자열이 없는지 확인(값은 출력하지 않음), dev 서버에서 `/api/nedrug`·`/api/foodsafety` 호출 결과 코드 확인, 배포 후 키 없이 `/api/nedrug/...` 약 검색 `00`, DUR `00`, `/api/foodsafety/api/I0030/...` `INFO-000`, `Origin: https://example.com` 403
+- 안 하는 것: 키 재발급(이미 공개된 옛 번들이 이전 배포 주소에 남아 있음 — 사용자에게 따로 안내), `.env` 변수 이름 바꾸기, 검색 호출 횟수 제한
+- 멈춤 조건: Secret을 넣었는데 함수가 키를 못 읽어 500이 나면 멈추고 알린다
+- 결과(2026-11-14): 사용자 결정으로 `web/.env` 값을 화면에 찍지 않고 `wrangler pages secret put`에 표준입력으로 넘겨 Secret 2개 추가(길이만 확인: 64자, 20자). 함수가 키를 붙이고(식약처는 클라이언트가 보낸 serviceKey를 버리고 조회 문자열은 다시 인코딩하지 않음), 다른 사이트 Origin 403. dev 프록시도 `loadEnv`로 같은 방식. 클라이언트의 키 상수·키 없음 검사·`isFoodSafetyConfigured` 제거. typecheck·build 통과, 함수 파일과 `tsconfig.node.json`(vite.config) 따로 통과, 빌드 결과에 `.env` 키 값 0건(값 비교만, 출력 안 함). dev 프록시 주소 변환은 키를 가려 확인(집 회선이 정부 서버에 못 닿아 dev 실제 호출은 확인 안 함). 배포 후 키 없이 약 검색 `00` 7건, DUR `00`, 영양제 `INFO-000` 4955건, `Origin: https://example.com` 403, 허용 밖 경로 404. 배포 직후 DUR·영양제가 522(19초)였다가 1~2분 뒤 3회 반복 모두 200 — 34번 때와 같은 현상, 원인 확인 안 함. 옛 키는 이전 배포 주소(`<해시>.pill-check.pages.dev`)의 번들에 남아 있다 — 키 재발급은 사용자 몫.
+
+### [x] 34. 배포본 식약처 호출을 우리 서버(Cloudflare) 경유로 바꾸기
+- 목표: 배포본에서 약 검색·DUR 확인·영양제 검색이 `pill.hgko.dev/api/nedrug/...`·`/api/foodsafety/...`로만 나가고, 휴대폰이 정부 서버에 직접 닿지 못하는 망에서도 검색 결과가 나온다.
+- 맥락(2026-11-14 확인): 사용자 휴대폰(와이파이 끔)에서도 식약처 검색이 안 됨. 조사 결과 키와 CORS는 문제없음 — Cloudflare 서울(ICN)에서 배포 번들의 키로 `getDrugPrdtPrmsnDtlInq06` 호출 시 `resultCode 00`, 7건, `access-control-allow-origin: https://pill.hgko.dev`(식품안전나라는 `*`). 반면 집 회선(LG U+)에서는 `apis.data.go.kr`(27.101.236.63)과 `openapi.foodsafetykorea.go.kr`(116.67.90.152) 모두 접속 자체가 안 된다(11-12에는 dev 프록시로 됐음). 지금 배포본은 브라우저가 정부 서버를 직접 부르므로(`nedrug-api.ts:7-9`, `dur.ts:16-18`, `healthfood-api.ts:17`) 그 망에서 막히면 앱도 막힌다. 휴대폰 망이 막힌 이유 자체는 확인 안 함.
+- 변경할 파일:
+  - `web/functions/api/nedrug/[[path]].ts` (새로) — `/api/nedrug/1471000/...`를 `https://apis.data.go.kr/1471000/...`로 그대로 넘김(GET만, `1471000/` 아래만 허용)
+  - `web/functions/api/foodsafety/[[path]].ts` (새로) — `/api/foodsafety/api/...`를 `https://openapi.foodsafetykorea.go.kr/api/...`로 넘김(GET만)
+  - `web/src/lib/nedrug-api.ts`, `web/src/lib/dur.ts`, `web/src/lib/healthfood-api.ts` — dev/배포 분기를 없애고 항상 `/api/nedrug`·`/api/foodsafety` 사용(dev는 지금처럼 Vite 프록시가 받음)
+  - `web/README.md` 알려진 제약의 "Production CORS" 줄 고치기
+- 참조: `web/vite.config.ts:42-53` dev 프록시 경로 규칙, `web/functions/api/llm.ts`
+- 검증: typecheck·build, 함수 파일은 스크래치 tsconfig. 배포 후 curl로 `/api/nedrug/...` 약 검색 `resultCode 00`, DUR 호출 정상, `/api/foodsafety/...` 영양제 검색 정상(집 회선에서 되는지가 곧 "정부 서버에 직접 못 닿는 망" 시험). 사용자 휴대폰 확인 요청
+- 안 하는 것: 키를 서버로 옮기기(지금처럼 번들에 남음 — 따로 제안), 응답 캐시, 호출 횟수 제한
+- 멈춤 조건: 운영 환경에 남은 `placement`(us-central1) 때문에 함수가 미국에서 돌아 정부 서버가 해외 요청을 막으면, placement를 지울지(그러면 AI 해설이 서울에서 Gemini를 부름 — 다시 시험 필요) 묻는다
+- 결과(2026-11-14): 함수 2개 추가, 클라이언트 3곳을 항상 `/api/nedrug`·`/api/foodsafety`로. typecheck·build 통과, 함수 파일은 스크래치 tsconfig로 통과, 번들에 정부 주소 0건. 배포 후 정부 서버에 직접 못 닿는 집 회선에서 약 검색 `00` 7건, DUR `00`, 영양제 I0030 `INFO-000`(비타민 4955건, 오메가 2007건), 허용 밖 경로 404. 처음엔 영양제가 522(19초)였다 — 운영 환경 placement(us-central1)가 남아 있었고 사용자 승인으로 `web/wrangler.toml`에서 `mode = "off"`로 바꿨다. 바꾼 직후 한 번 더 522, 몇 분 뒤 정상. 미국 실행이 원인이었는지는 확실하지 않다(서울에서 돈 시험 Worker는 처음부터 정상). placement를 끈 뒤 AI 해설 5/5 200. 사용자 휴대폰 확인은 아직.
+
+### [x] 32. KV 저장소 만들고 Pages 설정 파일로 묶기
+- 목표: `pill-check` 프로젝트에 KV 바인딩 `LLM_LIMIT`가 붙은 채로 배포되고, 기존 AI 해설(`GEMINI_API_KEY`)이 그대로 200을 돌려준다.
+- 맥락: 33번의 횟수 저장소. 직접 올리기 방식이라 바인딩은 `web/wrangler.toml`로 관리한다(설정 파일이 있으면 그 파일이 배포 설정의 기준이 됨).
+- 변경할 파일:
+  - Cloudflare 계정 — `npx --yes wrangler@4.161.0 kv namespace create pill-check-llm-limit`로 KV 만들기(바깥 계정 작업)
+  - `web/wrangler.toml` (새로) — `npx --yes wrangler@4.161.0 pages download config pill-check`로 지금 프로젝트 설정(이름, `compatibility_date`)을 받아 만들고, `pages_build_output_dir = "dist"`와 `[[kv_namespaces]] binding = "LLM_LIMIT"`, `id = <위에서 만든 id>` 추가. KV id는 비밀값이 아니라 커밋한다
+- 참조: 30번에서 `placement`용으로 `web/wrangler.toml`을 만들었다 지운 적 있음(그때도 Secret은 유지됨)
+- 검증: `npm --prefix web run typecheck`, `npm --prefix web run build`, `web/`에서 배포 후 `/`·`/sw.js` 200, `/api/llm` POST 200 (아직 제한 로직 없음)
+- 안 하는 것: 제한 로직(33번), 미리보기 환경 따로 설정
+- 멈춤 조건: `pages download config` 결과에 지금 설정과 다른 값(호환 날짜·플래그)이 보이거나, 설정 파일을 넣은 뒤 `GEMINI_API_KEY`가 사라져 500이 나면 멈추고 알린다
+- 결과(2026-11-14): KV `pill-check-llm-limit`(id `54d760db573647a4aed53e114625e6c8`) 만들고 `web/wrangler.toml`에 바인딩. `pages download config`로 받은 값에 30번 시험 때 넣은 production `placement`(gcp:us-central1)가 남아 있어 동작을 바꾸지 않으려고 그대로 뒀다(받은 형식 `mode = "targeted"` + `target` 배열은 배포 검사에서 거부돼 `region = ...`으로 적음). 배포 후 `/`·`/sw.js`·`/api/llm` 200, 첫 호출에 KV 키가 생겨 바인딩 확인.
+
+### [x] 33. `/api/llm`에 IP별 하루 횟수 제한과 출처 확인 넣기
+- 목표: 같은 IP에서 하루(한국 시간) 20번을 넘게 부르면 429와 한국어 안내가 오고, 다른 사이트 출처(Origin)에서 부르면 403이 오며, 앱 화면에서는 429 때 "오늘 AI 해설을 다 쓰셨어요. 내일 다시 해 보세요."가 보인다.
+- 맥락: 무료 한도를 한 사람이 다 쓰지 못하게. 20번은 집 와이파이 하나에 부모님 두 분(기기별 5회 × 2)이 써도 남는 값이다. 휴대폰 데이터는 통신사가 여러 사람에게 같은 IP를 줄 수 있어(CGNAT) 모르는 사람과 한도를 나눌 수 있다 — 지금 사용자 수에선 드물다고 본다.
+- 변경할 파일:
+  - `web/functions/api/llm.ts` — `Env`에 `LLM_LIMIT` 추가(타입은 Workers 타입 패키지 없이 `get`/`put`만 적은 작은 인터페이스). Gemini 호출 전에: (1) `Origin` 헤더가 있고 `https://pill.hgko.dev`·`https://pill-check.pages.dev`·`*.pill-check.pages.dev`가 아니면 403, (2) 키 `llm:<CF-Connecting-IP>:<KST 날짜>` 값을 읽어 20 이상이면 429(쓰기 안 함 — 막힌 요청은 KV 쓰기를 쓰지 않음), 아니면 +1 저장(`expirationTtl` 2일). KV 바인딩이 없거나 KV 오류면 막지 않고 통과(앱이 멈추지 않게)
+  - `web/src/lib/llm.ts` — `callApiRoute`에서 `res.status === 429`면 `QuotaExceededError`를 던져 기존 `friendlyError` 문구(`web/src/lib/errors.ts:38`)가 나오게
+  - `web/README.md` 빌드 & 배포 — KV 바인딩과 제한 값 한 줄, `CLAUDE.md` 구조 줄에 `web/wrangler.toml` 한 줄
+- 참조: `web/functions/api/llm.ts`의 `jsonResponse`·400 검사 흐름, `web/src/lib/errors.ts`의 `QuotaExceededError` 처리
+- 검증: `npm --prefix web run typecheck`, `npm --prefix web run build`, `web/functions/api/llm.ts`는 타입체크 대상이 아니라 스크래치 tsconfig로 따로 검사하고 직접 읽어 확인. 배포 후 curl로 (a) 정상 Origin 1회 200, (b) `Origin: https://example.com` 403, (c) 같은 IP로 21번째 429(KV 반영 지연 때문에 몇 번 더 통과할 수 있음 — 결과에 그대로 적는다), (d) 다음 날 키가 바뀌는지는 코드로만 확인. 앱 화면 429 문구는 코드 경로로 확인(실제 기기에서 20번 쓰기는 안 함)
+- 안 하는 것: 기기별 5회 제한 바꾸기, 클라이언트 하루 기준을 한국 시간으로 바꾸기(전체 점검 남은 것에 있음), 전체(모든 사용자 합계) 하루 상한, 사람 확인(Turnstile)
+- 멈춤 조건: 정상 앱 요청이 403/429로 막히면 멈추고 알린다. (c) 시험 뒤에는 집 IP가 오늘 막히므로 그 시험 키 하나만 `wrangler kv key delete`로 지운다(다른 키는 건드리지 않음)
+- 결과(2026-11-14): typecheck·build 통과, 함수 파일은 스크래치 tsconfig로 따로 통과. 배포 후 (a) 정상 Origin 200, (b) `Origin: https://example.com` 403, (c) Gemini 호출을 아끼려고 KV 값을 19로 맞춘 뒤 4번 호출 → 200, 429, 429, 429. 시험 키는 지웠고 다시 200. 앱 429 문구는 `callApiRoute` → `QuotaExceededError` → `errors.ts:38` 코드 경로로만 확인(기기에서 직접은 안 봄). KV 반영 지연(최대 60초)으로 몰아 부르면 몇 번 더 통과할 수 있는 점은 확인 안 함.
+
+### [x] 30. Cloudflare Pages 프로젝트 만들고 pill.hgko.dev 연결
+- 목표: `https://pill.hgko.dev`가 200과 제목 "약똑똑"을 돌려주고, `/api/llm`에 짧은 질문을 보내면 200과 답이 오고, 없는 경로(`/abc`)도 앱 첫 화면으로 열린다.
+- 맥락: 대시보드 작업이라 사용자가 하고, 확인은 Claude가 한다. `hgko.dev`가 Cloudflare zone이라 도메인을 붙이면 DNS 기록이 자동으로 생긴다(Cloudflare 문서 Custom domains).
+- 방식 변경 (2026-11-13 사용자 결정): GitHub 연결 대신 **wrangler 직접 올리기**. 이 PC에 wrangler 로그인이 있고 `navi-bible`·`trip-rehearsal`도 같은 방식(Git Provider: No)이다. 직접 올리기 프로젝트는 나중에 GitHub 연결로 못 바꾸지만, 등록약은 주소(`pill.hgko.dev`)에 묶이므로 나중에 GitHub 연결 프로젝트를 새로 만들어 도메인만 옮겨도 데이터는 남는다. 배포는 push로 되지 않고 `cd web && npm run build && npx wrangler pages deploy dist --project-name pill-check --branch main`으로 한다(`functions/`가 있는 `web/`에서 실행해야 서버 함수가 같이 올라간다). `VITE_*` 키는 빌드하는 PC의 `web/.env`에서 번들에 들어가므로 Cloudflare에 넣지 않는다.
+- Claude가 한 일: Vercel에 넣어 둔 `pill.hgko.dev` alias 제거(`vercel alias rm`), `wrangler pages project create pill-check`, 첫 배포(`https://pill-check.pages.dev`).
+- 사용자가 할 일: `GEMINI_API_KEY`를 Secret으로 넣기(대시보드 pill-check → Settings → Variables and Secrets, 또는 `npx wrangler pages secret put GEMINI_API_KEY --project-name pill-check`), Custom domains → `pill.hgko.dev`. 키는 채팅에 붙여 넣지 않는다. 키를 넣은 뒤 Claude가 다시 배포한다.
+- 진행 (2026-11-14): 키 Secret 확인, 재배포, `pill-check.pages.dev/api/llm` 200. 도메인 연결 후 `pill.hgko.dev`의 화면·`/abc`·`sw.js`·manifest는 200인데 `/api/llm` POST가 여러 번에 한 번씩 502였다.
+  - 원인: 도메인 DNS 기록이 프록시(주황 구름)라 한국(LG U+) 요청 일부가 홍콩(HKG) 데이터센터로 가고, Gemini가 `400 User location is not supported for the API use.`로 막는다(임시로 상태 코드를 바꿔 올려 응답 본문 확인). 함수가 돌려준 502는 zone 프록시가 "error code: 502" 화면으로 바꿔서 가려졌다. `pages.dev`는 서울(ICN)로 간다.
+  - 시도했다 뺀 것: `wrangler.toml`의 `placement.region = "gcp:us-central1"` — 함수는 오마하에서 돌았지만(`cf-placement: remote-OMA`) Gemini는 여전히 위치 거부. 효과가 없어 파일을 지웠다.
+  - 해결: `pill` DNS 기록을 **DNS only(회색 구름)** 로. `pages.dev` IP로 `pill.hgko.dev`를 보내는 시험(`curl --resolve`)에서 5/5 ICN·200, 인증서 검증 통과.
+  - 결과 (2026-11-14): 사용자가 DNS only로 바꾼 뒤 `pill.hgko.dev`가 `pages.dev` IP로 풀리고, `/api/llm` POST 8/8 ICN·200(1.1~1.4초), `/`·`/abc`·`sw.js`·manifest 200.
+  - 확인 안 함: 다른 통신사(KT·SKT)에서도 `pages.dev` IP가 서울로 가는지.
+- 검증: `curl -s https://pill.hgko.dev`(200, `<title>약똑똑</title>`), `/api/llm` POST 200, `/abc` 200, `/sw.js`와 `/manifest.webmanifest` 200. 휴대폰에서 열어 검색·AI 해설을 사용자가 확인한다(집 LG U+ 와이파이에서는 2026-11-13 현재 정부 사이트가 안 열리므로 LTE로 확인).
+- 안 하는 것: 루트 `hgko.dev` 설정, 광고, `ads.txt`.
+- 멈춤 조건: Cloudflare 빌드 실패(Node 버전 문제면 `NODE_VERSION` 변수를 제안하고 묻는다 — Vercel은 24.x였고 Cloudflare 기본값은 확인 안 함), 도메인에서 522가 나면 멈추고 알린다.
+
+### [x] 31. Vercel 정리와 문서 고치기
+- 목표: 저장소에 Vercel 전용 코드와 설명이 남지 않고, GitHub 저장소 홈페이지 주소가 `https://pill.hgko.dev`다.
+- 맥락: 30번이 확인된 뒤에 한다.
+- 변경할 파일:
+  - `web/api/llm.ts` — 삭제(29번 함수로 대체됨).
+  - `CLAUDE.md`(4, 12줄), `.claude/rules/typescript-react.md`(14줄), `PRODUCT.md`(37줄) — "Vercel Edge Function `web/api/llm.ts`"를 "Cloudflare Pages Function `web/functions/api/llm.ts`"로.
+  - `web/README.md` — "빌드 & 배포"에 Cloudflare Pages 설정(루트 `web`, 출력 `dist`, 변수 3개)을 적는다.
+  - GitHub 저장소 홈페이지(`gh repo edit --homepage`) — 지금 404인 `pill-check-ten.vercel.app`을 바꾼다.
+- 참조: 없음.
+- 검증: `npm --prefix web run typecheck`, `npm --prefix web run build`, `grep -rn "Vercel" CLAUDE.md .claude PRODUCT.md web/README.md web/src`로 남은 곳 확인.
+- 안 하는 것: `docs/product-design.md`의 과거 기록 고치기(결정 당시 기록이라 둔다), 광고.
+- 멈춤 조건: Vercel 프로젝트(`pill-check`)를 지우거나 GitHub 연결을 끊는 것은 되돌릴 수 없으므로, 그때 사용자에게 묻는다. 추천은 아직 쓰는 사람이 없으니 지워서 옛 주소를 닫는 것이다.
+- 진행 (2026-11-14): `web/api/llm.ts` 삭제, `CLAUDE.md`(스택·구조·검증·배포 명령 추가), `.claude/rules/typescript-react.md`, `PRODUCT.md`, `web/src/lib/llm.ts` 주석, `web/README.md` 배포 절(직접 올리기, 키 위치, DNS only 이유) 고침. `web/README.md:41`의 "Vercel preview"는 Week 0 실측용 임시 호스팅 예시라 둔다. GitHub 홈페이지를 `https://pill.hgko.dev`로 바꿈. Vercel `pill-check` 프로젝트 삭제(사용자 확인, 옛 주소 404 확인). `navi-bible`·`data-weave`·`hgko.dev` 도메인 등록은 사용자가 남기기로 함. PR #8.
+
+### [x] 29. AI 해설 서버 함수를 Cloudflare Pages Functions로 옮기기
+- 목표: `web/functions/api/llm.ts`가 지금 `/api/llm`과 같은 약속(POST `{prompt}` → `{text}` 또는 `{error}`와 같은 상태 코드)으로 동작하고, 타입체크와 빌드가 통과한다.
+- 맥락: Cloudflare Pages는 프로젝트 루트(여기서는 `web/`)의 `functions/` 폴더를 서버 함수로 쓴다. `functions/api/llm.ts`가 `/api/llm` 주소가 된다. 키는 `process.env`가 아니라 `context.env`로 읽는다(Cloudflare 문서 Pages Functions › Bindings).
+- 변경한 파일: `web/functions/api/llm.ts`(새로 만듦, 검사·Gemini 호출·응답 처리는 `web/api/llm.ts`를 그대로 옮김, 타입은 파일 안에 최소로 적어 새 패키지 없음), `web/src/lib/llm.ts`(안내 문구 "Vercel 배포본" → "배포본").
+- 계획과 다른 점: `onRequestPost` 대신 `onRequest` 하나로 받고 POST가 아니면 405를 돌려준다. `onRequestPost`만 두면 GET 등에 405가 아닌 다른 응답이 나갈 수 있어서 지금 동작을 그대로 지키려고 바꿨다.
+- 결과 (2026-11-13): `npm --prefix web run typecheck` 통과, `npm --prefix web run build` 통과. `web/functions/`는 기본 타입체크 밖이라 임시 tsconfig(strict, noUnused*, lib ES2022+DOM)로 그 파일만 `tsc` 검사해 통과. 실제 호출 확인은 30번 미리보기 주소에서 한다.
 
 ### [x] 27. 영양제끼리 같은 성분이 겹치는지 알려 주기
 - 목표: 영양제를 확인할 때, 내 약의 영양제와 같은 성분(예: 비타민D, 칼슘, 오메가3)이 겹치면 결과에 "같은 성분이 겹쳐요: 비타민D (내 약: OO)"가 나온다. 겹침이 없으면 "같은 성분은 못 찾았어요"로 말하고, 괜찮다고 단정하지 않는다.
