@@ -1127,10 +1127,56 @@ html[data-theme='dark'] .segmented__btn[aria-checked='true'] { background: var(-
 .family-status { align-items: flex-start; }
 .family-status .row__icon { margin-top: 2px; }
 
-/* 가족 탭 */
-.family-member + .family-member { border-top: 1px solid var(--pc-divider); }
+/* 가족 탭 (plan.md 43, 46, 49) */
+.family-head { display: flex; align-items: flex-start; gap: 8px; }
+.family-head__text { flex: 1; min-width: 0; }
+.family-head__refresh {
+  width: 56px;
+  height: 56px;
+  flex: none;
+  margin: -4px -12px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--pc-radius-pill);
+  background: none;
+  color: var(--pc-text-muted);
+}
+.family-head__refresh:active { background: var(--pc-pressed); }
+.family-head__refresh svg { width: 24px; height: 24px; }
+.family-head__refresh .is-spinning { animation: family-spin 0.9s linear infinite; }
+@keyframes family-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .family-head__refresh .is-spinning { animation: none; }
+}
+
+/* 로그인 전 */
+.family-login { margin-top: 12px; padding: 28px 20px 22px; text-align: center; }
+.family-login__icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--pc-radius-pill);
+  background: var(--pc-primary-soft);
+  color: var(--pc-primary-deep);
+}
+.family-login__icon svg { width: 28px; height: 28px; }
+.family-login__title { margin: 0; font-size: var(--fs-title); font-weight: 700; line-height: 1.35; text-wrap: balance; }
+.family-login__desc { margin: 8px 0 20px; font-size: var(--fs-body); line-height: 1.55; color: var(--pc-text-muted); }
+.google-signin { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
+.google-signin__button { display: flex; justify-content: center; min-height: 44px; }
+.google-signin__retry { margin-top: 4px; }
+
+/* 그룹 */
+.family-group + .family-group { margin-top: 8px; }
+.family-row--top { align-items: flex-start; }
+.family-row--top .row__icon { margin-top: 2px; }
 .family-member__head { padding-bottom: 4px; }
-.family-meds { list-style: none; margin: 0; padding: 0 18px 14px; }
+.family-meds { list-style: none; margin: 0 18px 0 70px; padding: 0 0 12px; }
 .family-meds__item {
   display: flex;
   align-items: center;
@@ -1140,36 +1186,32 @@ html[data-theme='dark'] .segmented__btn[aria-checked='true'] { background: var(-
   font-size: var(--fs-body);
   line-height: 1.45;
 }
-.family-meds__item + .family-meds__item { border-top: 1px dashed var(--pc-divider); }
+.family-meds__item + .family-meds__item { border-top: 1px solid var(--pc-divider); }
 .family-meds__name { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
-.family-meds__empty { margin: 0; padding: 0 18px 14px; font-size: var(--fs-sub); color: var(--pc-text-subtle); }
-.family-viewers { margin-top: 8px; }
+.family-meds__empty { margin: 0 18px 0 70px; padding: 0 0 14px; font-size: var(--fs-sub); color: var(--pc-text-subtle); }
+.family-member__actions { display: flex; justify-content: flex-end; flex-wrap: wrap; padding: 0 6px 6px; }
+.family-member__actions .text-btn { margin-left: 0; }
+.family-invite-rows { margin-top: 10px; }
 .family-notice { margin: 0 var(--pc-gutter); }
-.family-empty { margin-top: 4px; }
-.family-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-.family-actions > .btn { flex: 1 1 140px; }
-.family-actions--group { margin: 12px var(--pc-gutter) 0; }
+/* 메일 주소는 하이픈에서 끊지 않고, 너무 길 때만 아무 곳에서나 줄을 바꾼다 */
+.family-email { margin-top: 0; word-break: normal; overflow-wrap: anywhere; hyphens: none; }
+.family-empty__desc { margin: 0; font-size: var(--fs-body); line-height: 1.55; color: var(--pc-text-muted); }
+
+/* 그룹 만들기·초대 패널 */
 .family-panel {
-  margin: 12px var(--pc-gutter) 0;
-  padding: 16px 18px;
-  border-radius: var(--pc-radius-m);
+  margin: 10px var(--pc-gutter) 0;
+  padding: 18px 18px 16px;
+  border-radius: var(--pc-radius-l);
   background: var(--pc-surface);
   box-shadow: var(--pc-card-shadow);
 }
-.family-panel .family-form { margin-top: 12px; }
+.family-steps { margin-top: 14px; }
+.family-steps > li + li { margin-top: 10px; }
+.family-field { display: block; margin-top: 16px; }
+.family-field__label { display: block; margin-bottom: 6px; font-size: var(--fs-small); font-weight: 600; color: var(--pc-text-muted); }
+.family-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+.family-actions > .btn { flex: 1 1 140px; }
 .family-panel__cancel { display: block; margin: 8px 0 0 auto; }
-/* 부모님 연결 전 동의 (확인 창 안 목록) */
-.consent-list { margin: 10px 0 0; padding-left: 1.1em; text-align: left; }
-.consent-list li { margin-top: 6px; line-height: 1.5; }
-
-/* Google 로그인 (가족 탭) */
-.family-login .setting__text { margin-bottom: 16px; }
-.google-signin { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
-.google-signin__button { display: flex; justify-content: center; min-height: 44px; }
-.google-signin__retry { margin-top: 4px; }
-.family-users-note { margin: 0 0 8px; }
-.family-users__me { font-weight: 400; color: var(--pc-text-subtle); }
-.family-users .tag { margin-left: 4px; vertical-align: middle; }
 .family-code {
   margin: 12px 0 8px;
   font-size: 34px;
@@ -1179,6 +1221,10 @@ html[data-theme='dark'] .segmented__btn[aria-checked='true'] { background: var(-
   color: var(--pc-text);
   text-align: center;
 }
+
+/* 부모님 연결 전 동의 (확인 창 안 목록) */
+.consent-list { margin: 10px 0 0; padding-left: 1.1em; text-align: left; }
+.consent-list li { margin-top: 6px; line-height: 1.5; }
 
 /* 사용법의 색 설명 */
 .legend { margin: 16px 0 0; padding: 14px 0 0; list-style: none; border-top: 1px solid var(--pc-divider); }
