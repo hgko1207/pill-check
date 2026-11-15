@@ -8,3 +8,7 @@ dist-ssr/
 *.log
 .DS_Store
 *.tsbuildinfo
+
+# wrangler 로컬 비밀값·로컬 D1 상태
+.dev.vars
+.wrangler/

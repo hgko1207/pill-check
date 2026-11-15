@@ -66,6 +66,14 @@ export default defineConfig({
         // /api/foodsafety/api/<서비스>/... → /api/<키>/<서비스>/...
         rewrite: (path) => path.replace(/^\/api\/foodsafety\/api\//, `/api/${FOODSAFETY_KEY}/`),
       },
+      // 가족 연결은 D1이 필요해 로컬 함수 서버(web/에서 `npx wrangler pages dev dist`, :8788)로 넘긴다.
+      // 그 서버가 안 떠 있으면 가족 기능만 실패하고 나머지 앱은 그대로 동작한다.
+      // 폰(LAN 주소)에서 열어도 함수의 출처 확인을 통과하도록 Origin을 로컬 주소로 바꾼다
+      '/api/family': {
+        target: 'http://127.0.0.1:8788',
+        changeOrigin: true,
+        headers: { Origin: 'http://localhost:8788' },
+      },
     },
   },
 })

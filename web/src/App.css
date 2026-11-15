@@ -1118,6 +1118,56 @@ html[data-theme='dark'] .segmented__btn[aria-checked='true'] { background: var(-
 .row:disabled { opacity: 0.5; }
 .settings-disclaimer { font-size: var(--fs-sub); line-height: 1.65; color: var(--pc-text-muted); }
 
+/* 가족 연결 (설정) */
+.family-form { display: flex; gap: 8px; }
+.family-form .field { flex: 1; min-width: 0; }
+.family-form .btn--small { min-height: 56px; }
+.family-form__input { text-transform: uppercase; letter-spacing: 0.08em; }
+.family-form__input::placeholder { text-transform: none; letter-spacing: 0; }
+.family-status { align-items: flex-start; }
+.family-status .row__icon { margin-top: 2px; }
+
+/* 가족 탭 */
+.family-member + .family-member { border-top: 1px solid var(--pc-divider); }
+.family-member__head { padding-bottom: 4px; }
+.family-meds { list-style: none; margin: 0; padding: 0 18px 14px; }
+.family-meds__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  font-size: var(--fs-body);
+  line-height: 1.45;
+}
+.family-meds__item + .family-meds__item { border-top: 1px dashed var(--pc-divider); }
+.family-meds__name { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.family-meds__empty { margin: 0; padding: 0 18px 14px; font-size: var(--fs-sub); color: var(--pc-text-subtle); }
+.family-viewers { margin-top: 8px; }
+.family-notice { margin: 0 var(--pc-gutter); }
+.family-empty { margin-top: 4px; }
+.family-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.family-actions > .btn { flex: 1 1 140px; }
+.family-actions--group { margin: 12px var(--pc-gutter) 0; }
+.family-panel {
+  margin: 12px var(--pc-gutter) 0;
+  padding: 16px 18px;
+  border-radius: var(--pc-radius-m);
+  background: var(--pc-surface);
+  box-shadow: var(--pc-card-shadow);
+}
+.family-panel .family-form { margin-top: 12px; }
+.family-panel__cancel { display: block; margin: 8px 0 0 auto; }
+.family-code {
+  margin: 12px 0 8px;
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  font-variant-numeric: tabular-nums;
+  color: var(--pc-text);
+  text-align: center;
+}
+
 /* 사용법의 색 설명 */
 .legend { margin: 16px 0 0; padding: 14px 0 0; list-style: none; border-top: 1px solid var(--pc-divider); }
 .legend li { display: flex; align-items: center; gap: 12px; font-size: var(--fs-sub); line-height: 1.5; }

@@ -3,6 +3,7 @@ import { loadTheme, saveTheme, type Theme } from '../lib/theme'
 import { clearAllMedications, listMedications } from '../lib/db'
 import { useDialog } from '../lib/dialog'
 import { BookOpen, ChevronRight, Trash2 } from 'lucide-react'
+import { FamilySettings } from './FamilySettings'
 
 const FONT_KEY = 'pillcheck.fontScale'
 type FontScale = 'normal' | 'large'
@@ -134,6 +135,8 @@ export function SettingsPage({ onShowGuide, onMedicationsChanged }: SettingsProp
           <ChevronRight className="row__chev" aria-hidden="true" />
         </button>
       </div>
+
+      <FamilySettings onMedicationsChanged={onMedicationsChanged} />
 
       <h2 className="group-label">데이터</h2>
       <div className="group">
