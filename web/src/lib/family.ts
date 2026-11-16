@@ -77,6 +77,8 @@ export interface FamilyViewerView {
 }
 
 export interface PendingInvite {
+  /** 취소할 때 쓰는 값 */
+  id: string
   role: FamilyRole
   displayName: string
   memberId: string | null
@@ -429,6 +431,11 @@ export async function createInvite(
     input,
   )
   return { ...res, link: `${window.location.origin}/?join=${res.code}` }
+}
+
+/** 아직 안 쓴 초대 취소 — 그룹 관리자만 (plan.md 55) */
+export async function cancelInvite(groupId: string, inviteId: string): Promise<void> {
+  await sessionRequest('DELETE', `/groups/${encodeURIComponent(groupId)}/invites/${encodeURIComponent(inviteId)}`)
 }
 
 /** 그룹에서 빼기 — 그룹 관리자만 */

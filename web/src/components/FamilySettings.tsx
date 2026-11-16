@@ -10,6 +10,7 @@ import {
   leaveFamily,
   previewInvite,
   settleAfterJoin,
+  type InvitePreview,
   type JoinResult,
   type MemberLink,
 } from '../lib/family'
@@ -59,9 +60,14 @@ interface JoinDeps {
  * 2) 구성원(부모님) 초대면 무엇이·누구에게·어디에 저장되는지 보여 주고 동의를 받는다 — 취소하면 코드는 그대로
  * 3) 연결한다. 보는 사람 초대인데 로그인 전이면 onNeedLogin으로 넘긴다
  * 돌려주는 값: 'joined' | 'cancelled' | 'need_login'. 그 밖의 실패는 던진다.
+ * `preview`를 넘기면 미리보기를 다시 부르지 않는다(하루 연결 시도 횟수에 들어가므로).
  */
-export async function joinWithConsent(code: string, deps: JoinDeps): Promise<'joined' | 'cancelled' | 'need_login'> {
-  const info = await previewInvite(code)
+export async function joinWithConsent(
+  code: string,
+  deps: JoinDeps,
+  preview?: InvitePreview,
+): Promise<'joined' | 'cancelled' | 'need_login'> {
+  const info = preview ?? (await previewInvite(code))
   if (info.role === 'member') {
     const ok = await deps.confirm({
       title: `'${info.displayName}' 이름으로 ${info.groupName}에 연결할까요?`,

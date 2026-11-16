@@ -666,11 +666,18 @@ async function groupView(db: D1Like, group: GroupRow, me: MemberRow, now: number
     ? (
         await db
           .prepare(
-            'SELECT role, display_name, member_id, expires_at FROM family_invites WHERE group_id = ? AND used_at IS NULL AND expires_at > ? ORDER BY created_at',
+            // 초대 행은 code_hash가 키라, 취소할 때 가리킬 값으로 SQLite rowid를 쓴다 (plan.md 55)
+            'SELECT rowid AS id, role, display_name, member_id, expires_at FROM family_invites WHERE group_id = ? AND used_at IS NULL AND expires_at > ? ORDER BY created_at',
           )
           .bind(group.id, now)
-          .all<{ role: Role; display_name: string; member_id: string | null; expires_at: number }>()
-      ).results.map((i) => ({ role: i.role, displayName: i.display_name, memberId: i.member_id, expiresAt: i.expires_at }))
+          .all<{ id: number; role: Role; display_name: string; member_id: string | null; expires_at: number }>()
+      ).results.map((i) => ({
+        id: String(i.id),
+        role: i.role,
+        displayName: i.display_name,
+        memberId: i.member_id,
+        expiresAt: i.expires_at,
+      }))
     : []
   return {
     id: group.id,
@@ -791,6 +798,17 @@ async function handleGroups(db: D1Like, request: Request, method: string, parts:
       .bind(await sha256Hex(code), groupId, role, displayName, memberId ?? null, expiresAt, now)
       .run()
     return json({ code, role, displayName, expiresAt })
+  }
+
+  // 초대 취소: 아직 안 쓴 이 그룹 초대만 (plan.md 55)
+  if (sub === 'invites' && targetId && method === 'DELETE') {
+    if (!/^\d{1,15}$/.test(targetId)) return fail('not_found', 404)
+    const r = await db
+      .prepare('DELETE FROM family_invites WHERE rowid = ? AND group_id = ? AND used_at IS NULL')
+      .bind(Number(targetId), groupId)
+      .run()
+    if (!r.meta?.changes) return fail('not_found', 404)
+    return json({ ok: true })
   }
 
   if (sub === 'members' && targetId) {

@@ -1,5 +1,6 @@
 import { Smartphone, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { isStandaloneApp } from '../lib/display-mode'
 
 const STORAGE_KEY = 'pillcheck.installHintDismissed'
 
@@ -8,11 +9,7 @@ type Platform = 'ios' | 'android' | 'standalone' | 'other'
 function detectPlatform(): Platform {
   if (typeof window === 'undefined') return 'other'
   // 이미 PWA 설치되어 standalone으로 실행 중
-  const isStandalone =
-    window.matchMedia('(display-mode: standalone)').matches ||
-    // iOS Safari
-    (window.navigator as Navigator & { standalone?: boolean }).standalone === true
-  if (isStandalone) return 'standalone'
+  if (isStandaloneApp()) return 'standalone'
 
   const ua = window.navigator.userAgent.toLowerCase()
   if (/iphone|ipad|ipod/.test(ua)) return 'ios'

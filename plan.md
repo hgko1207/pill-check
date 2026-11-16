@@ -175,6 +175,42 @@
 - 안 하는 것: 스토어 배포·공개 준비
 - 멈춤 조건: 0003이 운영에서 기대와 다른 행 수를 바꾸면 배포하지 않고 멈춘다.
 
+> 54~56은 가족 연결 코드 점검(2026-11-16, 사용자 "더 개선할 내용을 추출해봐" → 추천 순서 ①→②→④에 "응 진행해줘")에서 나왔다. 54가 가장 급하다 — 아내·부모님 테스트에서 바로 겪을 수 있다. 54 → 55 → 56 순서로, 각각 따로 검증한다. 이름 바꾸기(③), 새로 추가한 약 표시, 오래 안 쓰심 표시, 돌아오면 새로 고침은 이번 범위 밖(다음 후보).
+
+### [x] 54. 초대 링크가 홈 화면 앱이 아닌 곳에서 열릴 때 막기
+- 완료(2026-11-16, 로컬): 새 `web/src/lib/display-mode.ts`(`isStandaloneApp`, `InstallHint.tsx`도 이걸 씀), 새 `web/src/components/JoinElsewhereDialog.tsx`(코드 크게, 코드 복사, 닫기, 보조 "이 화면에서 연결"), `App.tsx`(standalone이 아니면 미리보기 → 부모님 초대만 안내 창, 함께 보는 가족 초대는 Google 계정에 묶이므로 그대로 연결), `FamilySettings.tsx`(`joinWithConsent`가 미리보기 결과를 받아 다시 부르지 않음), `FamilyAdmin.tsx`(보내는 문구·초대 폼·결과 안내를 "홈 화면의 약똑똑 → 설정 → 가족 연결" 먼저로). 계획과 다른 점: 막는 대상을 부모님 초대로 좁힘(보는 사람 연결은 계정 기준이라 브라우저가 달라도 앱에서 같은 계정으로 보임). 검증: typecheck·build, 헤드리스 23개 통과(안내 창·코드 안 쓰임·복사·Esc·이 화면에서 연결 → 동의 → 연결·standalone 흉내는 바로 동의 창·보는 사람 초대는 로그인 화면·문구·56px·18px·다크 글자 크게 넘침 없음). 실제 카톡·아이폰은 확인 안 함.
+- 목표: (1) 부모님용 초대 문구가 "휴대폰 홈 화면의 약똑똑 → 설정 → 가족 연결에 코드 넣기"를 먼저 안내하고, 링크는 "앱이 없으면" 보조로 둔다. (2) `?join=` 링크가 홈 화면 앱(standalone)이 아닌 곳(카톡 안 브라우저, 아이폰 Safari, PC 브라우저 등)에서 열리면 **바로 연결하지 않고** 안내 창을 띄운다: 코드 크게, "코드 복사", "홈 화면의 약똑똑 앱을 열고 설정 → 가족 연결에 넣어 주세요", 보조 버튼 "이 화면에서 연결"(누르면 지금 흐름 `joinWithConsent` 그대로). 코드는 이 창에서 쓰지 않는다(미리보기만). (3) 홈 화면 앱에서 링크가 열리면 지금처럼 바로 동의 창 → 연결.
+- 맥락: 링크를 누르면 카톡은 안의 브라우저로, 아이폰은 Safari로 연다. 그 저장 공간은 홈 화면 앱과 따로라서, 지금은 연결 정보가 그 브라우저에 저장되고 홈 화면 앱의 약은 올라가지 않는다. 코드도 이미 써 버려 새 코드를 받아야 한다(`web/src/App.tsx:88-102`가 묻지 않고 바로 연결, `web/src/components/FamilyAdmin.tsx:158` 문구가 링크를 먼저 누르게 함). 실제 폰으로는 확인 안 함 — 코드 흐름과 플랫폼 저장 방식에서 나온 판단.
+- 방법 비교: (A) standalone이 아니면 항상 안내 창 + "이 화면에서 연결" 보조 버튼 — 판별이 확실하고 PC·안드로이드 Chrome 사용자도 한 번 더 누르면 됨 **(추천)** / (B) 카톡 등 앱 안 브라우저만 골라 막기(UA에 `KAKAOTALK` 등) — 아이폰 Safari 문제를 못 막고 UA 목록을 따라가야 함 / (C) 문구만 바꾸기 — 링크를 누르는 습관은 그대로라 같은 사고가 남.
+- 변경할 파일: `web/src/App.tsx` — `?join=` 처리에서 standalone 판별 후 분기, `web/src/components/FamilyAdmin.tsx` — `inviteMessage`·초대 폼 안내·`InviteResult` 안내 문구, 새 `web/src/components/JoinElsewhereSheet.tsx`(또는 `useDialog`의 확인 창으로 충분하면 그걸 씀 — 구현 때 정하고 알림), `web/src/lib/` — standalone 판별 함수를 `InstallHint.tsx`에서 꺼내 같이 쓰기(작은 함수 하나), `web/src/App.css` — 필요하면.
+- 참조: standalone 판별 `web/src/components/InstallHint.tsx:10-15`, 코드 크게 보이기·복사 `web/src/components/FamilyAdmin.tsx` `InviteResult`, 미리보기 `previewInvite`(`web/src/lib/family.ts:322`)
+- 검증: typecheck, build. 헤드리스(412px, 로컬 `wrangler pages dev`): 일반 브라우저로 `?join=코드` → 안내 창이 뜨고 코드가 쓰이지 않음(같은 코드로 미리보기 다시 성공), "코드 복사", "이 화면에서 연결" → 동의 창 → 연결. standalone 흉내(`display-mode: standalone` 에뮬레이션) → 바로 동의 창. 초대 문구 확인. 실제 폰(카톡·아이폰)은 사용자 확인으로 남긴다.
+- 안 하는 것: 카톡 "다른 브라우저로 열기" 자동 전환, 앱 설치 유도 화면 새로 만들기, 카카오 공유 카드.
+- 멈춤 조건: standalone 에뮬레이션이 헤드리스에서 안 되면 판별 함수만 따로 확인하고 그렇다고 보고한다.
+
+### [x] 55. 만든 초대 취소하기
+- 완료(2026-11-16, 로컬): 서버 `groupView`의 `pendingInvites`에 `id`(rowid), `DELETE groups/:id/invites/:inviteId`(관리자, 같은 그룹, 안 쓴 초대만, 숫자 아니면 404). `family.ts` `cancelInvite`, `GroupManageSheet.tsx` "초대 취소" 버튼·확인 창("그대로 두기"), `errors.ts`에 `not_found` 안내. 마이그레이션 없음. 검증: typecheck·build, `functions/`는 직접 읽어 확인, API·헤드리스 18개 통과(남의 그룹 403, 남의 초대 id 404, 관리자 아닌 가족 403, 세션 없음 401, 쓴 초대 404, 취소 뒤 미리보기·연결 `invalid_code`).
+- 목표: 그룹 관리 화면의 "아직 연결 안 된 초대" 줄마다 "초대 취소" 버튼이 있고, 누르면 확인 창 → 그 코드가 더 이상 쓰이지 않는다(미리보기·연결 모두 `invalid_code`). 그룹 관리자만 할 수 있다.
+- 맥락: 지금은 코드를 잘못 보냈거나 새로 만들어도 예전 코드가 7일 동안 살아 있고 지울 길이 없다(`web/src/components/GroupManageSheet.tsx:286-306`은 보이기만, 서버에 초대 삭제 경로 없음, `INVITE_TTL_MS` `web/functions/api/family/[[path]].ts:119`).
+- 방법 비교: 초대 행을 가리킬 값이 필요하다(`family_invites`는 `code_hash`가 키, `web/migrations/0001_family.sql`). (A) SQLite 숨은 `rowid`를 초대 id로 내보내기 — 마이그레이션 없음, 삭제할 때 `group_id`도 같이 맞춰 남의 그룹 초대는 못 지움 **(추천)** / (B) 0004 마이그레이션으로 `id` 칸 추가 — 깔끔하지만 운영 D1 적용이 하나 더 / (C) `code_hash`를 그대로 내보내기 — 8자리 코드의 해시라 되돌려 찾을 여지가 있어 제외.
+- 변경할 파일: `web/functions/api/family/[[path]].ts` — `groupView`의 `pendingInvites`에 `id`(rowid) 추가, `DELETE groups/:id/invites/:inviteId`(관리자 확인, `group_id` 일치, 안 쓴 초대만), `web/src/lib/family.ts` — `PendingInvite.id`, `cancelInvite(groupId, inviteId)`, `web/src/components/GroupManageSheet.tsx` — 취소 버튼·확인 창·토스트, 목록 key를 `id`로.
+- 참조: 같은 파일의 `DELETE groups/:id/members/:mid` 처리(관리자 확인·그룹 일치), `GroupManageSheet`의 `remove`(확인 창 → `run`)
+- 검증: typecheck, build. `web/functions/`는 타입체크 대상이 아니라 직접 읽어 확인. 로컬 `wrangler pages dev` + 시험용 JWKS: 초대 만들기 → 취소 → 그 코드 미리보기 `invalid_code`, 다른 계정이 남의 그룹 초대 취소 시 403, 함께 보는 가족(관리자 아님) 403. 헤드리스로 버튼·확인 창·목록에서 사라짐 확인.
+- 안 하는 것: 초대 코드 다시 보기(서버에 해시만 있어 불가), 초대 기한 바꾸기.
+- 멈춤 조건: D1에서 `rowid`가 조회되지 않거나 값이 흔들리면 (B) 0004 마이그레이션으로 바꿀지 묻는다.
+
+### [x] 56. 가족 탭에 부모님 약끼리 충돌 표시
+- 완료(2026-11-16, 로컬): `dur.ts` `findConflictsAmong`(짝마다 `findDurConflicts`, 자료 못 받은 약 수) + 같은 품목을 받는 중이면 같이 기다리기(`inflight`, 여러 분이 같은 약을 드실 때 요청이 겹치던 것을 시험에서 발견). `FamilyPage.tsx` 카드 안 빨간 안내("함께 드시면 안 되는 약이 있어요", 짝 이름은 괄호 뺌·와/과 받침 맞춤, "식약처 자료 기준 참고용이에요. 약사에게 물어봐 주세요."), 해당 약 줄 "확인 필요", 못 받으면 회색 안내, 충돌 없으면 안 띄움. 검증: typecheck·build, 헤드리스 16개 통과. 로컬에서 식약처 서버에 닿지 않아(ETIMEDOUT) `/api/nedrug` 응답을 `dur-match.ts` 머리 주석의 실제 응답 구조로 흉내 냄 — 실제 식약처 자료로는 확인 안 함(배포 뒤 노비르정+심바로드정20으로 확인 필요).
+- 운영 반영(2026-11-16, 사용자 "응 진행해줘"): 커밋 `fc05a2d`, 배포 `https://ea9a9d17.pill-check.pages.dev`. 스모크: 홈·`auth/config` 200, 세션 없이 초대 취소 401, 틀린 코드 미리보기 400, 번들에 새 문구 있음. 운영 프록시로 실제 DUR 확인: 노비르정(201106064) 427행 중 상대 `MIXTURE_ITEM_SEQ` = 심바로드정20(200200173) 병용금기 1행, 반대 방향 275행 중 1행 — 시험에서 흉내 낸 행 모양과 같다. 화면에서 실제 짝 표시는 사용자 확인으로 남음.
+- 목표: 가족 탭의 약 드시는 분 카드마다, 그분 약 목록 안에서 DUR 병용금기가 있으면 약 목록 위에 빨간 안내("함께 드시면 안 되는 약이 있어요: A와 B")가 보이고 해당 약 줄에 표시가 붙는다. 자료를 못 받은 약이 있으면 회색 안내("일부 약은 확인하지 못했어요"). 충돌이 없으면 따로 띄우지 않는다(초록으로 "안전" 단정하지 않음). 서버는 바꾸지 않는다.
+- 맥락: 자녀가 가족 탭을 여는 가장 큰 이유가 "부모님 약이 괜찮은가"인데 지금은 이름과 의약품/영양제 구분만 보인다(`web/src/components/FamilyPage.tsx:400-407`). 앱의 DUR 대조(`web/src/lib/dur.ts`)를 그대로 쓸 수 있다. DUR API는 병용금기만 준다(노랑 병용주의 자료 없음, `dur.ts` 주석).
+- 방법: 하나. `web/src/lib/dur.ts`에 `findConflictsAmong(meds)`를 추가 — 의약품 `itemSeq`마다 기존 `fetchDurForItemSeq`(24시간 캐시)로 행을 받고, 약 하나씩을 기준으로 `findDurConflicts`(`web/src/lib/dur-match.ts:112`)를 나머지와 돌려 짝을 중복 없이 모은다. 받은 품목/못 받은 품목 수도 돌려준다.
+- 변경할 파일: `web/src/lib/dur.ts` — `findConflictsAmong`, `web/src/components/FamilyPage.tsx` — 고른 그룹의 구성원 약으로 대조(그룹을 바꾸거나 다시 불러올 때), 카드 안 안내·약 줄 표시, `web/src/App.css` — 안내 모양(기존 빨강·회색 토큰 `--pc-*`).
+- 참조: `checkInteraction`(`web/src/lib/dur.ts:141`)의 받기·대조 흐름, 결과 색과 문구는 `web/src/components/InteractionResultCard.tsx`·`DESIGN.md`
+- 검증: typecheck, build. 헤드리스(412px, 로컬 `wrangler pages dev`): 병용금기 짝이 있는 두 의약품(테스트 데이터로 고름)을 부모님 기기에 등록 → 자녀 가족 탭에 빨간 안내와 약 이름 짝, 충돌 없는 목록은 안내 없음, `/api/nedrug`를 막았을 때 회색 안내. 라이트·다크·글자 크게 스크린샷. 면책 문구 유지.
+- 안 하는 것: 영양제끼리 성분 겹침 표시, 노랑 병용주의(자료 없음), 충돌 상세 화면, AI 해설, 노인주의·효능군 중복(리서치 추천 1순위, 따로 계획).
+- 멈춤 조건: 구성원이 많아 DUR 요청이 한꺼번에 몰려 `/api/nedrug`가 429를 내면 동시에 부르는 수를 줄이는 방법을 정하고 알린다. 병용금기 짝을 가진 테스트 의약품을 못 찾으면 그렇다고 보고하고 대조 함수만 따로 확인한다.
+
 ## 완료
 
 > 39~40은 사용자 확인(2026-11-15 "바코드로 찾기나 TV에서 들은 성분 찾기를 누르고 닫으면 깜빡이는 느낌")에서 나왔다. 운영 주소를 헤드리스 Chrome(412×915)으로 재 보니, TV 성분 상자를 열면 아래 "내 약" 칸이 한 프레임에 428px → 947px로 이동해 화면 밖으로 나가고, 닫으면 한 번에 돌아온다(애니메이션 없이 조건부 렌더, `web/src/components/SearchScreen.tsx:388-406`). 바코드는 빈 상자(67px) → 카메라 영상 크기로 두 번 밀린다(두 번째는 실제 폰에서만, 확인 안 함). 카메라를 못 켰을 때 "카메라를 켜지 못했어요"가 홈 알림으로 떠서 바코드를 닫아도 남는다(`SearchScreen.tsx:390`). 방법 비교: (A) 제자리 펼침에 높이 애니메이션 — 범위 작지만 성분 상자가 519px라 열면 "내 약"이 여전히 화면 밖 / (B1) 새 바텀시트 — 앱에 없는 새 패턴(배경 어둡게, 끌어내리기), DESIGN.md "덮는 화면도 탭바 위에서 끝난다"와 맞추는 결정이 따로 필요 / (B2) 이미 있는 덮는 화면(`.sheet`, 오른쪽에서 들어오고 왼쪽 위 뒤로 버튼 — `GuideModal.tsx`·`DetailModal.tsx`·`ResultSheet.tsx`와 같은 방식)으로 띄우기 — 홈은 전혀 안 밀리고 새 패턴이 없으며 카메라를 넓게 씀 **(추천, 사용자 승인 "추천대로")**. 참고: 대화 중 "아래에서 올라오는 창"이라고 설명했으나, 앱의 기존 덮는 화면은 오른쪽에서 들어오는 전체 화면이다 — B2가 그 기존 방식이다. 뒤로 가기는 B2와 함께 걸려(덮는 화면이 늘어남) 40으로 같이 한다. 39 → 40 순서로, 각각 따로 검증한다.
