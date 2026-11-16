@@ -26,6 +26,8 @@ const DUR_CACHE_TTL_MS = 24 * 60 * 60 * 1000 // 24h — DUR 데이터는 자주 
 
 /** in-memory cache: itemSeq → DurRow[] */
 const memCache = new Map<string, { data: DurRow[]; loadedAt: number }>()
+/** 받는 중인 품목: itemSeq → 진행 중 요청 */
+const inflight = new Map<string, Promise<DurRow[]>>()
 
 /** v2: 모든 쪽을 받고 매칭 칸만 남긴 형식. 예전 'itemSeq:' 캐시는 1쪽만 받아 잘려 있어 쓰지 않는다 */
 function cacheKey(itemSeq: string): string {
@@ -103,18 +105,29 @@ async function fetchDurForItemSeq(itemSeq: string): Promise<DurRow[]> {
     return mem.data
   }
 
-  // 2단계: IndexedDB
-  const fromIDB = await loadFromIDB(itemSeq)
-  if (fromIDB) {
-    memCache.set(itemSeq, { data: fromIDB, loadedAt: Date.now() })
-    return fromIDB
-  }
+  // 같은 품목을 이미 받는 중이면 그 결과를 같이 기다린다 (가족 탭에서 여러 분이 같은 약을 드실 때, plan.md 56)
+  const running = inflight.get(itemSeq)
+  if (running) return running
+  const task = (async () => {
+    // 2단계: IndexedDB
+    const fromIDB = await loadFromIDB(itemSeq)
+    if (fromIDB) {
+      memCache.set(itemSeq, { data: fromIDB, loadedAt: Date.now() })
+      return fromIDB
+    }
 
-  // 3단계: API
-  const fresh = await fetchDurFromApi(itemSeq)
-  memCache.set(itemSeq, { data: fresh, loadedAt: Date.now() })
-  void saveToIDB(itemSeq, fresh)
-  return fresh
+    // 3단계: API
+    const fresh = await fetchDurFromApi(itemSeq)
+    memCache.set(itemSeq, { data: fresh, loadedAt: Date.now() })
+    void saveToIDB(itemSeq, fresh)
+    return fresh
+  })()
+  inflight.set(itemSeq, task)
+  try {
+    return await task
+  } finally {
+    inflight.delete(itemSeq)
+  }
 }
 
 /** DUR row 중복 제거용 키 */
@@ -302,4 +315,66 @@ export async function checkInteraction(
     title: '식약처 자료에서는 문제를 못\u00A0찾았어요',
     message: '자료에 없는 조합도 있어요. 함께 드셔도\u00A0된다는 뜻은\u00A0아니에요.',
   }
+}
+
+/** 한 사람의 약 목록 안에서 찾은 병용금기 짝 (plan.md 56) */
+export interface PairConflict {
+  /** medKey (kind:itemSeq) */
+  aKey: string
+  bKey: string
+  aName: string
+  bName: string
+  severity: 'danger' | 'warn'
+}
+
+export interface AmongResult {
+  conflicts: PairConflict[]
+  /** 자료를 받지 못해 다른 약과 대조하지 못한 약 수 */
+  unchecked: number
+}
+
+/**
+ * 한 사람의 약 목록 안에서 서로 부딪치는 짝을 찾는다 (가족 탭, plan.md 56).
+ * `checkInteraction`과 같은 자료(품목코드별 24시간 캐시)와 같은 매칭(`findDurConflicts`)을 쓴다.
+ * 짝마다 한 번씩만 대조한다 — `findDurConflicts`는 행의 A·B 양쪽 방향을 모두 본다.
+ * 영양제끼리는 병용금기 자료가 없어 대조하지 않는다(괜찮다는 뜻이 아님).
+ */
+export async function findConflictsAmong(
+  meds: { kind: RegisteredMedication['kind']; itemSeq: string; itemName: string; mainIngredient?: string }[],
+): Promise<AmongResult> {
+  const sides: DurSide[] = meds.map((m) => ({ kind: m.kind, id: m.itemSeq, name: m.itemName, ingredient: m.mainIngredient }))
+  if (sides.length < 2) return { conflicts: [], unchecked: 0 }
+
+  const seqs = [...new Set(sides.filter((s) => s.kind === 'drug' && s.id).map((s) => s.id))]
+  if (seqs.length === 0) return { conflicts: [], unchecked: 0 }
+  const fetched = await Promise.allSettled(seqs.map((seq) => fetchDurForItemSeq(seq)))
+  const received = new Set(seqs.filter((_, i) => fetched[i].status === 'fulfilled'))
+  const rows = new Map<string, DurRow>()
+  for (const r of fetched) {
+    if (r.status === 'fulfilled') for (const row of r.value) rows.set(durDedupKey(row), row)
+  }
+  const allRows = [...rows.values()]
+
+  const conflicts: PairConflict[] = []
+  const uncheckedKeys = new Set<string>()
+  for (let i = 0; i < sides.length; i++) {
+    for (let j = i + 1; j < sides.length; j++) {
+      const a = sides[i]
+      const b = sides[j]
+      if (isSameProduct(a, b)) continue
+      if (medCoverage(a, b, received) === 'unchecked') {
+        for (const s of [a, b]) if (s.kind === 'drug' && !received.has(s.id)) uncheckedKeys.add(medKey(s))
+      }
+      const found = findDurConflicts(a, [b], allRows)
+      if (found.length === 0) continue
+      conflicts.push({
+        aKey: medKey(a),
+        bKey: medKey(b),
+        aName: a.name,
+        bName: b.name,
+        severity: found.some((c) => c.severity === 'danger') ? 'danger' : 'warn',
+      })
+    }
+  }
+  return { conflicts, unchecked: uncheckedKeys.size }
 }

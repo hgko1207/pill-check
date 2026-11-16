@@ -39,6 +39,7 @@ export function friendlyError(e: unknown): string {
       return '이 그룹의 관리자가 한 명뿐이라 할 수 없어요. 다른 가족에게 먼저 관리 권한을 주거나, 그룹을 지워 주세요.'
     }
     if (e.code === 'group_full') return '이 그룹은 가족이 꽉 찼어요(20명). 연결하지 않는 분을 뺀 뒤 다시 해 보세요.'
+    if (e.code === 'not_found') return '이미 바뀌었거나 없어진 정보예요. 새로 고침해서 다시 확인해 주세요.'
     if (e.code === 'too_many_groups') return '그룹은 10개까지 만들 수 있어요. 쓰지 않는 그룹을 지운 뒤 다시 해 보세요.'
     if (e.status >= 500) return '가족 연결 서버가 잠시 응답하지 않아요. 조금 뒤에 다시 해 보세요.'
     return '가족 연결 중 문제가 생겼어요. 조금 뒤에 다시 해 보시고, 계속되면 자녀에게 알려 주세요.'

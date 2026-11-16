@@ -123,7 +123,7 @@ export function InviteForm({
         <li>코드를 카톡으로 보내요.</li>
         <li>
           {role === 'member'
-            ? '받은 분이 앱의 설정 → 가족 연결에 코드를 넣으면 끝이에요. 로그인은 필요 없어요.'
+            ? '받은 분이 홈 화면의 약똑똑을 열고 설정 → 가족 연결에 코드를 넣으면 끝이에요. 로그인은 필요 없어요.'
             : '받은 분이 링크를 열고 Google로 로그인하면 연결돼요.'}
         </li>
       </ol>
@@ -155,9 +155,12 @@ export function InviteForm({
 function inviteMessage(invite: CreatedInvite): string {
   const how =
     invite.role === 'member'
-      ? `아래 주소를 눌러 주세요. 앱 설정의 '가족 연결'에 코드 ${invite.code}를 넣어도 돼요.`
-      : `아래 주소를 열고 Google로 로그인해 주세요. 앱 설정의 '가족 연결'에 코드 ${invite.code}를 넣어도 돼요.`
-  return [`약똑똑 가족 초대예요 (${invite.displayName}).`, how, '7일 안에 한 번만 쓸 수 있어요.', invite.link].join(
+      ? [
+          `휴대폰 홈 화면의 약똑똑을 열고, 설정 → 가족 연결에 코드 ${invite.code}를 넣어 주세요.`,
+          '약똑똑이 아직 없으면 아래 주소를 열어 홈 화면에 추가해 주세요.',
+        ]
+      : [`아래 주소를 열고 Google로 로그인해 주세요. 앱 설정의 '가족 연결'에 코드 ${invite.code}를 넣어도 돼요.`]
+  return [`약똑똑 가족 초대예요 (${invite.displayName}).`, ...how, '7일 안에 한 번만 쓸 수 있어요.', invite.link].join(
     '\n',
   )
 }
@@ -195,7 +198,7 @@ export function InviteResult({ invite, onClose }: { invite: CreatedInvite; onClo
       <div className="row__sub row__sub--guide">
         {until}까지 한 번만 쓸 수 있어요.{' '}
         {invite.role === 'member'
-          ? "받은 분이 링크를 누르거나 앱 설정의 '가족 연결'에 코드를 넣으면 돼요."
+          ? '받은 분이 홈 화면의 약똑똑을 열고 설정 → 가족 연결에 코드를 넣으면 돼요.'
           : '받은 분이 링크를 열고 Google로 로그인하면 돼요.'}
       </div>
       <div className="family-actions">

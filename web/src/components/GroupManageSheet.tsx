@@ -4,6 +4,7 @@ import { useBackClose } from '../lib/back-close'
 import { useDialog } from '../lib/dialog'
 import { friendlyError } from '../lib/errors'
 import {
+  cancelInvite,
   createInvite,
   deleteGroup,
   leaveGroup,
@@ -13,6 +14,7 @@ import {
   type FamilyGroupView,
   type FamilyMemberView,
   type FamilyViewerView,
+  type PendingInvite,
 } from '../lib/family'
 import { InviteResult, ROLE_TEXT, keepHyphen } from './FamilyAdmin'
 
@@ -110,6 +112,23 @@ export function GroupManageSheet({ open, group, onClose, onChanged, onGone }: Pr
     })
     if (!ok) return
     await run(`rm-${person.id}`, () => removeFromGroup(g.id, person.id), `${person.displayName} 연결을 끊었어요.`)
+  }
+
+  async function cancel(i: PendingInvite) {
+    const ok = await confirm({
+      title: '이 초대를 취소할까요?',
+      message: (
+        <>
+          <b>{i.displayName}</b>
+          <br />보낸 초대 코드를 더 이상 쓸 수 없게 돼요. 다시 초대하려면 새 코드를 만들어&nbsp;주세요.
+        </>
+      ),
+      confirmLabel: '초대 취소',
+      cancelLabel: '그대로 두기',
+      variant: 'danger',
+    })
+    if (!ok) return
+    await run(`inv-${i.id}`, () => cancelInvite(g.id, i.id), `${i.displayName} 초대를 취소했어요.`)
   }
 
   async function relinkMember(m: FamilyMemberView) {
@@ -287,9 +306,9 @@ export function GroupManageSheet({ open, group, onClose, onChanged, onGone }: Pr
           <>
             <h2 className="group-label">아직 연결 안 된 초대</h2>
             <ul className="group">
-              {g.pendingInvites.map((i, idx) => (
-                <li key={`${i.displayName}-${idx}`}>
-                  <div className="row">
+              {g.pendingInvites.map((i) => (
+                <li key={i.id} className="family-member">
+                  <div className="row family-member__head">
                     <div className="row__body">
                       <div className="row__title">{i.displayName}</div>
                       <div className="row__sub">{i.memberId ? '새 폰으로 다시 연결' : ROLE_TEXT[i.role]}</div>
@@ -298,6 +317,17 @@ export function GroupManageSheet({ open, group, onClose, onChanged, onGone }: Pr
                         있어요
                       </div>
                     </div>
+                  </div>
+                  <div className="family-member__actions">
+                    <button
+                      type="button"
+                      className="text-btn text-btn--danger"
+                      onClick={() => void cancel(i)}
+                      disabled={busy !== null}
+                      aria-label={`${i.displayName} 초대 취소`}
+                    >
+                      초대 취소
+                    </button>
                   </div>
                 </li>
               ))}

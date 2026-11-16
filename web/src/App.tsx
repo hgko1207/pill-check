@@ -8,10 +8,19 @@ import { DetailModal, type DetailTarget } from './components/DetailModal'
 import { GuideModal } from './components/GuideModal'
 import { DialogProvider, useDialog } from './lib/dialog'
 import { initTheme } from './lib/theme'
-import { FAMILY_CHANGED_EVENT, hasFamilyTab, savePendingJoin, scheduleFamilySync } from './lib/family'
+import {
+  FAMILY_CHANGED_EVENT,
+  hasFamilyTab,
+  previewInvite,
+  savePendingJoin,
+  scheduleFamilySync,
+  type InvitePreview,
+} from './lib/family'
 import { FamilyPage } from './components/FamilyPage'
 import { joinWithConsent } from './components/FamilySettings'
+import { JoinElsewhereDialog } from './components/JoinElsewhereDialog'
 import { friendlyError } from './lib/errors'
+import { isStandaloneApp } from './lib/display-mode'
 
 export default function App() {
   return (
@@ -42,6 +51,8 @@ function AppContent() {
   }
   // 로그인이 필요한 초대를 받았을 때 가족 탭을 새로 그리기 위한 값
   const [familyNonce, setFamilyNonce] = useState(0)
+  // 부모님 초대 링크를 홈 화면 앱이 아닌 곳에서 열었을 때 보여 줄 안내 (plan.md 54)
+  const [elsewhere, setElsewhere] = useState<{ code: string; info: InvitePreview } | null>(null)
 
   /** 보는 사람 초대인데 로그인 전: 코드를 보관하고 가족 탭 로그인 화면으로 */
   function handleNeedLogin(code: string) {
@@ -85,7 +96,23 @@ function AppContent() {
     }
   }, [])
 
+  function joinFromLink(code: string, info?: InvitePreview) {
+    joinWithConsent(
+      code,
+      {
+        confirm,
+        toast,
+        onMedicationsChanged: () => setRefreshSignal((n) => n + 1),
+        onNeedLogin: handleNeedLogin,
+      },
+      info,
+    ).catch((e) => toast(friendlyError(e), 'error'))
+  }
+
   // 초대 링크(?join=코드)로 열었으면 연결한다. 주소의 코드는 바로 지운다(다시 열어도 또 쓰지 않게)
+  // 부모님(약 드시는 분) 초대를 홈 화면 앱이 아닌 곳에서 열면 바로 잇지 않고 앱에서 넣도록 안내한다 —
+  // 카톡 안 브라우저·아이폰 Safari는 홈 화면 앱과 저장 공간이 따로라, 여기서 이으면 앱의 약이 안 올라간다.
+  // 함께 보는 가족 초대는 Google 계정에 묶이므로 어디서 열어도 그대로 잇는다.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const code = params.get('join')
@@ -93,12 +120,16 @@ function AppContent() {
     params.delete('join')
     const rest = params.toString()
     window.history.replaceState(null, '', window.location.pathname + (rest ? `?${rest}` : '') + window.location.hash)
-    joinWithConsent(code, {
-      confirm,
-      toast,
-      onMedicationsChanged: () => setRefreshSignal((n) => n + 1),
-      onNeedLogin: handleNeedLogin,
-    }).catch((e) => toast(friendlyError(e), 'error'))
+    if (isStandaloneApp()) {
+      joinFromLink(code)
+      return
+    }
+    previewInvite(code)
+      .then((info) => {
+        if (info.role === 'member') setElsewhere({ code, info })
+        else joinFromLink(code, info)
+      })
+      .catch((e) => toast(friendlyError(e), 'error'))
   }, [confirm, toast])
 
   // 가족과 연결된 기기면 앱을 열 때와 등록약이 바뀔 때 목록을 올린다(연결 안 됐으면 아무것도 안 함)
@@ -157,6 +188,17 @@ function AppContent() {
 
       <DetailModal target={detailTarget} onClose={() => setDetailTarget(null)} />
       <GuideModal open={guideOpen} onClose={() => setGuideOpen(false)} />
+      {elsewhere && (
+        <JoinElsewhereDialog
+          code={elsewhere.code}
+          info={elsewhere.info}
+          onClose={() => setElsewhere(null)}
+          onJoinHere={() => {
+            setElsewhere(null)
+            joinFromLink(elsewhere.code, elsewhere.info)
+          }}
+        />
+      )}
     </div>
   )
 }

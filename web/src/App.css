@@ -1188,6 +1188,26 @@ html[data-theme='dark'] .segmented__btn[aria-checked='true'] { background: var(-
 }
 .family-meds__item + .family-meds__item { border-top: 1px solid var(--pc-divider); }
 .family-meds__name { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+/* 약 드시는 분 카드: 그분 약끼리 병용금기 (plan.md 56) */
+.family-dur {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 4px 18px 12px 70px;
+  padding: 12px 14px;
+  border-radius: var(--pc-radius-m);
+  font-size: var(--fs-body);
+  line-height: 1.5;
+}
+.family-dur > svg { width: 22px; height: 22px; flex: none; margin-top: 1px; }
+.family-dur--danger { background: var(--pc-danger-bg); color: var(--pc-danger-ink); }
+.family-dur--danger > svg { color: var(--pc-danger); }
+.family-dur--unknown { background: var(--pc-unknown-bg); color: var(--pc-unknown-ink); }
+.family-dur--unknown > svg { color: var(--pc-unknown); }
+.family-dur__pairs { margin: 6px 0 0; padding-left: 1.1em; }
+.family-dur__pairs li { word-break: keep-all; overflow-wrap: anywhere; }
+.family-dur__next { display: block; margin-top: 6px; }
+.family-meds__flag { margin-left: 8px; vertical-align: 1px; }
 .family-meds__empty { margin: 0 18px 0 70px; padding: 0 0 14px; font-size: var(--fs-body); line-height: 1.55; color: var(--pc-text-subtle); }
 .family-member__actions { display: flex; justify-content: flex-end; flex-wrap: wrap; padding: 0 6px 6px; }
 .family-member__actions .text-btn { margin-left: 0; }
@@ -1274,6 +1294,21 @@ html[data-theme='dark'] .segmented__btn[aria-checked='true'] { background: var(-
 /* 부모님 연결 전 동의 (확인 창 안 목록) */
 .consent-list { margin: 10px 0 0; padding-left: 1.1em; text-align: left; }
 .consent-list li { margin-top: 6px; line-height: 1.5; }
+
+/* 부모님 초대 링크를 홈 화면 앱이 아닌 곳에서 열었을 때 (plan.md 54) */
+.join-elsewhere__here {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 8px;
+  margin-top: 16px;
+  padding-top: 8px;
+  border-top: 1px solid var(--pc-divider);
+  font-size: var(--fs-body);
+  color: var(--pc-text-muted);
+}
+.join-elsewhere__here .text-btn { margin-left: auto; }
 
 /* 사용법의 색 설명 */
 .legend { margin: 16px 0 0; padding: 14px 0 0; list-style: none; border-top: 1px solid var(--pc-divider); }

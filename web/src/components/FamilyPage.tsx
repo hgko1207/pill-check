@@ -3,6 +3,7 @@ import { AlertCircle, ChevronRight, Eye, LogOut, Plus, RefreshCw, Settings2, Use
 import { useDialog } from '../lib/dialog'
 import { friendlyError } from '../lib/errors'
 import { disableGoogleAutoSelect } from '../lib/auth'
+import { findConflictsAmong, type AmongResult } from '../lib/dur'
 import {
   clearPendingJoin,
   getFamilyView,
@@ -16,6 +17,7 @@ import {
   type AuthUser,
   type CreatedInvite,
   type FamilyGroupView,
+  type FamilyMemberView,
   type FamilyRole,
   type InvitePreview,
 } from '../lib/family'
@@ -45,6 +47,56 @@ function managerNames(g: FamilyGroupView): string {
     .filter((v) => v.isManager && !v.isMe)
     .map((v) => v.displayName)
     .join(', ')
+}
+
+/** 약 목록이 바뀌면 다시 대조하도록 키에 갱신 시각을 넣는다 */
+function durKey(m: FamilyMemberView): string {
+  return `${m.id}:${m.medsUpdatedAt ?? 0}`
+}
+
+/** "노바스크정5밀리그램(암로디핀베실산염)" → "노바스크정5밀리그램" */
+function shortMedName(name: string): string {
+  return name.replace(/\([^)]*\)/g, '').trim() || name
+}
+
+/** 이름 뒤 '와'/'과' (받침 있으면 '과'). 한글로 끝나지 않으면 '+' */
+function andParticle(name: string): string {
+  const code = name.charCodeAt(name.length - 1) - 0xac00
+  if (code < 0 || code > 11171) return ' +'
+  return code % 28 === 0 ? '와' : '과'
+}
+
+/** 약 드시는 분 카드 안: 그분 약끼리 병용금기 (plan.md 56). 충돌이 없으면 아무것도 띄우지 않는다 */
+function MemberDurNotice({ result }: { result: AmongResult | undefined }) {
+  if (!result) return null
+  const { conflicts, unchecked } = result
+  return (
+    <>
+      {conflicts.length > 0 && (
+        <div className="family-dur family-dur--danger" role="note">
+          <AlertCircle aria-hidden="true" />
+          <div>
+            <b>함께 드시면 안 되는 약이 있어요</b>
+            <ul className="family-dur__pairs">
+              {conflicts.map((c) => (
+                <li key={`${c.aKey}|${c.bKey}`}>
+                  {shortMedName(c.aName)}
+                  {andParticle(shortMedName(c.aName))} {shortMedName(c.bName)}
+                </li>
+              ))}
+            </ul>
+            <span className="family-dur__next">식약처 자료 기준 참고용이에요. 약사에게 물어봐 주세요.</span>
+          </div>
+        </div>
+      )}
+      {unchecked > 0 && (
+        <div className="family-dur family-dur--unknown" role="note">
+          <AlertCircle aria-hidden="true" />
+          <span>일부 약은 함께 드셔도 되는지 확인하지 못했어요. 새로 고침해 다시 확인해 주세요.</span>
+        </div>
+      )}
+    </>
+  )
 }
 
 function loadSelected(): string | null {
@@ -82,6 +134,8 @@ export function FamilyPage() {
   const [inviteRole, setInviteRole] = useState<FamilyRole | null>(null)
   const [invite, setInvite] = useState<CreatedInvite | null>(null)
   const [manageOpen, setManageOpen] = useState(false)
+  // 약 드시는 분별 약끼리 대조 결과 (키: durKey)
+  const [durResults, setDurResults] = useState<Record<string, AmongResult>>({})
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -156,6 +210,26 @@ export function FamilyPage() {
   }, [user?.id, load, toast])
 
   const selected = groups?.find((g) => g.id === selectedId) ?? groups?.[0] ?? null
+
+  // 고른 그룹의 약 드시는 분마다 약끼리 병용금기를 대조한다 (자료는 품목별 24시간 캐시)
+  useEffect(() => {
+    if (!selected) return
+    let cancelled = false
+    for (const m of selected.members) {
+      if (m.meds.length < 2) continue
+      const key = durKey(m)
+      findConflictsAmong(m.meds)
+        .then((r) => {
+          if (!cancelled) setDurResults((prev) => ({ ...prev, [key]: r }))
+        })
+        .catch(() => {
+          // 대조 자체가 실패하면 표시하지 않는다(초록으로 단정하지 않으므로 빈칸이 안전하다)
+        })
+    }
+    return () => {
+      cancelled = true
+    }
+  }, [selected])
 
   function resetPanels() {
     setCreating(false)
@@ -393,13 +467,19 @@ export function FamilyPage() {
                     </div>
                   </div>
                 </div>
+                <MemberDurNotice result={durResults[durKey(m)]} />
                 {m.meds.length === 0 ? (
                   <p className="family-meds__empty">등록한 약이 아직 없어요.</p>
                 ) : (
                   <ul className="family-meds" aria-label={`${m.displayName}의 약 ${m.meds.length}개`}>
                     {m.meds.map((med) => (
                       <li key={med.itemSeq} className="family-meds__item">
-                        <span className="family-meds__name">{med.itemName}</span>
+                        <span className="family-meds__name">
+                          {med.itemName}
+                          {durResults[durKey(m)]?.conflicts.some(
+                            (c) => c.aKey === `${med.kind}:${med.itemSeq}` || c.bKey === `${med.kind}:${med.itemSeq}`,
+                          ) && <span className="status status--danger family-meds__flag">확인 필요</span>}
+                        </span>
                         <span className={`tag ${med.kind === 'healthfood' ? '' : 'tag--primary'}`}>
                           {med.kind === 'healthfood' ? '영양제' : '의약품'}
                         </span>
