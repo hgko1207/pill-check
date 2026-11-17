@@ -9,8 +9,8 @@
 | **[터미널]** | VS Code 메뉴 **터미널 → 새 터미널** (단축키 `` Ctrl+` ``) |
 | **[Claude 입력창]** | VS Code 왼쪽 Claude 아이콘을 눌러 연 대화창 |
 
-- **스킬**: 미리 정해 둔 작업 절차. [Claude 입력창]에 `/team-ai:commit`처럼 이름으로 부릅니다.
-- **플러그인**: 팀 스킬과 안전장치를 묶어 한 번에 설치하는 꾸러미. 이 저장소는 `team-ai`를 씁니다.
+- **스킬**: 미리 정해 둔 작업 절차. [Claude 입력창]에 `/cc-ready:commit`처럼 이름으로 부릅니다.
+- **플러그인**: 팀 스킬과 안전장치를 묶어 한 번에 설치하는 꾸러미. 이 저장소는 `cc-ready`를 씁니다.
 - **훅**: Claude가 파일을 고치거나 명령을 실행하기 직전에 자동으로 도는 검사. 위험한 작업을 막습니다.
 - **권한 확인 창**: Claude가 되돌리기 어려운 일을 하기 전에 승인을 묻는 창. 내용을 읽고 누릅니다.
 - **CLAUDE.md**: Claude가 대화를 시작할 때마다 읽는 이 저장소 안내서.
@@ -28,22 +28,22 @@
 4. **저장소 열기** — VS Code에서 이 저장소 폴더를 엽니다. "이 폴더를 신뢰하시겠습니까?"가 뜨면 **신뢰**를 누릅니다. 신뢰하지 않으면 팀 권한 설정 일부가 적용되지 않아 확인 창이 계속 뜹니다.
 5. **팀 플러그인 설치** — Claude 대화창을 열면 팀 플러그인 설치 안내가 뜹니다. 승인합니다. 안 뜨면 [Claude 입력창]에 한 줄씩 입력합니다.
    ```
-   /plugin marketplace add hgko1207/team-ai-kit
-   /plugin install team-ai@team-ai-kit
+   /plugin marketplace add hgko1207/cc-ready
+   /plugin install cc-ready@cc-ready
    ```
    설치한 뒤 **새 대화**를 엽니다. 설치 전에 시작한 대화에서는 팀 스킬이 보이지 않습니다.
-6. **확인** — [Claude 입력창]에 `/team-ai:verify`를 입력합니다. 타입체크·테스트 같은 검증 명령이 실행되면 준비 끝입니다.
+6. **확인** — [Claude 입력창]에 `/cc-ready:verify`를 입력합니다. 타입체크·테스트 같은 검증 명령이 실행되면 준비 끝입니다.
 
 ## 기본 흐름: 계획 → 구현 → 검증
 
 | 단계 | 하는 일 | [Claude 입력창]에 입력 |
 |---|---|---|
-| 계획 | 무엇을 어떻게 바꿀지 `plan.md`에 적기 | `/team-ai:plan-feature 로그인 실패 메시지 개선` |
+| 계획 | 무엇을 어떻게 바꿀지 `plan.md`에 적기 | `/cc-ready:plan-feature 로그인 실패 메시지 개선` |
 | 검토 | 계획을 직접 읽고 빠진 것을 말하기 | (사람이 읽고 답장) |
 | 구현 | `plan.md`의 다음 작업을 위에서부터 | `계획 승인. plan.md 다음 작업 구현해줘` |
-| 검증 | 타입체크·린트·테스트를 실제로 실행 | `/team-ai:verify` |
-| 리뷰 | PR 전 자가 리뷰 | `/team-ai:review-pr` |
-| 커밋 | 팀 규칙대로 나눠서 커밋 | `/team-ai:commit` |
+| 검증 | 타입체크·린트·테스트를 실제로 실행 | `/cc-ready:verify` |
+| 리뷰 | PR 전 자가 리뷰 | `/cc-ready:review-pr` |
+| 커밋 | 팀 규칙대로 나눠서 커밋 | `/cc-ready:commit` |
 
 - 스킬은 이름으로 부르는 것이 기본입니다. "계획 세워줘"처럼 말로 해도 되지만 매번 스킬이 불리지는 않습니다.
 - 작은 수정(오타, 한 파일 몇 줄)은 계획을 건너뛰어도 됩니다.
@@ -69,28 +69,28 @@
 - 강제 푸시, DB 삭제, 인프라 변경 같은 명령은 차단됩니다. 꼭 필요하면 [터미널]에서 직접 실행합니다.
 - `git push`, `git reset`처럼 되돌리기 어려운 명령은 권한 확인 창이 뜹니다.
 - 이 저장소에는 아직 자동 포매터가 없습니다. 기존 파일 스타일(세미콜론 없음, 작은따옴표, 2칸 들여쓰기)을 따릅니다.
-- 규칙은 `.claude/settings.json`, `.claude/team-ai.json`에 있습니다. Claude는 이 파일을 고칠 수 없고, 바꾸려면 PR로 제안합니다.
+- 규칙은 `.claude/settings.json`, `.claude/cc-ready.json`에 있습니다. Claude는 이 파일을 고칠 수 없고, 바꾸려면 PR로 제안합니다.
 
 ## 막힐 때
 
 | 증상 | 해결 |
 |---|---|
-| `/team-ai:...` 명령이 안 보인다 | 새 대화를 엽니다. 그래도 없으면 "처음 한 번" 5번을 다시 합니다 |
+| `/cc-ready:...` 명령이 안 보인다 | 새 대화를 엽니다. 그래도 없으면 "처음 한 번" 5번을 다시 합니다 |
 | 차단이 전혀 안 된다 | [터미널]에서 `node --version`. 없으면 설치 후 VS Code를 다시 엽니다 |
 | "보호 경로", "위험 명령"으로 막힌다 | 의도한 동작입니다. 꼭 필요하면 직접 하거나 규칙 변경을 PR로 제안합니다 |
-| 모든 수정과 명령이 막힌다 | `.claude/team-ai.json`의 JSON 문법이 깨졌을 때입니다. 편집기로 직접 고칩니다 |
+| 모든 수정과 명령이 막힌다 | `.claude/cc-ready.json`의 JSON 문법이 깨졌을 때입니다. 편집기로 직접 고칩니다 |
 | 같은 확인 창이 계속 뜬다 | 폴더를 신뢰했는지 확인합니다. 자주 쓰는 안전한 명령이면 팀 허용 목록에 넣자고 제안합니다 |
 
 ## 선택 기능
 
-필요해지면 팀과 상의해 켭니다. [Claude 입력창]에 `/plugin install team-ai-extras@team-ai-kit`을 입력하고 새 대화를 엽니다.
+필요해지면 팀과 상의해 켭니다. [Claude 입력창]에 `/plugin install cc-ready-extras@cc-ready`을 입력하고 새 대화를 엽니다.
 
 | 기능 | 부르는 법 |
 |---|---|
-| 근본 원인부터 찾는 버그 수정 | `/team-ai-extras:fix-issue 결제 후 화면이 멈춤` |
-| 안전망을 먼저 만들고 하는 리팩터링 | `/team-ai-extras:refactor src/order` |
-| 커밋·검증 확인 후 push와 PR 만들기 (병합은 사람이) | `/team-ai-extras:open-pr` |
-| 코드를 바꾼 뒤 틀리게 된 문서 고치기 | `/team-ai-extras:update-docs` |
+| 근본 원인부터 찾는 버그 수정 | `/cc-ready-extras:fix-issue 결제 후 화면이 멈춤` |
+| 안전망을 먼저 만들고 하는 리팩터링 | `/cc-ready-extras:refactor src/order` |
+| 커밋·검증 확인 후 push와 PR 만들기 (병합은 사람이) | `/cc-ready-extras:open-pr` |
+| 코드를 바꾼 뒤 틀리게 된 문서 고치기 | `/cc-ready-extras:update-docs` |
 | 지적이 진짜인지 반대로 검증 | `verifier 에이전트로 이 리뷰 지적이 맞는지 확인해줘` |
 
 ## 개인 설정
