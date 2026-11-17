@@ -102,7 +102,7 @@ Related: `docs/product-design.md`(5월 MVP 설계), `docs/next-supplement-search
 ## Next Steps
 
 1. (사용자) 식품안전나라에서 바코드 서비스 `C005`·`I2570` 활용신청. 결과는 별도 단계에서 확인.
-2. `/team-ai:plan-feature`로 위 1~3을 따로 검증 가능한 작업으로 나눠 `plan.md`에 적는다.
+2. `/cc-ready:plan-feature`로 위 1~3을 따로 검증 가능한 작업으로 나눠 `plan.md`에 적는다.
 3. 구현 순서 제안: 제품 상세 보강 → 성분 별칭표 + 대조 → 성분 요약 JSON 생성 스크립트 + 설명 카드 → 회수 이력.
 4. 폰에서 아버지가 직접 써 보시는 것까지가 완료.
 

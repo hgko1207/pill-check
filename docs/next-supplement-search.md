@@ -28,7 +28,7 @@
 
 - 동작하는 것: 약·영양제 검색과 바코드, 등록, DUR 충돌 카드, Gemini 해설(`web/api/llm.ts` Edge Function), Dexie 캐시(스키마 v4). 5월 15일 이후 멈춰 있었다.
 - README의 "Week 0, 빌드 전" 상태 줄은 낡았다 (실제로는 훨씬 진행됨).
-- **오늘 `/team-ai:setup`이 실행됐고 커밋되지 않았다**: `CLAUDE.md`, `plan.md`, `.claude/`, `.vscode/`, `docs/ai-workflow.md`, `docs/ai-cost-guide.md`, `.gitignore` 수정.
+- **오늘 `/cc-ready:setup`이 실행됐고 커밋되지 않았다**: `CLAUDE.md`, `plan.md`, `.claude/`, `.vscode/`, `docs/ai-workflow.md`, `docs/ai-cost-guide.md`, `.gitignore` 수정.
 - 검증 수단은 `npm --prefix web run typecheck`와 `npm --prefix web run build`뿐이다. `web/api/`는 타입체크 대상이 아니다.
 - 참고: 식품안전나라 키(`VITE_FOODSAFETY_API_KEY`)는 지금 브라우저에서 바로 쓴다. 이번 범위에서 고치지 않는다(따로 제안만).
 
@@ -37,8 +37,8 @@
 ### 0단계. 세팅 파일 정리 (10분)
 
 1. 작업 브랜치를 만든다: `feat/supplement-search`
-2. `/team-ai:setup`이 만든 파일을 사용자와 함께 훑어본다. 특히 `CLAUDE.md`의 검증 명령과 `.claude/settings.json`의 권한.
-3. `/team-ai:commit`으로 "chore: Claude Code 팀 세팅"을 커밋한다. 이 문서(`docs/next-supplement-search.md`)도 같이 커밋한다.
+2. `/cc-ready:setup`이 만든 파일을 사용자와 함께 훑어본다. 특히 `CLAUDE.md`의 검증 명령과 `.claude/settings.json`의 권한.
+3. `/cc-ready:commit`으로 "chore: Claude Code 팀 세팅"을 커밋한다. 이 문서(`docs/next-supplement-search.md`)도 같이 커밋한다.
 
 **끝나면 멈추고 보고한다.**
 
@@ -87,7 +87,7 @@
 
 ### 4단계. 계획
 
-`/team-ai:plan-feature 1단계 영양제 검색: 성분 검색 → 판매 중 제품 목록(회사·제품명·네이버/쿠팡 가격 보기 버튼) + 함량·신뢰 순 정렬 + 식약처 검증 + 회수 이력 + 내 약 충돌`
+`/cc-ready:plan-feature 1단계 영양제 검색: 성분 검색 → 판매 중 제품 목록(회사·제품명·네이버/쿠팡 가격 보기 버튼) + 함량·신뢰 순 정렬 + 식약처 검증 + 회수 이력 + 내 약 충돌`
 
 plan.md에 아래처럼 **따로 검증할 수 있는 작업**으로 나눈다(제안이며 plan-feature가 코드를 보고 조정한다).
 
@@ -101,9 +101,9 @@ plan.md에 아래처럼 **따로 검증할 수 있는 작업**으로 나눈다(�
 
 ### 5단계. 구현과 검증
 
-- plan.md 위에서부터 하나씩 구현한다. 하나 끝날 때마다 `/team-ai:verify`.
+- plan.md 위에서부터 하나씩 구현한다. 하나 끝날 때마다 `/cc-ready:verify`.
 - 폰에서 직접 확인한다(`npm --prefix web run dev`, LAN). 가능하면 **아버지가 직접 써 보시는 것**까지가 완료 기준이다.
-- 커밋은 `/team-ai:commit`, PR은 `/team-ai-extras:open-pr`(설치돼 있으면).
+- 커밋은 `/cc-ready:commit`, PR은 `/cc-ready-extras:open-pr`(설치돼 있으면).
 
 ### 6단계. 디자인 (1단계 화면이 나온 뒤)
 

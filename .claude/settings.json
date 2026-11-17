@@ -1,15 +1,15 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "extraKnownMarketplaces": {
-    "team-ai-kit": {
+    "cc-ready": {
       "source": {
         "source": "github",
-        "repo": "hgko1207/team-ai-kit"
+        "repo": "hgko1207/cc-ready"
       }
     }
   },
   "enabledPlugins": {
-    "team-ai@team-ai-kit": true
+    "cc-ready@cc-ready": true
   },
   "permissions": {
     "allow": [
