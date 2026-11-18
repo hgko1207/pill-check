@@ -1,4 +1,5 @@
 import type { NedrugItem, NedrugSearchResponse } from './types'
+import { fetchWithTimeout, isTimeoutError } from './fetch-timeout'
 
 // 2026-05 fact-check: Service06 → Service07 (구버전 90일 후 중지). 검증된 endpoint.
 // dev는 Vite 프록시, 배포본은 Cloudflare Pages Function(functions/api/nedrug)이 같은 경로를 받아 키를 붙인다
@@ -32,7 +33,13 @@ async function fetchDrugs(filter: string, rows: number): Promise<NedrugItem[]> {
     `&numOfRows=${rows}` +
     `&pageNo=1`
 
-  const res = await fetch(url)
+  let res: Response
+  try {
+    res = await fetchWithTimeout(url)
+  } catch (e) {
+    if (isTimeoutError(e)) throw new NedrugRequestError(504, '식약처 API 응답 시간 초과')
+    throw e
+  }
   if (!res.ok) {
     throw new NedrugRequestError(res.status, `식약처 API 응답 오류 (${res.status})`)
   }

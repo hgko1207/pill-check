@@ -10,6 +10,8 @@
  *   VITE_FOODSAFETY_API_KEY를 프록시가 경로에 끼운다. 클라이언트는 `/api/{SERVICE}/...`만 부른다.
  */
 
+import { fetchWithTimeout, isTimeoutError } from './fetch-timeout'
+
 // dev는 Vite 프록시, 배포본은 Cloudflare Pages Function(functions/api/foodsafety)이 같은 경로를 받아 키를 끼운다
 const BASE = '/api/foodsafety'
 
@@ -149,7 +151,14 @@ async function fetchService<T>(
 ): Promise<T[]> {
   const url = `${BASE}/api/${service}/json/${start}/${end}${filter ? `/${filter}` : ''}`
 
-  const res = await fetch(url)
+  let res: Response
+  try {
+    res = await fetchWithTimeout(url)
+  } catch (e) {
+    // 브라우저마다 다른 중단 문구 대신 'timeout'으로 맞춰 friendlyError가 "응답이 늦어요"로 바꾸게 한다
+    if (isTimeoutError(e)) throw new Error('식품안전나라 응답 timeout')
+    throw e
+  }
   if (!res.ok) {
     throw new Error(`식품안전나라 API 응답 오류 (${res.status})`)
   }
