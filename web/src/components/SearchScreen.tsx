@@ -82,6 +82,17 @@ function adaptHealthFood(item: HealthFoodItem, sameNameCount: number): HealthFoo
 
 const isOldName = (item: HealthFoodItem) => /^\s*\(구\)/.test(item.PRDLST_NM ?? '')
 
+function healthFoodResults(items: HealthFoodItem[]): HealthFoodWithRaw[] {
+  // 이름이 "(구)"로 시작하는 옛 신고는 뒤로 (빼지는 않는다). sort는 안정 정렬이라 나머지 순서는 그대로
+  const groups = groupSameName(items).sort((a, b) => Number(isOldName(a.item)) - Number(isOldName(b.item)))
+  const out: HealthFoodWithRaw[] = []
+  for (const { item, count } of groups) {
+    const adapted = adaptHealthFood(item, count)
+    if (adapted) out.push(adapted)
+  }
+  return out
+}
+
 /** value가 ms 넘게 유지될 때만 그 값을, 아니면 null을 돌려준다 */
 function useDelayed<T>(value: T | null, ms: number): T | null {
   const [shown, setShown] = useState<T | null>(null)
@@ -101,6 +112,10 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
   /** 마지막으로 검색한 말 (입력 중인 query와 구분) */
   const [searchedTerm, setSearchedTerm] = useState('')
   const [loading, setLoading] = useState(false)
+  /** 의약품 결과는 보였고 영양제를 아직 받는 중 */
+  const [hfPending, setHfPending] = useState(false)
+  /** 검색할 때마다 1씩 올린다. 늦게 온 이전 검색의 응답은 버린다 */
+  const searchSeq = useRef(0)
   const [results, setResults] = useState<SearchResultWithRaw[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [warn, setWarn] = useState<string | null>(null)
@@ -143,49 +158,50 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
         setError('두 글자 이상 입력해 주세요.')
         return
       }
+      const seq = ++searchSeq.current
+      const isCurrent = () => seq === searchSeq.current
       setLoading(true)
+      setHfPending(false)
       setError(null)
       setWarn(null)
       setInfo(null)
 
-      const promises: Promise<unknown>[] = [searchDrug(q), searchHealthFood(q)]
+      // 영양제는 따로 받는다: 식품안전나라가 멈추면 함수가 12초 뒤에야 실패를 준다 (plan.md 57·59)
+      const hfTask = searchHealthFood(q).then(
+        (items) => ({ items: healthFoodResults(items), error: null }),
+        (e: unknown) => ({ items: [] as HealthFoodWithRaw[], error: friendlyError(e) }),
+      )
 
-      const [drugRes, hfRes] = await Promise.allSettled(promises)
-
-      const merged: SearchResultWithRaw[] = []
+      const drugs: SearchResultWithRaw[] = []
       let drugError: string | null = null
-      let hfError: string | null = null
-
-      if (drugRes.status === 'fulfilled') {
-        for (const item of drugRes.value as NedrugItem[]) {
+      try {
+        for (const item of await searchDrug(q)) {
           const adapted = adaptDrug(item)
-          if (adapted) merged.push(adapted)
+          if (adapted) drugs.push(adapted)
         }
-      } else {
-        drugError = friendlyError(drugRes.reason)
+      } catch (e) {
+        drugError = friendlyError(e)
       }
-
-      if (hfRes) {
-        if (hfRes.status === 'fulfilled') {
-          // 이름이 "(구)"로 시작하는 옛 신고는 뒤로 (빼지는 않는다). sort는 안정 정렬이라 나머지 순서는 그대로
-          const groups = groupSameName(hfRes.value as HealthFoodItem[]).sort(
-            (a, b) => Number(isOldName(a.item)) - Number(isOldName(b.item)),
-          )
-          for (const { item, count } of groups) {
-            const adapted = adaptHealthFood(item, count)
-            if (adapted) merged.push(adapted)
-          }
-        } else {
-          hfError = friendlyError(hfRes.reason)
-        }
-      }
+      if (!isCurrent()) return
 
       // 검색어는 결과와 함께 바꾼다: 찾는 동안에는 이전 결과와 성분 카드를 그대로 둔다 (사라졌다 나타나는 깜빡임 방지)
+      // 의약품이 1건 이상이면 영양제를 기다리지 않고 먼저 보여 준다. 0건이나 실패면 "결과가 없어요"가
+      // 성급하게 뜨지 않게 영양제까지 기다린다. 영양제는 의약품 아래에 붙어 위쪽 줄이 밀리지 않는다
+      if (drugs.length > 0) {
+        setSearchedTerm(q)
+        setResults(drugs)
+        setLoading(false)
+        setHfPending(true)
+      }
+
+      const hf = await hfTask
+      if (!isCurrent()) return
       setSearchedTerm(q)
-      setResults(merged)
+      setResults([...drugs, ...hf.items])
       // 의약품 검색이 실패하면 오류, 영양제만 실패하면 경고 (의약품 결과는 살아 있음)
       if (drugError) setError(drugError)
-      else if (hfError) setWarn(hfError)
+      else if (hf.error) setWarn(hf.error)
+      setHfPending(false)
       setLoading(false)
     },
     [query],
@@ -194,6 +210,9 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
   // 상자 바코드는 의약품만 찾을 수 있다. 영양제 바코드는 식품안전나라 바코드 서비스 활용신청 승인 뒤에 연결한다
   const handleScan = useCallback(async (text: string) => {
     setScannerOpen(false)
+    // 받는 중인 이름 검색의 늦은 응답이 바코드 결과를 덮지 않게 한다
+    searchSeq.current++
+    setHfPending(false)
     setError(null)
     setWarn(null)
     setInfo(null)
@@ -494,6 +513,11 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
                 )
               })}
             </ul>
+          )}
+          {hfPending && (
+            <p className="loading-line" role="status">
+              <span className="spinner" aria-hidden="true" /> 영양제도 찾고 있어요
+            </p>
           )}
           <Disclaimer />
         </>
