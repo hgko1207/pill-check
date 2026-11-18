@@ -1,6 +1,7 @@
 import type { InteractionResult, InteractionDetail, UnifiedSearchResult } from './types'
 import { db, type RegisteredMedication } from './db'
 import { knownIngredients, sharedIngredients } from './ingredient-alias'
+import { fetchWithTimeout } from './fetch-timeout'
 import {
   findDurConflicts,
   isSameProduct,
@@ -75,7 +76,8 @@ async function fetchDurPage(itemSeq: string, pageNo: number): Promise<{ items: D
     `&numOfRows=${DUR_PAGE_SIZE}` +
     `&pageNo=${pageNo}`
 
-  const res = await fetch(url)
+  // 시간 초과도 그대로 실패로 둔다: checkInteraction이 그 품목을 "확인 못 함"으로 보여 준다
+  const res = await fetchWithTimeout(url)
   if (!res.ok) throw new Error(`DUR API 응답 오류 (${res.status})`)
   const data = (await res.json()) as DurResponseBody
   const items = data.body?.items ?? []
