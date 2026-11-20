@@ -35,6 +35,8 @@ interface Props {
   onOpenDetail?: (target: DetailTarget) => void
   /** "내 약" 탭으로 이동 */
   onShowMeds?: () => void
+  /** 확인 탭이 보이는 중인가. 숨겨지면 덮는 화면을 닫는다 (뒤로 가기 기록이 숨은 화면에 남지 않게, plan.md 63) */
+  active?: boolean
   /** 지금 탭을 다시 누르면 바뀌는 값: 결과 화면을 닫고 처음으로 */
   rootSignal?: number
 }
@@ -108,7 +110,7 @@ function useDelayed<T>(value: T | null, ms: number): T | null {
   return shown
 }
 
-export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail, onShowMeds, rootSignal }: Props) {
+export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail, onShowMeds, rootSignal, active = true }: Props) {
   const [query, setQuery] = useState('')
   /** 마지막으로 검색한 말 (입력 중인 query와 구분) */
   const [searchedTerm, setSearchedTerm] = useState('')
@@ -146,6 +148,14 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
       cancelled = true
     }
   }, [refreshSignal])
+
+  // 다른 탭으로 가면 덮는 화면을 닫는다. 검색어와 결과는 남긴다
+  useEffect(() => {
+    if (active) return
+    setInteractionContext(null)
+    setScannerOpen(false)
+    setTvOpen(false)
+  }, [active])
 
   // 확인 탭을 다시 누르면 결과 화면을 닫는다 (앱의 탭 다시 누르기 동작)
   useEffect(() => {

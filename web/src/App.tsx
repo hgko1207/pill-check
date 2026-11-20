@@ -140,24 +140,24 @@ function AppContent() {
   return (
     <div className="app">
       <main className="app__main">
-        {view === 'check' && (
-          <>
-            <header className="screen-head">
-              <h1 className="screen-head__title">안녕하세요, 오늘도 건강하세요</h1>
-              <p className="screen-head__desc">
-                새로 산 약이나 영양제를 드시는 약이랑 같이 먹어도 되는지 알려&nbsp;드려요.
-              </p>
-            </header>
-            <SearchScreen
-              refreshSignal={refreshSignal}
-              onMedicationsChanged={() => setRefreshSignal((n) => n + 1)}
-              onOpenDetail={setDetailTarget}
-              onShowMeds={() => setView('meds')}
-              rootSignal={rootSignal}
-            />
-            <InstallHint />
-          </>
-        )}
+        {/* 확인 탭은 다른 탭에 가도 지우지 않고 숨긴다: 돌아오면 검색어와 결과가 그대로다 (plan.md 63) */}
+        <div hidden={view !== 'check'}>
+          <header className="screen-head">
+            <h1 className="screen-head__title">안녕하세요, 오늘도 건강하세요</h1>
+            <p className="screen-head__desc">
+              새로 산 약이나 영양제를 드시는 약이랑 같이 먹어도 되는지 알려&nbsp;드려요.
+            </p>
+          </header>
+          <SearchScreen
+            refreshSignal={refreshSignal}
+            onMedicationsChanged={() => setRefreshSignal((n) => n + 1)}
+            onOpenDetail={setDetailTarget}
+            onShowMeds={() => setView('meds')}
+            rootSignal={rootSignal}
+            active={view === 'check'}
+          />
+          <InstallHint />
+        </div>
 
         {view === 'meds' && (
           <>
