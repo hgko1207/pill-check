@@ -25,6 +25,95 @@
 - 멈춤 조건: 이럴 땐 멈추고 묻는다
 -->
 
+> 60~65는 사용 평가(2026-11-21, 67/100)에서 고른 개선 4건을 나눈 것이다(사용자 "추천 순서대로 진행"). 순서: 판정 신뢰(60) → 내 약끼리 충돌(61) → 검색(62·63) → 새 판정(64·65). 위에서부터 하고 각각 따로 검증한다.
+> 조사(2026-11-21, 운영 `/api/nedrug` 중계로 실제 호출):
+> - 병용금기 정상 0건: `{"header":{"resultCode":"00",...},"body":{"pageNo":1,"totalCount":0,"numOfRows":1}}` — `items` 칸이 없다.
+> - 오류: `{"header":{"resultCode":"11","resultMsg":"...numOfRows maximum is =[500]"},"body":{}}`가 **HTTP 200**으로 온다. 지금 `fetchDurPage`(`web/src/lib/dur.ts:73-85`)는 이것을 0행으로 받아 24시간 저장한다 → 그 약의 금기를 하루 동안 못 본다. 없는 서비스 이름은 HTTP 400 + `OpenAPI_ServiceResponse`(지금도 실패로 처리됨).
+> - 노인주의 `getOdsnAtentInfoList03`(전체 2,244행), 효능군중복 `getEfcyDplctInfoList03`(7,096행) 모두 같은 서비스(`DURPrdlstInfoService03`)라 새 활용신청 없이 응답이 온다. 둘 다 `itemSeq`로 거를 수 있다(해당 약 1행, 해당 없는 약 0행). 노인주의 행은 `INGR_NAME`·`PROHBT_CONTENT`(비어 있을 수 있음). 효능군중복 행은 짝이 아니라 **약 하나에 `EFFECT_NAME`(효능군)·`SERS_NAME`(계열)**이 붙는 구조다. 1,000행 표본: 해열진통소염제/비스테로이드성 소염제 501, 정신신경용제/SSRI 145, 호흡기관용약/항히스타민제 90 등. 같은 품목에 같은 계열 행이 2개인 복합제가 있다(중복 제거 필요). 주의 문구에 "…와 기타에 해당하는 성분이 2개 이상인 경우**에도** 효능군 중복에 해당"이 있어, 기본 묶음은 계열(`SERS_NAME`)로 읽힌다 — 식약처 고시 원문은 확인 안 함.
+
+### [x] 60. 식약처 DUR 오류 응답을 "금기 0건"으로 저장하지 않기
+- 완료(2026-11-21): `dur-match.ts` `parseDurPage`(결과 코드 `00`과 숫자 `totalCount`가 있어야 성공), `dur.ts` `fetchDurPage`가 사용. 검증: typecheck, build, `check-dur-response.mjs` 8건(실제 응답 모양 4가지 포함), `check-dur-coverage.mjs` 통과. 헤드리스 412px(dev, `/api/nedrug`는 운영 중계로 넘김): 노비르정 등록, 노비르정 DUR만 `resultCode 11` + `body {}` → 타이레놀 확인 결과 "지금은 확인할 수 없어요", `durCache`에 노비르정 없음 → 응답을 되돌리고 "다시 확인" → "식약처 자료에서는 문제를 못 찾았어요, 내 약 1개와 비교했어요", 그때 저장됨.
+- 목표: DUR 응답의 `header.resultCode`가 `"00"`이 아니거나 `body.totalCount`가 숫자가 아니면 그 품목은 실패로 처리되어 캐시에 남지 않고, 결과 화면에 "확인 못 함"으로 나온다. 정상 0건(`resultCode "00"`, `totalCount 0`)은 지금처럼 0행으로 받아 저장한다.
+- 맥락: 위 조사. 22번에서 "응답 모양을 확인한 뒤 고친다"로 미룬 것. 오류를 0건으로 저장하면 빨강이 나올 조합이 하루 동안 회색으로 나온다.
+- 변경할 파일:
+  - `web/src/lib/dur-match.ts` — 순수 함수 `parseDurPage(json)` 추가: `{ items, total }`을 돌려주거나, 결과 코드가 정상이 아니면 오류를 던진다. import 없는 파일이라 Node 검사 스크립트가 바로 읽는다.
+  - `web/src/lib/dur.ts` — `fetchDurPage`가 `parseDurPage`를 쓴다. 캐시 키는 그대로 둔다(잘못 저장된 0행은 24시간 안에 저절로 사라진다).
+  - `scripts/gate-search/check-dur-response.mjs` (새 파일) — 위 조사에서 받은 실제 응답 4가지(정상 행 있음, 정상 0건, `resultCode 11` + `body {}`, `header` 없음)로 `parseDurPage`를 검사한다. 네트워크 없이 돈다.
+- 참조: `scripts/gate-search/check-dur-coverage.mjs`(같은 방식의 순수 검사), `medCoverage`(실패 품목을 "확인 못 함"으로 바꾸는 기존 흐름, `dur-match.ts`)
+- 검증: typecheck, build, `node scripts/gate-search/check-dur-response.mjs`, 기존 `node scripts/gate-search/check-dur-coverage.mjs`. dev 서버에서 응답을 `resultCode 11`로 바꿔 결과가 "일부 내 약은 확인하지 못했어요"이고 IndexedDB `durCache`에 그 품목이 저장되지 않았는지 본다.
+- 안 하는 것: 의약품 검색(`nedrug-api.ts`)의 같은 문제(62에서), 캐시 키 올리기, 영양제 쪽.
+- 멈춤 조건: 정상 응답인데 `header`가 없는 경우가 실제로 보이면(조사에서는 못 봄) 기준을 다시 정한다.
+
+### [ ] 61. 내 약 탭에 내 약끼리 충돌 표시, 등록할 때 알림
+- 목표: (1) 내 약 탭 목록 위에, 내 약끼리 병용금기가 있으면 가족 탭과 같은 빨간 안내("함께 드시면 안 되는 약이 있어요" + 약 이름 짝 + "식약처 자료 기준 참고용이에요. 약사에게 물어봐 주세요.")가 뜨고 해당 약 줄에 "확인 필요"가 붙는다. 자료를 못 받은 약이 있으면 회색 안내와 "다시 확인" 버튼이 뜬다. 충돌이 없으면 아무것도 띄우지 않는다(초록 단정 없음). (2) 검색 결과나 상세에서 "내 약에 등록"을 눌렀을 때 새 약이 기존 내 약과 병용금기면, 등록은 그대로 되고 대화상자("함께 드시면 안 되는 약이 있어요" / 짝 이름 / [내 약 보기] [닫기])가 뜬다. 대조가 실패하면 대화상자를 띄우지 않는다(내 약 탭이 회색 안내로 알린다).
+- 맥락: 가족 탭은 부모님 약끼리 충돌을 보여 주는데(56번) 정작 본인 앱의 내 약 탭은 보여 주지 않는다. 지금은 금기인 두 약을 등록해도 아무 말이 없다(`SearchScreen.tsx` `handleRegister`).
+- 방법: 대조는 기존 `findConflictsAmong`(`web/src/lib/dur.ts`)을 그대로 쓴다. 안내 모양은 `FamilyPage.tsx`의 `MemberDurNotice`·`shortMedName`·`andParticle`을 새 파일로 옮겨 두 곳에서 같이 쓴다(복사하면 문구가 갈라진다). 회색 안내의 "새로 고침해 다시 확인해 주세요"는 가족 탭에선 그대로 두고, 내 약 탭은 `onRetry`를 넘겨 "다시 확인" 버튼으로 바꾼다.
+- 변경할 파일:
+  - `web/src/components/MedsDurNotice.tsx` (새 파일) — `FamilyPage.tsx`에서 옮긴 안내 컴포넌트와 이름 도우미, 선택 prop `onRetry`
+  - `web/src/components/FamilyPage.tsx` — 옮긴 것을 import로 바꾸기만 한다(동작 그대로)
+  - `web/src/components/RegisteredList.tsx` — 목록을 불러오면 `findConflictsAmong` 실행, 안내와 줄 표시. 지울 때 다시 대조
+  - `web/src/components/SearchScreen.tsx` — `handleRegister` 성공 뒤 새 목록으로 대조, 새 약이 낀 짝만 골라 `confirm` 대화상자. [내 약 보기]면 `onShowMeds`
+  - `web/src/App.css` — 내 약 탭에서 안내 간격이 필요하면 기존 `family-dur` 모양 재사용, 새 색 없음
+- 참조: `FamilyPage.tsx:69-100`(안내), `FamilyPage.tsx:214-233`(대조 실행), `FamilyPage.tsx:478-481`(줄 표시), `RegisteredList.tsx`의 `confirm` 사용
+- 검증: typecheck, build. 헤드리스 412px(dev 서버): 병용금기 짝(노비르정 201106064 + 심바로드정20 200200173)을 등록 → 두 번째 등록에서 대화상자, 내 약 탭 빨간 안내와 두 줄 "확인 필요". 하나를 지우면 안내 사라짐. `/api/nedrug`를 막으면 회색 안내 + "다시 확인". 가족 탭 안내가 전과 같은지. 라이트·다크·글자 크게 스크린샷.
+- 안 하는 것: 등록을 막거나 "그래도 등록할까요?" 묻기(등록은 "이미 먹고 있다"는 뜻이라 막지 않는다), 효능군중복 표시(64에서 같이 붙는다), 가족 서버 변경.
+- 멈춤 조건: 내 약 10개 대조가 첫 실행에 눈에 띄게 느리면(약 10건 요청) 표시 방식을 알리고 묻는다.
+
+### [ ] 62. 검색: 결과가 잘렸으면 알리기, 식약처 검색 오류를 "결과 없음"으로 보이지 않기
+- 목표: 의약품이나 영양제 검색 결과가 응답의 전체 건수보다 적게 보이면 결과 목록 아래에 "결과가 많아 일부만 보여요. 제품 이름을 더 자세히 넣어 보세요."가 뜬다. 의약품 검색 응답의 `resultCode`가 `"00"`이 아니면 "검색 결과가 없어요"가 아니라 오류 안내(`friendlyError`)가 뜬다.
+- 맥락: 지금은 종류별 10건에서 안내 없이 잘린다(`nedrug-api.ts` `searchDrug` rows 10, `healthfood-api.ts` `searchHealthFood` rows 10). "타이레놀"처럼 제품이 많은 이름은 찾는 약이 안 보여도 이유를 모른다. 의약품 검색은 60번과 같은 문제(`data.body?.items ?? []`)가 있다.
+- 방법 비교:
+
+  | 안 | 장점 | 단점 | 영향 범위 |
+  |---|---|---|---|
+  | (A) 잘렸다는 안내만 **(추천)** | 작은 변경, 60대에게 "더 자세히 넣기"가 "더 보기"보다 빨리 찾는 길 | 11번째 이후 결과는 여전히 못 봄 | API 두 파일 + `SearchScreen.tsx` |
+  | (B) "더 보기" 버튼으로 다음 쪽 받기 | 모두 볼 수 있음 | 종류별 쪽 관리, 영양제 같은 이름 묶기와 쪽이 엇갈림, 로딩 상태 늘어남 | 위 + 목록 상태 구조 |
+- 변경할 파일:
+  - `web/src/lib/nedrug-api.ts` — `searchDrug`가 `{ items, total }`을 돌려준다(호출하는 곳은 `SearchScreen.tsx` 한 곳). `fetchDrugs`에서 `header.resultCode`가 있고 `"00"`이 아니면 `NedrugRequestError`. 바코드 찾기는 `items`만 쓴다
+  - `web/src/lib/healthfood-api.ts` — `searchHealthFood`가 `{ items, total }`을 돌려준다(`total_count`). 회수 목록용 `fetchService`의 기존 동작은 그대로
+  - `web/src/components/SearchScreen.tsx` — 잘림 여부를 상태로 두고 결과 아래(면책 문구 위)에 안내
+- 참조: `SearchScreen.tsx`의 `info`·`warn` 안내 모양
+- 검증: typecheck, build. dev 서버에서 "타이레놀"(10건 넘음) → 안내 보임, 결과가 적은 이름 → 안내 없음, 의약품 응답을 `resultCode 11`로 바꾸면 오류 안내. 412px 스크린샷.
+- 안 하는 것: 더 보기(B), 검색어 `/`·`%` 문제, 검색 취소, 실패와 "결과 없음" 동시 표시(점검 P1의 나머지).
+- 멈춤 조건: 식품안전나라 `total_count`가 같은 이름 묶기 전 건수가 아니어서 잘림 판단이 틀리면 알린다.
+
+### [ ] 63. 탭을 옮겨도 검색 결과 유지
+- 목표: 확인 탭에서 검색한 뒤 내 약·설정 탭에 갔다 돌아오면 검색어와 결과, 스크롤 전 상태가 그대로다. 확인 탭을 다시 누르면 지금처럼 결과 화면을 닫는다. 내 약에서 지운 약은 돌아왔을 때 "(내 약에 등록됨)" 표시에서 빠진다.
+- 맥락: `App.tsx`가 `view === 'check' && ...`로 확인 탭을 그려서 탭을 옮기면 `SearchScreen`이 사라지고 상태가 지워진다(점검 P1 "탭을 오가면 검색이 사라짐").
+- 방법 비교: (A) 확인 탭 묶음을 항상 그려 두고 다른 탭일 때 `hidden`으로 숨기기 **(추천)** — `App.tsx` 몇 줄, 상태가 컴포넌트 안에 그대로 남는다 / (B) 검색 상태를 `App`으로 올리기 — 상태 7~8개를 옮겨야 하고 `SearchScreen` 구조가 바뀐다.
+- 변경할 파일: `web/src/App.tsx` — 확인 탭 묶음을 `<div hidden={view !== 'check'}>`로 감싼다. 숨은 동안 바코드·TV 성분 덮개가 열려 있으면 안 되므로 탭이 바뀔 때 닫히는지 확인
+- 참조: `App.tsx` `handleTab`, `SearchScreen.tsx`의 `rootSignal` 효과
+- 검증: typecheck, build. 헤드리스: 검색 → 내 약 탭 → 확인 탭 → 결과 그대로. 결과 화면(ResultSheet)이 열린 채로 탭을 옮기면 다른 탭 위에 남지 않는지(남으면 탭 이동 때 닫기). 기기 뒤로 가기(40번)가 그대로인지.
+- 안 하는 것: 스크롤 위치 복원, 내 약·설정 탭 상태 유지.
+- 멈춤 조건: 숨긴 화면의 덮는 시트가 뒤로 가기 기록(`back-close.ts`)과 엉키면 방법을 알리고 묻는다.
+
+### [ ] 64. 효능군중복을 노랑으로 알리기
+- 목표: 확인 제품(의약품)과 내 의약품이 같은 효능군·같은 계열이면 결과가 노랑 "함께 드실 때 주의가 필요해요"이고, 해당 약 줄에 "같은 종류의 약이에요 (해열진통소염제)"처럼 효능군이 보인다. 근거 줄은 "근거: 식약처 "같은 효능의 약 중복" 자료". 빨강 충돌이 있으면 빨강이 우선이다. 내 약 탭·가족 탭의 약끼리 안내(61·56)에도 노랑 짝으로 함께 나온다.
+- 맥락: 지금 DUR 자료는 병용금기뿐이라 노랑이 거의 나오지 않는다. 여러 병원에서 같은 계열 약을 겹쳐 받기 쉬운 60대에게 바로 쓸모 있다(리서치 보고서 1순위).
+- 방법(묶는 기준) 비교: (A) `EFFECT_NAME`과 `SERS_NAME`이 둘 다 같을 때 **(추천)** — 위 조사의 주의 문구와 맞고 경고가 덜 남발된다 / (B) `EFFECT_NAME`만 같을 때 — 더 많이 잡지만 "정신신경용제"처럼 넓은 효능군에서 SSRI와 치매약이 중복으로 나온다. 같은 품목끼리(`isSameProduct`)는 비교하지 않는다.
+- 변경할 파일:
+  - `web/src/lib/dur-match.ts` — 효능군 행 타입과 순수 함수 `findEfficacyDuplicates(product, registered, rows)`(결과는 기존 `DurConflict` 모양, severity `warn`, source `효능군중복`)
+  - `web/src/lib/dur.ts` — 품목별 효능군 행 받기(`getEfcyDplctInfoList03`, 60의 `parseDurPage`, 같은 `durCache` 표에 `efcy-v1:` 키로 24시간 저장, 받는 중 합치기). `checkInteraction`과 `findConflictsAmong`이 병용금기와 함께 대조한다. 효능군 자료만 못 받은 경우에도 "확인 못 함"으로 센다
+  - `web/src/components/ResultSheet.tsx` — `SOURCE_LABEL`에 `효능군중복`, 약 줄의 노랑 상세 문구
+  - `web/src/components/MedsDurNotice.tsx` — 노랑 짝("같은 종류의 약이 겹쳐요") 표시
+  - `scripts/gate-search/check-efficacy.mjs` (새 파일) — 조사에서 받은 실제 행으로 같은 계열 → 중복, 같은 효능군 다른 계열 → 아님, 복합제 중복 행 → 한 번만, 같은 품목 → 비교 안 함
+- 참조: `findDurConflicts`(`dur-match.ts`), `fetchDurForItemSeq`(`dur.ts`), 27번 영양제 같은 성분 겹침의 노랑 처리(`checkInteraction`의 `hasOverlap`)
+- 검증: typecheck, build, `node scripts/gate-search/check-efficacy.mjs`, 기존 `check-dur-coverage.mjs`. 운영 중계로 실제 같은 계열 두 약(예: 에어탈정 199400486 + 다른 비스테로이드성 소염제 하나, 구현 때 자료에서 고름)을 dev 서버에서 확인 → 노랑과 효능군 이름. 412px 라이트·다크.
+- 안 하는 것: 동일성분중복(이 API에 없음), 서방정분할주의, 효능군 상세 화면.
+- 멈춤 조건: 계열 기준(A)으로 해도 흔한 조합에서 노랑이 지나치게 많이 나오면 결과를 보여 주고 묻는다. 일일 호출 한도(품목당 요청이 2배가 됨)에 닿을 조짐이 보이면 알린다.
+
+### [ ] 65. 확인한 약이 노인주의 대상이면 안내하기
+- 목표: 의약품을 "약 궁합 보기"로 확인했을 때 그 약이 노인주의 대상이면 결과 화면 결론 아래에 "65세 이상 어르신은 주의가 필요한 약이에요" 상자가 뜨고, 식약처 문구(`PROHBT_CONTENT`)가 있으면 함께 보인다(없으면 "드시기 전에 약사나 의사에게 물어보세요"). 결과 색(약 궁합 판정)은 바꾸지 않는다. 등록약이 없어도 상자는 뜬다.
+- 맥락: 나이를 묻지 않고도 60대에게 맞는 경고를 줄 수 있는 공공 자료(리서치 보고서 1순위). 약 하나의 속성이라 "약 궁합" 색과 섞으면 뜻이 흐려진다.
+- 변경할 파일:
+  - `web/src/lib/dur.ts` — 품목별 노인주의 행 받기(`getOdsnAtentInfoList03`, `parseDurPage`, `durCache`에 `odsn-v1:` 키). `checkInteraction` 결과에 실어 보낸다. 못 받으면 상자를 띄우지 않는다(대상이 아니라고도 말하지 않는다)
+  - `web/src/lib/types.ts` — `InteractionResult`에 `elderly?: { content?: string }`
+  - `web/src/components/ResultSheet.tsx` — 결론 아래 상자, 기존 `.verdict__ask`·주의 상자 모양 재사용
+- 참조: `ResultSheet.tsx`의 결론 영역, 21번 "꼭 읽을 문장" 상자
+- 검증: typecheck, build. dev 서버: 노인주의 대상(페니라민주사 196000010은 주사제라 구현 때 먹는 약 대상을 자료에서 고름) → 상자 보임, 대상 아닌 약(노비르정 201106064, 0행 확인됨) → 상자 없음. 등록약 0개일 때도 보임. 412px 라이트·다크·글자 크게.
+- 안 하는 것: 내 약 탭 줄마다 "어르신 주의" 표시(다음 후보), 사용자 나이 입력, 영양제.
+- 멈춤 조건: 노인주의 문구가 대부분 비어 있어 상자가 늘 같은 말만 하면 보여 주고 문구를 정한다.
+
 > 12~17은 재디자인 배포 후 사용자 확인에서 나온 것이다(2026-11-12). 결정: 바코드는 의약품부터, TV 성분은 20개 정도 + 표 밖 성분 글자 찾기, 정보 줄 구분은 줄 나누기, 앱 업데이트 즉시 반영. 디자인 점검은 이 작업 뒤에 사용자가 따로 한다.
 
 > 18~21은 디자인 점검(2026-11-12, `.impeccable/critique/2026-11-12T13-43-44Z__web-src-app-tsx.md`, 26/40)의 P0과 P1이다. 사용자 결정: 판정 정확도 먼저, 상세 요약은 식약처 원문 발췌, 범위는 P0과 P1 4건. 18번부터 순서대로 하고, 각각 따로 검증한다.

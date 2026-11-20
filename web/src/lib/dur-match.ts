@@ -22,6 +22,21 @@ export interface DurRow {
   PROHBT_CONTENT?: string
 }
 
+/**
+ * DUR 서비스 응답 한 쪽을 읽는다. 결과 코드가 정상이 아니면 던진다 (plan.md 60).
+ * 식약처는 오류도 HTTP 200 + `{"header":{"resultCode":"11",...},"body":{}}`로 보낸다(2026-11-21 확인).
+ * 이것을 0행으로 받으면 "금기 없음"으로 24시간 저장된다. 정상 0건은 resultCode "00" + totalCount 0이고 items 칸이 없다.
+ */
+export function parseDurPage<T>(json: unknown): { items: T[]; total: number } {
+  const data = json as { header?: { resultCode?: string; resultMsg?: string }; body?: { items?: T | T[]; totalCount?: unknown } }
+  const code = data?.header?.resultCode
+  if (code !== '00') throw new Error(`DUR 응답 결과 코드 ${code ?? '없음'} ${data?.header?.resultMsg ?? ''}`.trim())
+  const total = Number(data.body?.totalCount)
+  if (data.body?.totalCount == null || !Number.isFinite(total)) throw new Error('DUR 응답에 전체 건수가 없음')
+  const items = data.body?.items ?? []
+  return { items: Array.isArray(items) ? items : [items], total }
+}
+
 /** 비교할 한쪽: 내 약 또는 확인 제품 */
 export interface DurSide {
   kind: 'drug' | 'healthfood'

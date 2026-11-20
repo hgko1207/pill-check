@@ -7,6 +7,7 @@ import {
   isSameProduct,
   medCoverage,
   medKey,
+  parseDurPage,
   type DurRow,
   type DurSide,
   type MedCoverage,
@@ -14,13 +15,6 @@ import {
 
 // dev는 Vite 프록시, 배포본은 Cloudflare Pages Function(functions/api/nedrug)이 같은 경로를 받아 키를 붙인다
 const DUR_BASE = '/api/nedrug/1471000/DURPrdlstInfoService03'
-
-interface DurResponseBody {
-  body?: {
-    items?: DurRow | DurRow[]
-    totalCount?: number
-  }
-}
 
 const DUR_PAGE_SIZE = 500 // 한 약의 행이 200을 넘는다(노비르정 427). 1000은 빈 응답 (2026-11-12 확인)
 const DUR_CACHE_TTL_MS = 24 * 60 * 60 * 1000 // 24h — DUR 데이터는 자주 안 바뀜
@@ -79,9 +73,8 @@ async function fetchDurPage(itemSeq: string, pageNo: number): Promise<{ items: D
   // 시간 초과도 그대로 실패로 둔다: checkInteraction이 그 품목을 "확인 못 함"으로 보여 준다
   const res = await fetchWithTimeout(url)
   if (!res.ok) throw new Error(`DUR API 응답 오류 (${res.status})`)
-  const data = (await res.json()) as DurResponseBody
-  const items = data.body?.items ?? []
-  return { items: Array.isArray(items) ? items : [items], total: Number(data.body?.totalCount ?? 0) }
+  // 결과 코드가 정상이 아니면 던진다: 실패한 품목은 캐시에 남지 않고 "확인 못 함"이 된다 (plan.md 60)
+  return parseDurPage<DurRow>(await res.json())
 }
 
 /** 모든 쪽을 받는다: 첫 쪽의 totalCount로 나머지 쪽을 병렬로 */
