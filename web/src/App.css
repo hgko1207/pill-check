@@ -503,6 +503,10 @@ button.row:active, a.row:active { background: var(--pc-pressed); }
 .notice--error { background: var(--pc-danger-bg); color: var(--pc-danger-ink); }
 .notice--error > svg { color: var(--pc-danger); }
 .notice--warn { background: var(--pc-warn-bg); color: var(--pc-warn-ink); }
+/* 결과 화면 노인주의 상자 (plan.md 65) */
+.elderly-box { margin-top: 16px; }
+.elderly-box p { margin: 6px 0 0; word-break: keep-all; overflow-wrap: anywhere; }
+.elderly-box__title { display: block; }
 .notice--warn > svg { color: var(--pc-warn); }
 .notice--info { background: var(--pc-primary-soft); color: var(--pc-primary-deep); }
 .notice--success { background: var(--pc-safe-bg); color: var(--pc-safe-ink); }

@@ -156,6 +156,24 @@ export function ResultSheet({ result, product, registered, onClose, onCheckAnoth
           {hasSame && <p className="verdict__source">같은 성분 근거: 식약처에 신고한 재료&nbsp;이름</p>}
         </section>
 
+        {/* 노인주의: 약 궁합 색과 따로, 확인한 약 자체에 대한 안내 (plan.md 65) */}
+        {result.elderly && (
+          <div className="notice notice--warn elderly-box" role="note">
+            <TriangleAlert aria-hidden="true" />
+            <div>
+              <b className="elderly-box__title">65세 이상 어르신은 주의가 필요한 약이에요</b>
+              <p>
+                식약처가 어르신께 주의하라고 정한 성분이 들어 있어요:{' '}
+                <b>{result.elderly.ingredients.join(', ') || product.name}</b>
+              </p>
+              {result.elderly.contents.map((c) => (
+                <p key={c}>{c}</p>
+              ))}
+              <p>드시기 전에 약사나 의사에게 물어보세요.</p>
+            </div>
+          </div>
+        )}
+
         {result.checked && (
           <>
             <h2 className="group-label">

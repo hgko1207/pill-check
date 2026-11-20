@@ -27,10 +27,18 @@ const DUR_CACHE_TTL_MS = 24 * 60 * 60 * 1000 // 24h — DUR 데이터는 자주 
  * - taboo: 병용금기. 한 행이 "제품 A × 제품 B" 짝
  * - efcy: 효능군중복. 약 하나에 효능군·계열이 붙는다 (plan.md 64)
  */
-type DurSet = 'taboo' | 'efcy'
+type DurSet = 'taboo' | 'efcy' | 'odsn'
 const OPERATION: Record<DurSet, string> = {
   taboo: 'getUsjntTabooInfoList03',
   efcy: 'getEfcyDplctInfoList03',
+  odsn: 'getOdsnAtentInfoList03', // 노인주의: 약 하나의 속성 (plan.md 65)
+}
+
+/** 노인주의 행 (2026-11-21 실제 응답 확인: 문구 PROHBT_CONTENT는 표본 1,244행 중 58행만 있음) */
+interface OdsnRow {
+  ITEM_SEQ?: string
+  INGR_NAME?: string
+  PROHBT_CONTENT?: string | null
 }
 
 /** in-memory cache: 캐시 키 → 행 */
@@ -86,8 +94,13 @@ function pickEfcy(r: EfcyRow): EfcyRow {
   }
 }
 
+function pickOdsn(r: OdsnRow): OdsnRow {
+  return { ITEM_SEQ: r.ITEM_SEQ, INGR_NAME: r.INGR_NAME, PROHBT_CONTENT: r.PROHBT_CONTENT }
+}
+
 function pickRow(set: DurSet, r: unknown): unknown {
-  return set === 'taboo' ? pick(r as DurRow) : pickEfcy(r as EfcyRow)
+  if (set === 'taboo') return pick(r as DurRow)
+  return set === 'efcy' ? pickEfcy(r as EfcyRow) : pickOdsn(r as OdsnRow)
 }
 
 async function fetchDurPage(set: DurSet, itemSeq: string, pageNo: number): Promise<{ items: unknown[]; total: number }> {
@@ -161,6 +174,20 @@ function fetchEfcyForItemSeq(itemSeq: string): Promise<EfcyRow[]> {
   return fetchDurSet('efcy', itemSeq) as Promise<EfcyRow[]>
 }
 
+/** 확인한 의약품의 노인주의 정보. 대상이 아니거나(0행) 자료를 못 받으면 undefined */
+async function elderlyInfo(product: UnifiedSearchResult): Promise<InteractionResult['elderly']> {
+  if (product.kind !== 'drug' || !product.id) return undefined
+  let rows: OdsnRow[]
+  try {
+    rows = (await fetchDurSet('odsn', product.id)) as OdsnRow[]
+  } catch {
+    return undefined
+  }
+  if (rows.length === 0) return undefined
+  const uniq = (xs: (string | null | undefined)[]) => [...new Set(xs.map((x) => (x ?? '').trim()).filter(Boolean))]
+  return { ingredients: uniq(rows.map((r) => r.INGR_NAME)), contents: uniq(rows.map((r) => r.PROHBT_CONTENT)) }
+}
+
 /**
  * 품목코드들의 병용금기와 효능군 자료를 함께 받는다.
  * - receivedTaboo: 병용금기를 받은 품목 (의약품과 영양제 비교에 필요한 것은 이것뿐)
@@ -212,6 +239,15 @@ function toSide(m: RegisteredMedication): DurSide {
  * - 매칭 미발견 → 회색, 초록으로 단정 안 함.
  */
 export async function checkInteraction(
+  product: UnifiedSearchResult,
+  registered: RegisteredMedication[],
+): Promise<InteractionResult> {
+  // 노인주의는 약 하나의 속성이라 내 약이 없어도 함께 싣는다 (plan.md 65)
+  const [result, elderly] = await Promise.all([compareWithMeds(product, registered), elderlyInfo(product)])
+  return elderly ? { ...result, elderly } : result
+}
+
+async function compareWithMeds(
   product: UnifiedSearchResult,
   registered: RegisteredMedication[],
 ): Promise<InteractionResult> {

@@ -71,4 +71,9 @@ export interface InteractionResult {
    * 키가 있으면 재료 이름으로 찾아본 약이고, 빈 배열은 "겹침을 못 찾음"이다 (별칭표 성분만 본다).
    */
   overlap?: Record<string, string[]>
+  /**
+   * 확인한 의약품이 식약처 노인주의(65세 이상 주의) 대상이면 그 성분과 식약처 문구 (plan.md 65).
+   * 약 궁합 색과는 따로다. 대상이 아니거나 자료를 못 받으면 없다(대상이 아니라고 말하지 않는다).
+   */
+  elderly?: { ingredients: string[]; contents: string[] }
 }
