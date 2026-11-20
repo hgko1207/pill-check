@@ -1207,6 +1207,9 @@ html[data-theme='dark'] .segmented__btn[aria-checked='true'] { background: var(-
 .family-dur__pairs { margin: 6px 0 0; padding-left: 1.1em; }
 .family-dur__pairs li { word-break: keep-all; overflow-wrap: anywhere; }
 .family-dur__next { display: block; margin-top: 6px; }
+/* 내 약 탭: 목록 묶음과 같은 화면 폭 여백 (plan.md 61) */
+.family-dur--page { margin: 16px var(--pc-gutter) 0; }
+.family-dur__retry { display: flex; margin-top: 10px; }
 .family-meds__flag { margin-left: 8px; vertical-align: 1px; }
 .family-meds__empty { margin: 0 18px 0 70px; padding: 0 0 14px; font-size: var(--fs-body); line-height: 1.55; color: var(--pc-text-subtle); }
 .family-member__actions { display: flex; justify-content: flex-end; flex-wrap: wrap; padding: 0 6px 6px; }

@@ -13,7 +13,7 @@ import {
 import { searchDrug, searchDrugByBarcode } from '../lib/nedrug-api'
 import { searchHealthFood, groupSameName } from '../lib/healthfood-api'
 import { addMedication, listMedications } from '../lib/db'
-import { checkInteraction } from '../lib/dur'
+import { checkInteraction, findConflictsAmong } from '../lib/dur'
 import { friendlyError } from '../lib/errors'
 import { useDialog } from '../lib/dialog'
 import type { NedrugItem, InteractionResult, UnifiedSearchResult } from '../lib/types'
@@ -24,6 +24,7 @@ import { TvIngredientSheet } from './TvIngredientSheet'
 import { ResultSheet } from './ResultSheet'
 import { IngredientCard } from './IngredientCard'
 import { Disclaimer } from './Disclaimer'
+import { pairLabel } from './MedsDurNotice'
 import type { DetailTarget } from './DetailModal'
 
 interface Props {
@@ -132,7 +133,7 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
   const showPending = useDelayed(actionPending, 300)
   const [registered, setRegistered] = useState<RegisteredMedication[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
-  const { toast } = useDialog()
+  const { confirm, toast } = useDialog()
 
   useEffect(() => {
     let cancelled = false
@@ -267,14 +268,51 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
         manufacturer: item.manufacturer,
         mainIngredient: item.ingredient,
       })
-      setRegistered(await listMedications())
+      const list = await listMedications()
+      setRegistered(list)
       toast(`${item.name} 내\u00A0약에 등록했어요.`, 'success')
       onMedicationsChanged?.()
+      void warnConflictsWith(item, list)
     } catch (e) {
       setError(friendlyError(e))
     } finally {
       setActionPending(null)
     }
+  }
+
+  /**
+   * 방금 등록한 약이 다른 내 약과 병용금기면 알린다 (plan.md 61). 등록은 막지 않는다 — "이미 먹고 있다"는 뜻이라서.
+   * 대조가 실패하면 조용히 넘어간다: 내 약 탭이 "확인하지 못했어요"로 알린다.
+   */
+  async function warnConflictsWith(item: UnifiedSearchResult, list: RegisteredMedication[]) {
+    if (list.length < 2) return
+    const key = `${item.kind}:${item.id}`
+    let pairs: string[]
+    try {
+      const { conflicts } = await findConflictsAmong(list)
+      pairs = conflicts.filter((c) => c.aKey === key || c.bKey === key).map((c) => pairLabel(c.aName, c.bName))
+    } catch {
+      return
+    }
+    if (pairs.length === 0) return
+    const ok = await confirm({
+      title: '함께 드시면 안 되는 약이 있어요',
+      message: (
+        <>
+          {pairs.map((p) => (
+            <span key={p}>
+              <b>{p}</b>
+              <br />
+            </span>
+          ))}
+          식약처 자료 기준 참고용이에요. 드시기 전에 약사에게 물어봐&nbsp;주세요.
+        </>
+      ),
+      confirmLabel: '내 약 보기',
+      cancelLabel: '닫기',
+      variant: 'danger',
+    })
+    if (ok) onShowMeds?.()
   }
 
   // 결과 화면의 "다시 확인"도 이 함수를 쓴다 (그쪽은 raw 없는 UnifiedSearchResult만 갖고 있다)

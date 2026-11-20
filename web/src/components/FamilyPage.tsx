@@ -4,6 +4,7 @@ import { useDialog } from '../lib/dialog'
 import { friendlyError } from '../lib/errors'
 import { disableGoogleAutoSelect } from '../lib/auth'
 import { findConflictsAmong, type AmongResult } from '../lib/dur'
+import { MedsDurNotice } from './MedsDurNotice'
 import {
   clearPendingJoin,
   getFamilyView,
@@ -52,51 +53,6 @@ function managerNames(g: FamilyGroupView): string {
 /** 약 목록이 바뀌면 다시 대조하도록 키에 갱신 시각을 넣는다 */
 function durKey(m: FamilyMemberView): string {
   return `${m.id}:${m.medsUpdatedAt ?? 0}`
-}
-
-/** "노바스크정5밀리그램(암로디핀베실산염)" → "노바스크정5밀리그램" */
-function shortMedName(name: string): string {
-  return name.replace(/\([^)]*\)/g, '').trim() || name
-}
-
-/** 이름 뒤 '와'/'과' (받침 있으면 '과'). 한글로 끝나지 않으면 '+' */
-function andParticle(name: string): string {
-  const code = name.charCodeAt(name.length - 1) - 0xac00
-  if (code < 0 || code > 11171) return ' +'
-  return code % 28 === 0 ? '와' : '과'
-}
-
-/** 약 드시는 분 카드 안: 그분 약끼리 병용금기 (plan.md 56). 충돌이 없으면 아무것도 띄우지 않는다 */
-function MemberDurNotice({ result }: { result: AmongResult | undefined }) {
-  if (!result) return null
-  const { conflicts, unchecked } = result
-  return (
-    <>
-      {conflicts.length > 0 && (
-        <div className="family-dur family-dur--danger" role="note">
-          <AlertCircle aria-hidden="true" />
-          <div>
-            <b>함께 드시면 안 되는 약이 있어요</b>
-            <ul className="family-dur__pairs">
-              {conflicts.map((c) => (
-                <li key={`${c.aKey}|${c.bKey}`}>
-                  {shortMedName(c.aName)}
-                  {andParticle(shortMedName(c.aName))} {shortMedName(c.bName)}
-                </li>
-              ))}
-            </ul>
-            <span className="family-dur__next">식약처 자료 기준 참고용이에요. 약사에게 물어봐 주세요.</span>
-          </div>
-        </div>
-      )}
-      {unchecked > 0 && (
-        <div className="family-dur family-dur--unknown" role="note">
-          <AlertCircle aria-hidden="true" />
-          <span>일부 약은 함께 드셔도 되는지 확인하지 못했어요. 새로 고침해 다시 확인해 주세요.</span>
-        </div>
-      )}
-    </>
-  )
 }
 
 function loadSelected(): string | null {
@@ -467,7 +423,7 @@ export function FamilyPage() {
                     </div>
                   </div>
                 </div>
-                <MemberDurNotice result={durResults[durKey(m)]} />
+                <MedsDurNotice result={durResults[durKey(m)]} />
                 {m.meds.length === 0 ? (
                   <p className="family-meds__empty">등록한 약이 아직 없어요.</p>
                 ) : (

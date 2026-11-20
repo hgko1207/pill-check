@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Plus } from 'lucide-react'
 import {
   listMedications,
@@ -7,6 +7,8 @@ import {
   type RegisteredMedication,
 } from '../lib/db'
 import { useDialog } from '../lib/dialog'
+import { findConflictsAmong, type AmongResult } from '../lib/dur'
+import { MedsDurNotice } from './MedsDurNotice'
 
 interface Props {
   refreshSignal?: number
@@ -18,14 +20,30 @@ interface Props {
 export function RegisteredList({ refreshSignal, onChange, onAdd }: Props) {
   const [meds, setMeds] = useState<RegisteredMedication[]>([])
   const [loading, setLoading] = useState(true)
+  // 내 약끼리 병용금기 (plan.md 61). 대조 전이거나 대조 자체가 실패하면 undefined — 아무것도 띄우지 않는다
+  const [dur, setDur] = useState<AmongResult | undefined>()
   const { confirm, toast } = useDialog()
+
+  const checkAmong = useCallback((list: RegisteredMedication[], isCurrent: () => boolean = () => true) => {
+    setDur(undefined)
+    if (list.length < 2) return
+    findConflictsAmong(list)
+      .then((r) => {
+        if (isCurrent()) setDur(r)
+      })
+      .catch(() => {
+        /* 초록으로 단정하지 않으므로 빈칸이 안전하다 */
+      })
+  }, [])
 
   useEffect(() => {
     let cancelled = false
     setLoading(true)
     listMedications()
       .then((list) => {
-        if (!cancelled) setMeds(list)
+        if (cancelled) return
+        setMeds(list)
+        checkAmong(list, () => !cancelled)
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -33,7 +51,7 @@ export function RegisteredList({ refreshSignal, onChange, onAdd }: Props) {
     return () => {
       cancelled = true
     }
-  }, [refreshSignal])
+  }, [refreshSignal, checkAmong])
 
   async function handleRemove(id: number, name: string, kind: 'drug' | 'healthfood') {
     const ok = await confirm({
@@ -51,7 +69,9 @@ export function RegisteredList({ refreshSignal, onChange, onAdd }: Props) {
     })
     if (!ok) return
     await removeMedication(id)
-    setMeds(await listMedications())
+    const list = await listMedications()
+    setMeds(list)
+    checkAmong(list)
     toast(`${name} 지웠어요.`, 'success')
     onChange?.()
   }
@@ -93,6 +113,7 @@ export function RegisteredList({ refreshSignal, onChange, onAdd }: Props) {
 
   return (
     <>
+      <MedsDurNotice result={dur} page onRetry={() => checkAmong(meds)} />
       <h2 className="group-label">
         등록한 약 <span className="num">{meds.length}</span>/{MAX_MEDICATIONS}
       </h2>
@@ -101,7 +122,12 @@ export function RegisteredList({ refreshSignal, onChange, onAdd }: Props) {
           <li key={m.id}>
             <div className="row">
               <div className="row__body">
-                <div className="row__title">{m.itemName}</div>
+                <div className="row__title">
+                  {m.itemName}
+                  {dur?.conflicts.some((c) => c.aKey === `${m.kind}:${m.itemSeq}` || c.bKey === `${m.kind}:${m.itemSeq}`) && (
+                    <span className="status status--danger family-meds__flag">확인 필요</span>
+                  )}
+                </div>
                 <div className="row__sub">{m.kind === 'healthfood' ? '영양제' : '의약품'}</div>
                 {m.manufacturer && <div className="row__sub">{m.manufacturer}</div>}
               </div>
