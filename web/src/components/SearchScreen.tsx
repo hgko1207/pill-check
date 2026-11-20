@@ -118,6 +118,8 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
   /** 검색할 때마다 1씩 올린다. 늦게 온 이전 검색의 응답은 버린다 */
   const searchSeq = useRef(0)
   const [results, setResults] = useState<SearchResultWithRaw[] | null>(null)
+  /** 의약품이나 영양제 결과가 전체 건수보다 적게 왔다 (종류별 10건까지만 받는다, plan.md 62) */
+  const [truncated, setTruncated] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [warn, setWarn] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
@@ -169,14 +171,17 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
 
       // 영양제는 따로 받는다: 식품안전나라가 멈추면 함수가 12초 뒤에야 실패를 준다 (plan.md 57·59)
       const hfTask = searchHealthFood(q).then(
-        (items) => ({ items: healthFoodResults(items), error: null }),
-        (e: unknown) => ({ items: [] as HealthFoodWithRaw[], error: friendlyError(e) }),
+        (page) => ({ items: healthFoodResults(page.items), cut: page.total > page.items.length, error: null }),
+        (e: unknown) => ({ items: [] as HealthFoodWithRaw[], cut: false, error: friendlyError(e) }),
       )
 
       const drugs: SearchResultWithRaw[] = []
       let drugError: string | null = null
+      let drugCut = false
       try {
-        for (const item of await searchDrug(q)) {
+        const page = await searchDrug(q)
+        drugCut = page.total > page.items.length
+        for (const item of page.items) {
           const adapted = adaptDrug(item)
           if (adapted) drugs.push(adapted)
         }
@@ -191,6 +196,7 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
       if (drugs.length > 0) {
         setSearchedTerm(q)
         setResults(drugs)
+        setTruncated(drugCut)
         setLoading(false)
         setHfPending(true)
       }
@@ -199,6 +205,7 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
       if (!isCurrent()) return
       setSearchedTerm(q)
       setResults([...drugs, ...hf.items])
+      setTruncated(drugCut || hf.cut)
       // 의약품 검색이 실패하면 오류, 영양제만 실패하면 경고 (의약품 결과는 살아 있음)
       if (drugError) setError(drugError)
       else if (hf.error) setWarn(hf.error)
@@ -232,6 +239,7 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
         setQuery(drugs[0].name)
         setSearchedTerm(drugs[0].name)
         setResults(drugs)
+        setTruncated(false)
       }
     } catch (e) {
       setError(friendlyError(e))
@@ -249,6 +257,7 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
   function clearSearch() {
     setQuery('')
     setResults(null)
+    setTruncated(false)
     setSearchedTerm('')
     setError(null)
     setWarn(null)
@@ -556,6 +565,12 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
             <p className="loading-line" role="status">
               <span className="spinner" aria-hidden="true" /> 영양제도 찾고 있어요
             </p>
+          )}
+          {truncated && results.length > 0 && (
+            <div className="notice notice--info" role="status">
+              <Info aria-hidden="true" />
+              <span>결과가 많아 일부만 보여요. 찾는 제품이 없으면 제품 이름을 더 자세히 넣어&nbsp;보세요.</span>
+            </div>
           )}
           <Disclaimer />
         </>

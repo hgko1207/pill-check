@@ -12,7 +12,13 @@ export class NedrugRequestError extends Error {
   }
 }
 
-export async function searchDrug(name: string, opts: { rows?: number } = {}): Promise<NedrugItem[]> {
+/** 검색 한 쪽: 받은 품목과 전체 건수 (전체가 더 많으면 화면이 "일부만 보여요"를 띄운다, plan.md 62) */
+export interface DrugSearchPage {
+  items: NedrugItem[]
+  total: number
+}
+
+export async function searchDrug(name: string, opts: { rows?: number } = {}): Promise<DrugSearchPage> {
   return fetchDrugs(`item_name=${encodeURIComponent(name)}`, opts.rows ?? 10)
 }
 
@@ -21,11 +27,11 @@ export async function searchDrug(name: string, opts: { rows?: number } = {}): Pr
  * 12자리로도 13자리 제품이 나옴) 응답의 BAR_CODE 목록에 찍은 번호가 그대로 있는 것만 남긴다.
  */
 export async function searchDrugByBarcode(code: string): Promise<NedrugItem[]> {
-  const items = await fetchDrugs(`bar_code=${encodeURIComponent(code)}`, 10)
+  const { items } = await fetchDrugs(`bar_code=${encodeURIComponent(code)}`, 10)
   return items.filter((item) => (item.BAR_CODE ?? '').split(',').some((c) => c.trim() === code))
 }
 
-async function fetchDrugs(filter: string, rows: number): Promise<NedrugItem[]> {
+async function fetchDrugs(filter: string, rows: number): Promise<DrugSearchPage> {
   const url =
     `${NEDRUG_BASE}/getDrugPrdtPrmsnDtlInq06` +
     `?type=json` +
@@ -55,5 +61,11 @@ async function fetchDrugs(filter: string, rows: number): Promise<NedrugItem[]> {
     )
   }
 
-  return data.body?.items ?? []
+  // 결과 코드가 정상이 아니면 "결과 없음"이 아니라 실패다. 502로 던져 "식약처 서버가 잠시 응답하지 않아요"로 안내한다
+  const code = data.header?.resultCode
+  if (code && code !== '00') {
+    throw new NedrugRequestError(502, `식약처 API 결과 코드 ${code} ${data.header?.resultMsg ?? ''}`.trim())
+  }
+  const items = data.body?.items ?? []
+  return { items, total: Number(data.body?.totalCount ?? items.length) }
 }

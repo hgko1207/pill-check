@@ -23,6 +23,8 @@ export interface NedrugItem {
 }
 
 export interface NedrugSearchResponse {
+  /** 식약처는 오류도 HTTP 200으로 보낸다: resultCode가 "00"이 아니면 실패 (2026-11-21 확인) */
+  header?: { resultCode?: string; resultMsg?: string }
   body?: {
     items?: NedrugItem[]
     totalCount?: number

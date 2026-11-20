@@ -134,21 +134,30 @@ export class FoodSafetyAuthError extends Error {
   }
 }
 
+/**
+ * 영양제 이름 검색 한 쪽. total은 같은 이름 묶기 전 전체 건수(total_count)라서
+ * 받은 행 수보다 크면 잘린 것이다 (plan.md 62, 2026-11-21 확인: "비타민" 4976)
+ */
 export async function searchHealthFood(
   name: string,
   opts: { rows?: number } = {},
-): Promise<HealthFoodItem[]> {
+): Promise<{ items: HealthFoodItem[]; total: number }> {
   const filter = `PRDLST_NM=${encodeURIComponent(name)}`
-  return fetchService<HealthFoodItem>(SERVICE_HEALTHFOOD, 1, opts.rows ?? 10, filter)
+  const { rows, total } = await fetchServicePage<HealthFoodItem>(SERVICE_HEALTHFOOD, 1, opts.rows ?? 10, filter)
+  return { items: rows, total }
 }
 
 /** 식품안전나라 서비스 한 페이지. 결과 코드가 INFO-000이 아니면(INFO-200 = 데이터 없음 등) 빈 배열 */
-async function fetchService<T>(
+async function fetchService<T>(service: string, start: number, end: number, filter = ''): Promise<T[]> {
+  return (await fetchServicePage<T>(service, start, end, filter)).rows
+}
+
+async function fetchServicePage<T>(
   service: string,
   start: number,
   end: number,
   filter = '',
-): Promise<T[]> {
+): Promise<{ rows: T[]; total: number }> {
   const url = `${BASE}/api/${service}/json/${start}/${end}${filter ? `/${filter}` : ''}`
 
   let res: Response
@@ -179,14 +188,15 @@ async function fetchService<T>(
   }
 
   const body = data[service]
-  if (!body) return []
+  if (!body) return { rows: [], total: 0 }
 
   // 결과 코드 INFO-200 = 데이터 없음 (정상)
   if (body.RESULT?.CODE && body.RESULT.CODE !== 'INFO-000') {
-    return []
+    return { rows: [], total: 0 }
   }
 
-  return body.row ?? []
+  const rows = body.row ?? []
+  return { rows, total: Number(body.total_count ?? rows.length) || rows.length }
 }
 
 /* ──────────────── 회수 이력 (I0490) ──────────────── */
