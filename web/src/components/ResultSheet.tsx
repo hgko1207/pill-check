@@ -5,7 +5,7 @@ import type { RegisteredMedication } from '../lib/db'
 import { generateExplanation, getRemainingQuota, LLM_DAILY_LIMIT } from '../lib/llm'
 import { buildLLMPrompt } from '../lib/promptBuilder'
 import { friendlyError } from '../lib/errors'
-import { medKey } from '../lib/dur-match'
+import { EFFICACY_SOURCE, medKey } from '../lib/dur-match'
 import { useBackClose } from '../lib/back-close'
 
 const VERDICT_ICON = {
@@ -192,7 +192,15 @@ export function ResultSheet({ result, product, registered, onClose, onCheckAnoth
                         )}
                         {hits.map((d, i) => (
                           <p key={i} className="compare-row__why">
-                            <b>{d.conflictWith}</b> 성분이 문제가&nbsp;돼요
+                            {d.source === EFFICACY_SOURCE ? (
+                              <>
+                                같은 종류의 약이에요: <b>{d.conflictWith}</b>
+                              </>
+                            ) : (
+                              <>
+                                <b>{d.conflictWith}</b> 성분이 문제가&nbsp;돼요
+                              </>
+                            )}
                             {d.prohbtContent && (
                               <>
                                 <br />
@@ -297,6 +305,7 @@ export function ResultSheet({ result, product, registered, onClose, onCheckAnoth
 const SOURCE_LABEL: Record<string, string> = {
   병용금기: '"함께 먹으면 안 되는 약"',
   병용주의: '"함께 먹을 때 주의할 약"',
+  [EFFICACY_SOURCE]: '"같은 효능의 약 중복"',
 }
 
 function uniqueSources(details: { source: string }[]): string {

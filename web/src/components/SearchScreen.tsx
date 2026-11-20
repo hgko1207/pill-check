@@ -301,6 +301,7 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
 
   /**
    * 방금 등록한 약이 다른 내 약과 병용금기면 알린다 (plan.md 61). 등록은 막지 않는다 — "이미 먹고 있다"는 뜻이라서.
+   * 효능군중복(노랑)은 대화상자로 띄우지 않고 내 약 탭 안내로만 보여 준다 (알림 피로를 줄이려고, plan.md 64).
    * 대조가 실패하면 조용히 넘어간다: 내 약 탭이 "확인하지 못했어요"로 알린다.
    */
   async function warnConflictsWith(item: UnifiedSearchResult, list: RegisteredMedication[]) {
@@ -309,7 +310,9 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
     let pairs: string[]
     try {
       const { conflicts } = await findConflictsAmong(list)
-      pairs = conflicts.filter((c) => c.aKey === key || c.bKey === key).map((c) => pairLabel(c.aName, c.bName))
+      pairs = conflicts
+        .filter((c) => c.severity === 'danger' && (c.aKey === key || c.bKey === key))
+        .map((c) => pairLabel(c.aName, c.bName))
     } catch {
       return
     }

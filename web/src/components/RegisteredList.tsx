@@ -8,7 +8,7 @@ import {
 } from '../lib/db'
 import { useDialog } from '../lib/dialog'
 import { findConflictsAmong, type AmongResult } from '../lib/dur'
-import { MedsDurNotice } from './MedsDurNotice'
+import { MedFlag, MedsDurNotice } from './MedsDurNotice'
 
 interface Props {
   refreshSignal?: number
@@ -124,9 +124,7 @@ export function RegisteredList({ refreshSignal, onChange, onAdd }: Props) {
               <div className="row__body">
                 <div className="row__title">
                   {m.itemName}
-                  {dur?.conflicts.some((c) => c.aKey === `${m.kind}:${m.itemSeq}` || c.bKey === `${m.kind}:${m.itemSeq}`) && (
-                    <span className="status status--danger family-meds__flag">확인 필요</span>
-                  )}
+                  <MedFlag result={dur} kind={m.kind} itemSeq={m.itemSeq} />
                 </div>
                 <div className="row__sub">{m.kind === 'healthfood' ? '영양제' : '의약품'}</div>
                 {m.manufacturer && <div className="row__sub">{m.manufacturer}</div>}

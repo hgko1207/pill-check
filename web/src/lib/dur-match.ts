@@ -154,3 +154,54 @@ export function findDurConflicts(product: DurSide, registered: DurSide[], rows: 
   }
   return out
 }
+
+/**
+ * 효능군중복 행 (getEfcyDplctInfoList03, 2026-11-21 실제 응답으로 확인).
+ * 짝이 아니라 약 하나에 효능군(EFFECT_NAME)과 계열(SERS_NAME)이 붙는다. 복합제는 같은 계열 행이 여럿일 수 있다.
+ */
+export interface EfcyRow {
+  ITEM_SEQ?: string
+  EFFECT_NAME?: string
+  SERS_NAME?: string
+  INGR_NAME?: string
+  PROHBT_CONTENT?: string | null
+}
+
+export const EFFICACY_SOURCE = '효능군중복'
+
+/** 그 약이 속한 묶음: "효능군|계열" → 그 행 (plan.md 64 결정: 효능군과 계열이 둘 다 같아야 중복) */
+function efficacyGroups(side: DurSide, rows: EfcyRow[]): Map<string, EfcyRow> {
+  const out = new Map<string, EfcyRow>()
+  if (side.kind !== 'drug' || !side.id) return out
+  for (const r of rows) {
+    if (r.ITEM_SEQ !== side.id || !r.EFFECT_NAME) continue
+    const key = `${r.EFFECT_NAME}|${r.SERS_NAME ?? ''}`
+    if (!out.has(key)) out.set(key, r)
+  }
+  return out
+}
+
+/**
+ * 확인 제품과 같은 효능군·같은 계열인 내 의약품을 찾는다 (노랑 주의).
+ * - 의약품끼리만 본다. 확인 제품과 같은 품목은 건너뛴다.
+ * - conflictWith는 효능군 이름(예: 해열진통소염제). 묶음마다 한 번만.
+ */
+export function findEfficacyDuplicates(product: DurSide, registered: DurSide[], rows: EfcyRow[]): DurConflict[] {
+  const mine = efficacyGroups(product, rows)
+  if (mine.size === 0) return []
+  const out: DurConflict[] = []
+  for (const med of registered) {
+    if (isSameProduct(med, product)) continue
+    for (const [key, row] of efficacyGroups(med, rows)) {
+      if (!mine.has(key)) continue
+      out.push({
+        registeredMedName: med.name,
+        conflictWith: row.EFFECT_NAME ?? '',
+        severity: 'warn',
+        source: EFFICACY_SOURCE,
+        prohbtContent: mine.get(key)?.PROHBT_CONTENT || row.PROHBT_CONTENT || undefined,
+      })
+    }
+  }
+  return out
+}

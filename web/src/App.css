@@ -1202,6 +1202,8 @@ html[data-theme='dark'] .segmented__btn[aria-checked='true'] { background: var(-
 .family-dur > svg { width: 22px; height: 22px; flex: none; margin-top: 1px; }
 .family-dur--danger { background: var(--pc-danger-bg); color: var(--pc-danger-ink); }
 .family-dur--danger > svg { color: var(--pc-danger); }
+.family-dur--warn { background: var(--pc-warn-bg); color: var(--pc-warn-ink); }
+.family-dur--warn > svg { color: var(--pc-warn); }
 .family-dur--unknown { background: var(--pc-unknown-bg); color: var(--pc-unknown-ink); }
 .family-dur--unknown > svg { color: var(--pc-unknown); }
 .family-dur__pairs { margin: 6px 0 0; padding-left: 1.1em; }

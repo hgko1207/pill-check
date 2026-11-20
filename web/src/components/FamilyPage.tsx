@@ -4,7 +4,7 @@ import { useDialog } from '../lib/dialog'
 import { friendlyError } from '../lib/errors'
 import { disableGoogleAutoSelect } from '../lib/auth'
 import { findConflictsAmong, type AmongResult } from '../lib/dur'
-import { MedsDurNotice } from './MedsDurNotice'
+import { MedFlag, MedsDurNotice } from './MedsDurNotice'
 import {
   clearPendingJoin,
   getFamilyView,
@@ -432,9 +432,7 @@ export function FamilyPage() {
                       <li key={med.itemSeq} className="family-meds__item">
                         <span className="family-meds__name">
                           {med.itemName}
-                          {durResults[durKey(m)]?.conflicts.some(
-                            (c) => c.aKey === `${med.kind}:${med.itemSeq}` || c.bKey === `${med.kind}:${med.itemSeq}`,
-                          ) && <span className="status status--danger family-meds__flag">확인 필요</span>}
+                          <MedFlag result={durResults[durKey(m)]} kind={med.kind} itemSeq={med.itemSeq} />
                         </span>
                         <span className={`tag ${med.kind === 'healthfood' ? '' : 'tag--primary'}`}>
                           {med.kind === 'healthfood' ? '영양제' : '의약품'}
