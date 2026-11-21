@@ -507,6 +507,8 @@ button.row:active, a.row:active { background: var(--pc-pressed); }
 .elderly-box { margin-top: 16px; }
 .elderly-box p { margin: 6px 0 0; word-break: keep-all; overflow-wrap: anywhere; }
 .elderly-box__title { display: block; }
+.elderly-box__more { margin-top: 4px; }
+.elderly-box__more .disclosure__summary::after { border-color: currentColor; }
 .notice--warn > svg { color: var(--pc-warn); }
 .notice--info { background: var(--pc-primary-soft); color: var(--pc-primary-deep); }
 .notice--success { background: var(--pc-safe-bg); color: var(--pc-safe-ink); }
