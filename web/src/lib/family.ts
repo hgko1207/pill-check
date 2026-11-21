@@ -371,7 +371,7 @@ export async function settleAfterJoin(res: JoinResult, ask: (count: number) => P
         })
         restored++
       } catch {
-        // 중복·10개 한도는 건너뛴다
+        // 중복·등록 한도는 건너뛴다
       }
     }
   }

@@ -46,7 +46,7 @@ Mode: Builder (with possible launch path)
 
 - **스택:** Vite + React + TypeScript + html5-qrcode + Dexie(IndexedDB) + 식약처 OpenAPI (의약품안전나라 + 식품안전나라) + Service Worker(오프라인 캐시) + Vercel/Cloudflare Pages 호스팅
 - **양 OS 단일 코드베이스:** 부모님(Android Chrome) + 자녀 본인(iOS Safari) 동일 앱. **자녀의 매일 dogfooding이 부모님 베타 전 검증 사이클을 단축.**
-- **기능 범위:** ① 부모님 복용 처방약 1~10개 등록(검색 자동완성) → ② 영양제/일반약 바코드 스캔(html5-qrcode) → ③ 식약처 DUR 매칭 → 빨강/노랑/회색/초록 결과.
+- **기능 범위:** ① 부모님 복용 처방약 1~20개 등록(검색 자동완성) → ② 영양제/일반약 바코드 스캔(html5-qrcode) → ③ 식약처 DUR 매칭 → 빨강/노랑/회색/초록 결과.
 - **Capacitor fallback 트리거:** Week 0 GATE 또는 부모님 베타에서 PWA 바코드 인식률 < 70%면 Capacitor wrap → 네이티브 ML Kit 카메라로 전환. 코드 90% 재사용.
 - **Effort:** CC+gstack ~3~4주말 / 솔로 인간 ~6주 (네이티브 대비 빠름)
 - **Completeness:** 7/10 (happy path + 명확한 한계 표시, edge case는 V1.5)
@@ -115,7 +115,7 @@ V2(공식 오픈) 시 법률 검토 후 갱신.
 
 **V1 출시 = 검색 자동완성만.** 부모님이 약 이름 일부만 알면 등록 가능해야 함.
 
-**최대 등록 개수:** 10개 (UI 안정성 위해 cap, 실제 60대 평균 복용약 5~7개 커버). 11번째 등록 시 "기존 약 정리 후 추가하세요" 안내.
+**최대 등록 개수:** 20개 (2026-11-21 10개에서 늘림, plan.md 68 — 약이 많은 어르신 대비). 21번째 등록 시 "기존 약 정리 후 추가하세요" 안내.
 
 **개인정보 보호:** 처방약 데이터는 디바이스 로컬 only (Room). 백업 없음. 앱 삭제·디바이스 분실 시 데이터 손실 ← V1에서 명시적으로 trade-off (단순함 우선). V2에서 암호화 백업 검토.
 
