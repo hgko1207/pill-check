@@ -13,7 +13,7 @@ import {
 import { searchDrug, searchDrugByBarcode } from '../lib/nedrug-api'
 import { searchHealthFood, groupSameName } from '../lib/healthfood-api'
 import { addMedication, listMedications } from '../lib/db'
-import { checkInteraction } from '../lib/dur'
+import { checkInteraction, findConflictsAmong } from '../lib/dur'
 import { friendlyError } from '../lib/errors'
 import { useDialog } from '../lib/dialog'
 import type { NedrugItem, InteractionResult, UnifiedSearchResult } from '../lib/types'
@@ -24,6 +24,7 @@ import { TvIngredientSheet } from './TvIngredientSheet'
 import { ResultSheet } from './ResultSheet'
 import { IngredientCard } from './IngredientCard'
 import { Disclaimer } from './Disclaimer'
+import { pairLabel } from './MedsDurNotice'
 import type { DetailTarget } from './DetailModal'
 
 interface Props {
@@ -34,6 +35,8 @@ interface Props {
   onOpenDetail?: (target: DetailTarget) => void
   /** "내 약" 탭으로 이동 */
   onShowMeds?: () => void
+  /** 확인 탭이 보이는 중인가. 숨겨지면 덮는 화면을 닫는다 (뒤로 가기 기록이 숨은 화면에 남지 않게, plan.md 63) */
+  active?: boolean
   /** 지금 탭을 다시 누르면 바뀌는 값: 결과 화면을 닫고 처음으로 */
   rootSignal?: number
 }
@@ -107,7 +110,7 @@ function useDelayed<T>(value: T | null, ms: number): T | null {
   return shown
 }
 
-export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail, onShowMeds, rootSignal }: Props) {
+export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail, onShowMeds, rootSignal, active = true }: Props) {
   const [query, setQuery] = useState('')
   /** 마지막으로 검색한 말 (입력 중인 query와 구분) */
   const [searchedTerm, setSearchedTerm] = useState('')
@@ -117,6 +120,8 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
   /** 검색할 때마다 1씩 올린다. 늦게 온 이전 검색의 응답은 버린다 */
   const searchSeq = useRef(0)
   const [results, setResults] = useState<SearchResultWithRaw[] | null>(null)
+  /** 의약품이나 영양제 결과가 전체 건수보다 적게 왔다 (종류별 10건까지만 받는다, plan.md 62) */
+  const [truncated, setTruncated] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [warn, setWarn] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
@@ -132,7 +137,7 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
   const showPending = useDelayed(actionPending, 300)
   const [registered, setRegistered] = useState<RegisteredMedication[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
-  const { toast } = useDialog()
+  const { confirm, toast } = useDialog()
 
   useEffect(() => {
     let cancelled = false
@@ -143,6 +148,14 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
       cancelled = true
     }
   }, [refreshSignal])
+
+  // 다른 탭으로 가면 덮는 화면을 닫는다. 검색어와 결과는 남긴다
+  useEffect(() => {
+    if (active) return
+    setInteractionContext(null)
+    setScannerOpen(false)
+    setTvOpen(false)
+  }, [active])
 
   // 확인 탭을 다시 누르면 결과 화면을 닫는다 (앱의 탭 다시 누르기 동작)
   useEffect(() => {
@@ -168,14 +181,17 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
 
       // 영양제는 따로 받는다: 식품안전나라가 멈추면 함수가 12초 뒤에야 실패를 준다 (plan.md 57·59)
       const hfTask = searchHealthFood(q).then(
-        (items) => ({ items: healthFoodResults(items), error: null }),
-        (e: unknown) => ({ items: [] as HealthFoodWithRaw[], error: friendlyError(e) }),
+        (page) => ({ items: healthFoodResults(page.items), cut: page.total > page.items.length, error: null }),
+        (e: unknown) => ({ items: [] as HealthFoodWithRaw[], cut: false, error: friendlyError(e) }),
       )
 
       const drugs: SearchResultWithRaw[] = []
       let drugError: string | null = null
+      let drugCut = false
       try {
-        for (const item of await searchDrug(q)) {
+        const page = await searchDrug(q)
+        drugCut = page.total > page.items.length
+        for (const item of page.items) {
           const adapted = adaptDrug(item)
           if (adapted) drugs.push(adapted)
         }
@@ -190,6 +206,7 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
       if (drugs.length > 0) {
         setSearchedTerm(q)
         setResults(drugs)
+        setTruncated(drugCut)
         setLoading(false)
         setHfPending(true)
       }
@@ -198,6 +215,7 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
       if (!isCurrent()) return
       setSearchedTerm(q)
       setResults([...drugs, ...hf.items])
+      setTruncated(drugCut || hf.cut)
       // 의약품 검색이 실패하면 오류, 영양제만 실패하면 경고 (의약품 결과는 살아 있음)
       if (drugError) setError(drugError)
       else if (hf.error) setWarn(hf.error)
@@ -231,6 +249,7 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
         setQuery(drugs[0].name)
         setSearchedTerm(drugs[0].name)
         setResults(drugs)
+        setTruncated(false)
       }
     } catch (e) {
       setError(friendlyError(e))
@@ -248,6 +267,7 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
   function clearSearch() {
     setQuery('')
     setResults(null)
+    setTruncated(false)
     setSearchedTerm('')
     setError(null)
     setWarn(null)
@@ -267,14 +287,54 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
         manufacturer: item.manufacturer,
         mainIngredient: item.ingredient,
       })
-      setRegistered(await listMedications())
+      const list = await listMedications()
+      setRegistered(list)
       toast(`${item.name} 내\u00A0약에 등록했어요.`, 'success')
       onMedicationsChanged?.()
+      void warnConflictsWith(item, list)
     } catch (e) {
       setError(friendlyError(e))
     } finally {
       setActionPending(null)
     }
+  }
+
+  /**
+   * 방금 등록한 약이 다른 내 약과 병용금기면 알린다 (plan.md 61). 등록은 막지 않는다 — "이미 먹고 있다"는 뜻이라서.
+   * 효능군중복(노랑)은 대화상자로 띄우지 않고 내 약 탭 안내로만 보여 준다 (알림 피로를 줄이려고, plan.md 64).
+   * 대조가 실패하면 조용히 넘어간다: 내 약 탭이 "확인하지 못했어요"로 알린다.
+   */
+  async function warnConflictsWith(item: UnifiedSearchResult, list: RegisteredMedication[]) {
+    if (list.length < 2) return
+    const key = `${item.kind}:${item.id}`
+    let pairs: string[]
+    try {
+      const { conflicts } = await findConflictsAmong(list)
+      pairs = conflicts
+        .filter((c) => c.severity === 'danger' && (c.aKey === key || c.bKey === key))
+        .map((c) => pairLabel(c.aName, c.bName))
+    } catch {
+      return
+    }
+    if (pairs.length === 0) return
+    const ok = await confirm({
+      title: '함께 드시면 안 되는 약이 있어요',
+      message: (
+        <>
+          {pairs.map((p) => (
+            <span key={p}>
+              <b>{p}</b>
+              <br />
+            </span>
+          ))}
+          식약처 자료 기준 참고용이에요. 드시기 전에 약사에게 물어봐&nbsp;주세요.
+        </>
+      ),
+      confirmLabel: '내 약 보기',
+      cancelLabel: '닫기',
+      variant: 'danger',
+    })
+    if (ok) onShowMeds?.()
   }
 
   // 결과 화면의 "다시 확인"도 이 함수를 쓴다 (그쪽은 raw 없는 UnifiedSearchResult만 갖고 있다)
@@ -518,6 +578,12 @@ export function SearchScreen({ onMedicationsChanged, refreshSignal, onOpenDetail
             <p className="loading-line" role="status">
               <span className="spinner" aria-hidden="true" /> 영양제도 찾고 있어요
             </p>
+          )}
+          {truncated && results.length > 0 && (
+            <div className="notice notice--info" role="status">
+              <Info aria-hidden="true" />
+              <span>결과가 많아 일부만 보여요. 찾는 제품이 없으면 제품 이름을 더 자세히 넣어&nbsp;보세요.</span>
+            </div>
           )}
           <Disclaimer />
         </>

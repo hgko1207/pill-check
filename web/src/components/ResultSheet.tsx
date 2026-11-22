@@ -5,7 +5,7 @@ import type { RegisteredMedication } from '../lib/db'
 import { generateExplanation, getRemainingQuota, LLM_DAILY_LIMIT } from '../lib/llm'
 import { buildLLMPrompt } from '../lib/promptBuilder'
 import { friendlyError } from '../lib/errors'
-import { medKey } from '../lib/dur-match'
+import { EFFICACY_SOURCE, medKey } from '../lib/dur-match'
 import { useBackClose } from '../lib/back-close'
 
 const VERDICT_ICON = {
@@ -156,6 +156,24 @@ export function ResultSheet({ result, product, registered, onClose, onCheckAnoth
           {hasSame && <p className="verdict__source">같은 성분 근거: 식약처에 신고한 재료&nbsp;이름</p>}
         </section>
 
+        {/* 노인주의: 약 궁합 색과 따로, 확인한 약 자체에 대한 안내 (plan.md 65) */}
+        {result.elderly && (
+          <div className="notice notice--warn elderly-box" role="note">
+            <TriangleAlert aria-hidden="true" />
+            <div>
+              <b className="elderly-box__title">65세 이상 어르신은 주의가 필요한 약이에요</b>
+              <p>
+                식약처가 어르신께 주의하라고 정한 성분이 들어 있어요:{' '}
+                <b>{result.elderly.ingredients.join(', ') || product.name}</b>
+              </p>
+              {result.elderly.contents.map((c) => (
+                <p key={c}>{c}</p>
+              ))}
+              <p>드시기 전에 약사나 의사에게 물어보세요.</p>
+            </div>
+          </div>
+        )}
+
         {result.checked && (
           <>
             <h2 className="group-label">
@@ -192,7 +210,15 @@ export function ResultSheet({ result, product, registered, onClose, onCheckAnoth
                         )}
                         {hits.map((d, i) => (
                           <p key={i} className="compare-row__why">
-                            <b>{d.conflictWith}</b> 성분이 문제가&nbsp;돼요
+                            {d.source === EFFICACY_SOURCE ? (
+                              <>
+                                같은 종류의 약이에요: <b>{d.conflictWith}</b>
+                              </>
+                            ) : (
+                              <>
+                                <b>{d.conflictWith}</b> 성분이 문제가&nbsp;돼요
+                              </>
+                            )}
                             {d.prohbtContent && (
                               <>
                                 <br />
@@ -297,6 +323,7 @@ export function ResultSheet({ result, product, registered, onClose, onCheckAnoth
 const SOURCE_LABEL: Record<string, string> = {
   병용금기: '"함께 먹으면 안 되는 약"',
   병용주의: '"함께 먹을 때 주의할 약"',
+  [EFFICACY_SOURCE]: '"같은 효능의 약 중복"',
 }
 
 function uniqueSources(details: { source: string }[]): string {

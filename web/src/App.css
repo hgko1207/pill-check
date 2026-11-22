@@ -503,6 +503,10 @@ button.row:active, a.row:active { background: var(--pc-pressed); }
 .notice--error { background: var(--pc-danger-bg); color: var(--pc-danger-ink); }
 .notice--error > svg { color: var(--pc-danger); }
 .notice--warn { background: var(--pc-warn-bg); color: var(--pc-warn-ink); }
+/* 결과 화면 노인주의 상자 (plan.md 65) */
+.elderly-box { margin-top: 16px; }
+.elderly-box p { margin: 6px 0 0; word-break: keep-all; overflow-wrap: anywhere; }
+.elderly-box__title { display: block; }
 .notice--warn > svg { color: var(--pc-warn); }
 .notice--info { background: var(--pc-primary-soft); color: var(--pc-primary-deep); }
 .notice--success { background: var(--pc-safe-bg); color: var(--pc-safe-ink); }
@@ -1202,11 +1206,16 @@ html[data-theme='dark'] .segmented__btn[aria-checked='true'] { background: var(-
 .family-dur > svg { width: 22px; height: 22px; flex: none; margin-top: 1px; }
 .family-dur--danger { background: var(--pc-danger-bg); color: var(--pc-danger-ink); }
 .family-dur--danger > svg { color: var(--pc-danger); }
+.family-dur--warn { background: var(--pc-warn-bg); color: var(--pc-warn-ink); }
+.family-dur--warn > svg { color: var(--pc-warn); }
 .family-dur--unknown { background: var(--pc-unknown-bg); color: var(--pc-unknown-ink); }
 .family-dur--unknown > svg { color: var(--pc-unknown); }
 .family-dur__pairs { margin: 6px 0 0; padding-left: 1.1em; }
 .family-dur__pairs li { word-break: keep-all; overflow-wrap: anywhere; }
 .family-dur__next { display: block; margin-top: 6px; }
+/* 내 약 탭: 목록 묶음과 같은 화면 폭 여백 (plan.md 61) */
+.family-dur--page { margin: 16px var(--pc-gutter) 0; }
+.family-dur__retry { display: flex; margin-top: 10px; }
 .family-meds__flag { margin-left: 8px; vertical-align: 1px; }
 .family-meds__empty { margin: 0 18px 0 70px; padding: 0 0 14px; font-size: var(--fs-body); line-height: 1.55; color: var(--pc-text-subtle); }
 .family-member__actions { display: flex; justify-content: flex-end; flex-wrap: wrap; padding: 0 6px 6px; }
