@@ -11,6 +11,7 @@
  */
 
 import { fetchWithTimeout, isTimeoutError } from './fetch-timeout'
+import { healthFoodQuery } from './search-query'
 
 // dev는 Vite 프록시, 배포본은 Cloudflare Pages Function(functions/api/foodsafety)이 같은 경로를 받아 키를 끼운다
 const BASE = '/api/foodsafety'
@@ -142,7 +143,9 @@ export async function searchHealthFood(
   name: string,
   opts: { rows?: number } = {},
 ): Promise<{ items: HealthFoodItem[]; total: number }> {
-  const filter = `PRDLST_NM=${encodeURIComponent(name)}`
+  const q = healthFoodQuery(name)
+  if (!q) return { items: [], total: 0 }
+  const filter = `PRDLST_NM=${encodeURIComponent(q)}`
   const { rows, total } = await fetchServicePage<HealthFoodItem>(SERVICE_HEALTHFOOD, 1, opts.rows ?? 10, filter)
   return { items: rows, total }
 }

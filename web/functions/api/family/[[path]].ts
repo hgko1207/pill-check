@@ -114,7 +114,7 @@ interface InviteRow {
 const PREFIX = '/api/family/'
 const ALLOWED_ORIGINS = ['https://pill.hgko.dev', 'https://pill-check.pages.dev']
 /** 앱의 MAX_MEDICATIONS(src/lib/db.ts)와 같게 */
-const MAX_MEDS = 10
+const MAX_MEDS = 20
 const MAX_BODY_BYTES = 32 * 1024
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000
 const SESSION_TTL_MS = 90 * 24 * 60 * 60 * 1000

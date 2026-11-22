@@ -72,7 +72,7 @@ class PillCheckDB extends Dexie {
 
 export const db = new PillCheckDB()
 
-export const MAX_MEDICATIONS = 10
+export const MAX_MEDICATIONS = 20
 
 export async function listMedications(): Promise<RegisteredMedication[]> {
   return db.medications.orderBy('registeredAt').toArray()

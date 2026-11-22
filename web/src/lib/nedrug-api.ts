@@ -1,5 +1,6 @@
 import type { NedrugItem, NedrugSearchResponse } from './types'
 import { fetchWithTimeout, isTimeoutError } from './fetch-timeout'
+import { drugQuery } from './search-query'
 
 // 2026-05 fact-check: Service06 → Service07 (구버전 90일 후 중지). 검증된 endpoint.
 // dev는 Vite 프록시, 배포본은 Cloudflare Pages Function(functions/api/nedrug)이 같은 경로를 받아 키를 붙인다
@@ -19,7 +20,9 @@ export interface DrugSearchPage {
 }
 
 export async function searchDrug(name: string, opts: { rows?: number } = {}): Promise<DrugSearchPage> {
-  return fetchDrugs(`item_name=${encodeURIComponent(name)}`, opts.rows ?? 10)
+  const q = drugQuery(name)
+  if (!q) return { items: [], total: 0 }
+  return fetchDrugs(`item_name=${encodeURIComponent(q)}`, opts.rows ?? 10)
 }
 
 /**

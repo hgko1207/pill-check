@@ -162,14 +162,18 @@ export function ResultSheet({ result, product, registered, onClose, onCheckAnoth
             <TriangleAlert aria-hidden="true" />
             <div>
               <b className="elderly-box__title">65세 이상 어르신은 주의가 필요한 약이에요</b>
-              <p>
-                식약처가 어르신께 주의하라고 정한 성분이 들어 있어요:{' '}
-                <b>{result.elderly.ingredients.join(', ') || product.name}</b>
-              </p>
-              {result.elderly.contents.map((c) => (
-                <p key={c}>{c}</p>
-              ))}
               <p>드시기 전에 약사나 의사에게 물어보세요.</p>
+              {/* 흔한 약에도 자주 떠서 근거는 접어 둔다 (plan.md 66) */}
+              <details className="disclosure elderly-box__more">
+                <summary className="disclosure__summary">왜 그런지 보기</summary>
+                <p>
+                  식약처가 어르신께 주의하라고 정한 성분이 들어 있어요:{' '}
+                  <b>{result.elderly.ingredients.join(', ') || product.name}</b>
+                </p>
+                {result.elderly.contents.map((c) => (
+                  <p key={c}>식약처 안내 원문: {c}</p>
+                ))}
+              </details>
             </div>
           </div>
         )}
